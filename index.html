@@ -533,7 +533,35 @@ video { outline:none; }
 <div id="toast"></div>
 
 <!-- ===== ÉCRAN AUTH ===== -->
-<!-- ===== MODAL PROFIL ===== -->
+<!-- ===== MODAL AVATAR ÉDITEUR ===== -->
+<div id="avatar-editor-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:9500;align-items:center;justify-content:center;">
+  <div style="background:#111;border:1px solid #2a2a2a;width:100%;max-width:440px;padding:28px;position:relative;">
+    <button onclick="closeAvatarEditor()" style="position:absolute;top:14px;right:16px;background:none;border:none;color:#444;font-size:18px;cursor:pointer;">×</button>
+    <div style="font-size:10px;color:#555;letter-spacing:4px;text-transform:uppercase;margin-bottom:20px;">Vidéo de profil</div>
+
+    <!-- Preview caméra -->
+    <div style="position:relative;width:100%;aspect-ratio:16/9;background:#0d0d0d;border:1px solid #2a2a2a;overflow:hidden;margin-bottom:16px;">
+      <div id="cam-placeholder" style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:#333;">
+        <div style="font-size:32px;">📷</div>
+        <div style="font-size:10px;letter-spacing:3px;text-transform:uppercase;">Caméra non activée</div>
+      </div>
+      <video id="cam-preview" autoplay muted playsinline style="display:none;width:100%;height:100%;object-fit:cover;"></video>
+      <div id="rec-timer" style="display:none;position:absolute;top:10px;left:10px;font-size:11px;color:#c44;letter-spacing:2px;background:rgba(0,0,0,0.7);padding:4px 10px;"></div>
+    </div>
+
+    <!-- Boutons -->
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <button id="btn-start-cam" onclick="startCamera()" style="background:#fff;border:none;color:#000;font-family:Arial,sans-serif;font-size:10px;letter-spacing:3px;padding:12px;cursor:pointer;text-transform:uppercase;font-weight:700;">📷 ACTIVER LA CAMÉRA</button>
+      <button id="btn-record" onclick="startRecording()" style="display:none;background:rgba(200,50,50,0.1);border:1px solid #c44;color:#c44;font-family:Arial,sans-serif;font-size:10px;letter-spacing:3px;padding:12px;cursor:pointer;text-transform:uppercase;">⬤ COMMENCER L'ENREGISTREMENT (max 1 min)</button>
+      <button id="btn-stop" onclick="stopRecording()" style="display:none;background:#c44;border:none;color:#fff;font-family:Arial,sans-serif;font-size:10px;letter-spacing:3px;padding:12px;cursor:pointer;text-transform:uppercase;font-weight:700;">◼ ARRÊTER ET ENVOYER</button>
+      <div style="text-align:center;font-size:9px;color:#333;letter-spacing:2px;text-transform:uppercase;margin:4px 0;">— ou —</div>
+      <button onclick="triggerFileUpload()" style="background:none;border:1px solid #2a2a2a;color:#555;font-family:Arial,sans-serif;font-size:10px;letter-spacing:3px;padding:12px;cursor:pointer;text-transform:uppercase;transition:all 0.15s;" onmouseover="this.style.borderColor='#fff';this.style.color='#fff'" onmouseout="this.style.borderColor='#2a2a2a';this.style.color='#555'">⬆ UPLOADER UNE VIDÉO</button>
+      <input type="file" id="avatar-file-input" accept="video/*" style="display:none;" onchange="handleFileUpload(this)">
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PROFIL -->
 <div id="profil-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:8000;align-items:center;justify-content:center;">
   <div style="background:#111;border:1px solid #2a2a2a;width:100%;max-width:380px;padding:32px;position:relative;">
     <button onclick="closeProfilModal()" style="position:absolute;top:16px;right:16px;background:none;border:none;color:#444;font-size:18px;cursor:pointer;transition:color 0.15s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#444'">×</button>
@@ -589,7 +617,14 @@ video { outline:none; }
     <!-- Vue connecté -->
     <div id="profil-connected-view" style="display:none;">
       <div style="text-align:center;margin-bottom:24px;">
-        <div style="width:56px;height:56px;border-radius:50%;background:#1a1a1a;border:1px solid #2a2a2a;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:20px;font-weight:700;color:#fff;" id="profil-avatar">?</div>
+        <!-- Avatar cliquable — ouvre caméra ou upload -->
+        <div style="position:relative;width:80px;height:80px;margin:0 auto 12px;cursor:pointer;" onclick="openAvatarEditor()" title="Cliquer pour changer ta vidéo de profil">
+          <div id="profil-avatar-wrap" style="width:80px;height:80px;border-radius:50%;overflow:hidden;background:#1a1a1a;border:2px solid #2a2a2a;display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:700;color:#fff;transition:border-color 0.2s;" onmouseover="this.style.borderColor='#fff'" onmouseout="this.style.borderColor='#2a2a2a'">
+            <span id="profil-avatar">?</span>
+            <video id="profil-avatar-video" style="display:none;width:100%;height:100%;object-fit:cover;" autoplay muted loop playsinline></video>
+          </div>
+          <div style="position:absolute;bottom:0;right:0;width:24px;height:24px;background:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;">📷</div>
+        </div>
         <div id="profil-nom" style="font-size:14px;font-weight:700;color:#fff;letter-spacing:2px;text-transform:uppercase;"></div>
         <div id="profil-email-display" style="font-size:11px;color:#444;margin-top:4px;"></div>
       </div>
@@ -609,7 +644,7 @@ video { outline:none; }
   <button class="nav-btn active" id="nav-film" onclick="navTo('film',this)">Film</button>
   <button class="nav-btn" id="nav-admin" onclick="checkAuthAndGoAdmin(this)">Réalisateur</button>
   <button class="nav-btn" id="nav-creations" onclick="navTo('creations',this)">Nos Créations</button>
-  <button class="nav-btn" id="nav-messages" onclick="navTo('messages',this)" style="display:none;">💬 Messages <span id="msg-badge" style="display:none;background:#fff;color:#000;font-size:8px;padding:2px 5px;border-radius:10px;margin-left:4px;font-weight:700;">0</span></button>
+  <button class="nav-btn" id="nav-membres" onclick="navTo('membres',this)" style="display:none;">Membres</button>
   <div style="flex:1;"></div>
   <button class="nav-btn" id="nav-profil" onclick="openProfilModal()" style="border-left:1px solid #2e2e2e;">
     <span id="nav-profil-label">⬤ Profil</span>
@@ -825,42 +860,53 @@ video { outline:none; }
   </div>
 </div><!-- end page-admin -->
 
-<!-- ===== PAGE MESSAGES ===== -->
-<div id="page-messages" class="page">
-  <div class="msg-layout">
-    <!-- Sidebar contacts -->
-    <div class="msg-sidebar">
-      <div class="msg-sidebar-header">Messages</div>
-      <div class="msg-search">
-        <input type="text" placeholder="Chercher un membre..." id="msg-search-input" oninput="filterContacts(this.value)">
+<!-- ===== PAGE MEMBRES ===== -->
+<div id="page-membres" class="page">
+  <div style="background:#000;border-bottom:1px solid #2e2e2e;padding:40px 32px 20px;">
+    <div style="font-size:10px;color:#555;letter-spacing:5px;text-transform:uppercase;margin-bottom:8px;">CINÉMA INTERACTIF</div>
+    <div style="font-size:clamp(24px,5vw,42px);font-weight:700;color:#fff;letter-spacing:6px;text-transform:uppercase;">MEMBRES</div>
+    <div style="font-size:11px;color:#444;letter-spacing:2px;margin-top:6px;" id="membres-count">— membres</div>
+  </div>
+  <div style="max-width:1100px;margin:0 auto;padding:32px;" id="membres-grid"></div>
+</div>
+
+<!-- ===== MODAL CHAT ===== -->
+<div id="chat-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:9000;align-items:flex-end;justify-content:flex-end;padding:0;">
+  <div style="background:#111;border:1px solid #2a2a2a;border-bottom:none;width:100%;max-width:420px;height:70vh;display:flex;flex-direction:column;">
+    <!-- Header -->
+    <div style="padding:16px 20px;border-bottom:1px solid #1a1a1a;display:flex;align-items:center;justify-content:space-between;background:#0d0d0d;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div class="msg-contact-avatar" id="chat-modal-avatar">?</div>
+        <div>
+          <div style="font-size:13px;font-weight:700;color:#fff;" id="chat-modal-name"></div>
+          <div style="font-size:9px;color:#444;letter-spacing:2px;text-transform:uppercase;" id="chat-modal-plan"></div>
+        </div>
       </div>
-      <div id="msg-contacts-list" style="flex:1;overflow-y:auto;"></div>
+      <button onclick="closeChatModal()" style="background:none;border:none;color:#444;font-size:20px;cursor:pointer;transition:color 0.15s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#444'">×</button>
     </div>
-    <!-- Zone de chat -->
-    <div class="msg-main" id="msg-main">
-      <div class="msg-main-empty" id="msg-empty">Sélectionne un membre pour commencer</div>
-      <div id="msg-chat-area" style="display:none;flex:1;flex-direction:column;display:none;">
-        <div class="msg-main-header" id="msg-chat-header">
-          <div class="msg-contact-avatar" id="chat-avatar">?</div>
-          <div>
-            <div style="font-size:13px;font-weight:700;color:#fff;" id="chat-name"></div>
-            <div style="font-size:10px;color:#444;" id="chat-status">En ligne</div>
-          </div>
-        </div>
-        <div class="msg-messages" id="msg-messages-list"></div>
-        <div class="msg-input-area">
-          <textarea class="msg-input" id="msg-input" placeholder="Écrire un message..." rows="1" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage();}"></textarea>
-          <button class="msg-send-btn" onclick="sendMessage()">Envoyer</button>
-        </div>
-      </div>
+    <!-- Messages -->
+    <div class="msg-messages" id="chat-modal-messages" style="flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:8px;"></div>
+    <!-- Input -->
+    <div style="padding:12px 20px;border-top:1px solid #1a1a1a;display:flex;gap:8px;background:#0d0d0d;">
+      <textarea class="msg-input" id="chat-modal-input" placeholder="Écrire un message..." rows="1" style="flex:1;" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChatMessage();}"></textarea>
+      <button class="msg-send-btn" onclick="sendChatMessage()">↑</button>
     </div>
   </div>
 </div>
 
-<!-- Icône flottante messages -->
-<div id="msg-float" onclick="navTo('messages',document.getElementById('nav-messages'))">
+<!-- Bulle flottante conversations — bas à droite -->
+<div id="msg-float" onclick="toggleConversations()" style="position:fixed;bottom:24px;right:24px;z-index:800;background:#fff;color:#000;width:52px;height:52px;border-radius:50%;display:none;align-items:center;justify-content:center;font-size:22px;cursor:pointer;box-shadow:0 4px 20px rgba(0,0,0,0.5);transition:transform 0.2s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
   💬
-  <div id="msg-float-badge"></div>
+  <div id="msg-float-badge" style="position:absolute;top:-4px;right:-4px;background:#c44;color:#fff;font-size:8px;font-weight:700;padding:2px 6px;border-radius:10px;display:none;"></div>
+</div>
+
+<!-- Panel toutes conversations -->
+<div id="conversations-panel" style="display:none;position:fixed;bottom:88px;right:24px;z-index:800;background:#111;border:1px solid #2a2a2a;width:300px;max-height:400px;overflow-y:auto;box-shadow:0 4px 20px rgba(0,0,0,0.5);">
+  <div style="padding:14px 16px;border-bottom:1px solid #1a1a1a;font-size:10px;color:#555;letter-spacing:3px;text-transform:uppercase;display:flex;justify-content:space-between;align-items:center;">
+    <span>Conversations</span>
+    <button onclick="toggleConversations()" style="background:none;border:none;color:#444;cursor:pointer;font-size:14px;">×</button>
+  </div>
+  <div id="conversations-list"></div>
 </div>
 
 <!-- ===== PAGE NOS CRÉATIONS ===== -->
@@ -964,7 +1010,8 @@ function navTo(page, btn){
   window.scrollTo(0,0);
   if(page==='admin'){ muteAllVideos(); renderAdmin(); renderStoryboard(); showAdminTabIfAdmin(); }
   else if(page==='creations'){ muteAllVideos(); renderCreations(); }
-  else if(page==='messages'){ muteAllVideos(); loadMembers(); updateUnreadBadge(); }
+  else if(page==='membres'){ muteAllVideos(); renderMembres(); }
+  else if(page==='messages'){ muteAllVideos(); }
   else if(page==='film' && isPlayerActive()){ unmutePlayerVideo(); }
 }
 
@@ -1993,92 +2040,120 @@ async function deleteUser(userId, nom){
   else showToast('Erreur suppression');
 }
 
-// ===== MESSAGERIE TEMPS RÉEL =====
+// ===== MEMBRES & MESSAGERIE =====
 var currentChatUser = null;
 var allMembers = [];
 var msgSubscription = null;
+var conversationsPanelOpen = false;
 
 function showMessagingIfLoggedIn(){
   if(!currentUser) return;
-  var navMsg = document.getElementById('nav-messages');
+  var navMembres = document.getElementById('nav-membres');
   var floatBtn = document.getElementById('msg-float');
-  if(navMsg) navMsg.style.display = '';
+  if(navMembres) navMembres.style.display = '';
   if(floatBtn) floatBtn.style.display = 'flex';
-  loadMembers();
   subscribeToMessages();
-}
-
-async function loadMembers(){
-  if(!currentUser) return;
-  const { data: members } = await supabaseClient
-    .from('profiles').select('*').neq('id', currentUser.id);
-  if(members){ allMembers = members; renderContacts(members); }
-}
-
-async function renderContacts(members){
-  var list = document.getElementById('msg-contacts-list');
-  if(!list) return;
-  list.innerHTML = '';
-
-  for(var i = 0; i < members.length; i++){
-    var member = members[i];
-    // Compter les messages non lus
-    const { count } = await supabaseClient.from('messages')
-      .select('*', { count: 'exact', head: true })
-      .eq('sender_id', member.id).eq('receiver_id', currentUser.id).eq('read', false);
-
-    var card = document.createElement('div');
-    card.className = 'msg-contact' + (currentChatUser && currentChatUser.id === member.id ? ' active' : '');
-    card.dataset.memberId = member.id;
-    card.innerHTML =
-      '<div class="msg-contact-avatar">' + (member.nom||'?').charAt(0).toUpperCase() + '</div>' +
-      '<div class="msg-contact-info">' +
-        '<div class="msg-contact-name">' + (member.nom||member.email) + '</div>' +
-        '<div class="msg-contact-preview">' + (member.plan||'gratuit').toUpperCase() + '</div>' +
-      '</div>' +
-      (count > 0 ? '<div class="msg-contact-unread">'+count+'</div>' : '');
-    card.onclick = function(){ openChat(member); };
-    list.appendChild(card);
-  }
-}
-
-function filterContacts(query){
-  var filtered = allMembers.filter(function(m){
-    return (m.nom||'').toLowerCase().includes(query.toLowerCase()) ||
-           (m.email||'').toLowerCase().includes(query.toLowerCase());
-  });
-  renderContacts(filtered);
-}
-
-async function openChat(member){
-  currentChatUser = member;
-
-  // Mettre à jour UI sidebar
-  document.querySelectorAll('.msg-contact').forEach(function(c){ c.classList.remove('active'); });
-  var card = document.querySelector('[data-member-id="'+member.id+'"]');
-  if(card) card.classList.add('active');
-
-  // Afficher zone de chat
-  document.getElementById('msg-empty').style.display = 'none';
-  var chatArea = document.getElementById('msg-chat-area');
-  chatArea.style.display = 'flex';
-  chatArea.style.flexDirection = 'column';
-  chatArea.style.flex = '1';
-
-  document.getElementById('chat-avatar').textContent = (member.nom||'?').charAt(0).toUpperCase();
-  document.getElementById('chat-name').textContent = member.nom || member.email;
-
-  // Marquer messages comme lus
-  await supabaseClient.from('messages').update({ read: true })
-    .eq('sender_id', member.id).eq('receiver_id', currentUser.id);
-
-  loadMessages();
   updateUnreadBadge();
 }
 
-async function loadMessages(){
+// ===== PAGE MEMBRES =====
+async function renderMembres(){
+  if(!currentUser) return;
+  var grid = document.getElementById('membres-grid');
+  var countEl = document.getElementById('membres-count');
+  if(!grid) return;
+  grid.innerHTML = '<div style="color:#333;font-size:11px;letter-spacing:3px;text-transform:uppercase;">Chargement...</div>';
+
+  const { data: members } = await supabaseClient
+    .from('profiles').select('*').neq('id', currentUser.id).order('created_at', { ascending: false });
+
+  if(!members || !members.length){
+    grid.innerHTML = '<div style="color:#333;font-size:11px;letter-spacing:3px;text-transform:uppercase;text-align:center;padding:60px;">Aucun membre pour l\'instant</div>';
+    return;
+  }
+
+  allMembers = members;
+  if(countEl) countEl.textContent = members.length + ' membre' + (members.length > 1 ? 's' : '');
+
+  // Grille style Netflix
+  var list = document.createElement('div');
+  list.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1px;background:#2a2a2a;';
+
+  members.forEach(function(member){
+    var card = document.createElement('div');
+    card.style.cssText = 'background:#111;padding:20px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;transition:background 0.15s;';
+    card.onmouseover = function(){ this.style.background='#161616'; };
+    card.onmouseout = function(){ this.style.background='#111'; };
+
+    var avatar = document.createElement('div');
+    avatar.style.cssText = 'width:60px;height:60px;border-radius:50%;background:#1a1a1a;border:1px solid #2a2a2a;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;color:#fff;';
+    avatar.textContent = (member.nom||'?').charAt(0).toUpperCase();
+
+    var name = document.createElement('div');
+    name.style.cssText = 'font-size:13px;font-weight:700;color:#fff;';
+    name.textContent = member.nom || 'Membre';
+
+    var plan = document.createElement('div');
+    plan.style.cssText = 'font-size:9px;color:#444;letter-spacing:2px;text-transform:uppercase;border:1px solid #1a1a1a;padding:2px 8px;';
+    plan.textContent = member.plan || 'gratuit';
+
+    var msgBtn = document.createElement('button');
+    msgBtn.style.cssText = 'background:none;border:1px solid #2a2a2a;color:#555;font-family:Arial,sans-serif;font-size:10px;letter-spacing:2px;padding:8px 16px;cursor:pointer;text-transform:uppercase;transition:all 0.15s;margin-top:4px;width:100%;';
+    msgBtn.textContent = '💬 Message';
+    msgBtn.onmouseover = function(){ this.style.borderColor='#fff'; this.style.color='#fff'; };
+    msgBtn.onmouseout = function(){ this.style.borderColor='#2a2a2a'; this.style.color='#555'; };
+    msgBtn.onclick = function(e){ e.stopPropagation(); openChatModal(member); };
+
+    card.appendChild(avatar);
+    card.appendChild(name);
+    card.appendChild(plan);
+    card.appendChild(msgBtn);
+    list.appendChild(card);
+  });
+
+  grid.innerHTML = '';
+  grid.appendChild(list);
+
+  // Si admin — ajouter section pour voir toutes les conversations
+  if(currentProfile && currentProfile.role === 'admin'){
+    var adminSection = document.createElement('div');
+    adminSection.style.cssText = 'margin-top:32px;border-top:1px solid #1a1a1a;padding-top:24px;';
+    adminSection.innerHTML = '<div style="font-size:10px;color:#555;letter-spacing:4px;text-transform:uppercase;margin-bottom:16px;">Admin — Toutes les conversations</div>' +
+      '<div id="admin-conversations"></div>';
+    grid.appendChild(adminSection);
+    loadAdminConversations();
+  }
+}
+
+// ===== CHAT MODAL =====
+async function openChatModal(member){
+  currentChatUser = member;
+  var modal = document.getElementById('chat-modal');
+  if(!modal) return;
+  modal.style.display = 'flex';
+
+  document.getElementById('chat-modal-avatar').textContent = (member.nom||'?').charAt(0).toUpperCase();
+  document.getElementById('chat-modal-name').textContent = member.nom || member.email;
+  document.getElementById('chat-modal-plan').textContent = (member.plan||'gratuit').toUpperCase();
+
+  // Marquer comme lus
+  await supabaseClient.from('messages').update({ read: true })
+    .eq('sender_id', member.id).eq('receiver_id', currentUser.id);
+
+  loadChatMessages();
+  updateUnreadBadge();
+  document.getElementById('chat-modal-input').focus();
+}
+
+function closeChatModal(){
+  var modal = document.getElementById('chat-modal');
+  if(modal) modal.style.display = 'none';
+  currentChatUser = null;
+}
+
+async function loadChatMessages(){
   if(!currentChatUser || !currentUser) return;
-  var list = document.getElementById('msg-messages-list');
+  var list = document.getElementById('chat-modal-messages');
   if(!list) return;
 
   const { data: messages } = await supabaseClient.from('messages')
@@ -2087,12 +2162,16 @@ async function loadMessages(){
     .order('created_at', { ascending: true });
 
   list.innerHTML = '';
-  if(messages) messages.forEach(function(msg){ appendMessage(msg); });
+  if(!messages || !messages.length){
+    list.innerHTML = '<div style="text-align:center;color:#333;font-size:11px;letter-spacing:2px;margin-top:20px;">Aucun message — dites bonjour !</div>';
+    return;
+  }
+  messages.forEach(function(msg){ appendChatMessage(msg); });
   list.scrollTop = list.scrollHeight;
 }
 
-function appendMessage(msg){
-  var list = document.getElementById('msg-messages-list');
+function appendChatMessage(msg){
+  var list = document.getElementById('chat-modal-messages');
   if(!list) return;
   var isSent = msg.sender_id === currentUser.id;
   var div = document.createElement('div');
@@ -2103,43 +2182,121 @@ function appendMessage(msg){
   list.scrollTop = list.scrollHeight;
 }
 
-async function sendMessage(){
+async function sendChatMessage(){
   if(!currentChatUser || !currentUser) return;
-  var input = document.getElementById('msg-input');
+  var input = document.getElementById('chat-modal-input');
   var content = input.value.trim();
   if(!content) return;
   input.value = '';
+  input.style.height = 'auto';
 
-  const { error } = await supabaseClient.from('messages').insert({
+  await supabaseClient.from('messages').insert({
     sender_id: currentUser.id,
     receiver_id: currentChatUser.id,
     content: content,
     read: false
   });
-
-  if(error) showToast('Erreur envoi message');
 }
 
+// ===== PANEL CONVERSATIONS =====
+function toggleConversations(){
+  conversationsPanelOpen = !conversationsPanelOpen;
+  var panel = document.getElementById('conversations-panel');
+  if(panel) panel.style.display = conversationsPanelOpen ? 'block' : 'none';
+  if(conversationsPanelOpen) loadConversations();
+}
+
+async function loadConversations(){
+  var list = document.getElementById('conversations-list');
+  if(!list) return;
+  list.innerHTML = '<div style="padding:12px 16px;color:#333;font-size:10px;letter-spacing:2px;">Chargement...</div>';
+
+  // Trouver tous les gens avec qui j'ai échangé
+  const { data: sent } = await supabaseClient.from('messages')
+    .select('receiver_id').eq('sender_id', currentUser.id);
+  const { data: received } = await supabaseClient.from('messages')
+    .select('sender_id').eq('receiver_id', currentUser.id);
+
+  var ids = new Set();
+  if(sent) sent.forEach(function(m){ ids.add(m.receiver_id); });
+  if(received) received.forEach(function(m){ ids.add(m.sender_id); });
+
+  if(!ids.size){
+    list.innerHTML = '<div style="padding:16px;color:#333;font-size:10px;letter-spacing:2px;text-align:center;">Aucune conversation</div>';
+    return;
+  }
+
+  var idArray = Array.from(ids);
+  const { data: members } = await supabaseClient.from('profiles').select('*').in('id', idArray);
+  if(!members){ list.innerHTML = ''; return; }
+
+  list.innerHTML = '';
+  members.forEach(function(member){
+    var item = document.createElement('div');
+    item.className = 'msg-contact';
+    item.style.cssText = 'padding:12px 16px;display:flex;align-items:center;gap:10px;cursor:pointer;border-bottom:1px solid #111;transition:background 0.15s;';
+    item.onmouseover = function(){ this.style.background='#1a1a1a'; };
+    item.onmouseout = function(){ this.style.background=''; };
+    item.innerHTML =
+      '<div class="msg-contact-avatar" style="width:32px;height:32px;font-size:12px;">' + (member.nom||'?').charAt(0).toUpperCase() + '</div>' +
+      '<div style="font-size:12px;color:#ccc;font-weight:700;">' + (member.nom||member.email) + '</div>';
+    item.onclick = function(){
+      toggleConversations();
+      openChatModal(member);
+    };
+    list.appendChild(item);
+  });
+}
+
+// ===== ADMIN — TOUTES LES CONVERSATIONS =====
+async function loadAdminConversations(){
+  if(!currentProfile || currentProfile.role !== 'admin') return;
+  var container = document.getElementById('admin-conversations');
+  if(!container) return;
+
+  const { data: messages } = await supabaseClient.from('messages')
+    .select('*, sender:sender_id(nom,email), receiver:receiver_id(nom,email)')
+    .order('created_at', { ascending: false }).limit(50);
+
+  if(!messages || !messages.length){
+    container.innerHTML = '<div style="color:#333;font-size:10px;letter-spacing:2px;">Aucun message échangé</div>';
+    return;
+  }
+
+  container.innerHTML = '';
+  var list = document.createElement('div');
+  list.style.cssText = 'display:flex;flex-direction:column;gap:1px;background:#2a2a2a;';
+
+  messages.forEach(function(msg){
+    var row = document.createElement('div');
+    row.style.cssText = 'background:#111;padding:12px 16px;display:grid;grid-template-columns:auto auto 1fr auto;gap:12px;align-items:center;font-size:12px;';
+    var time = new Date(msg.created_at).toLocaleString('fr-CA');
+    row.innerHTML =
+      '<div style="color:#888;font-weight:700;">' + (msg.sender?.nom||'?') + '</div>' +
+      '<div style="color:#444;">→</div>' +
+      '<div style="color:#ccc;">' + escapeHtml(msg.content) + '</div>' +
+      '<div style="color:#333;font-size:9px;white-space:nowrap;">' + time + '</div>';
+    list.appendChild(row);
+  });
+  container.appendChild(list);
+}
+
+// ===== TEMPS RÉEL =====
 function subscribeToMessages(){
-  if(msgSubscription) return;
-  msgSubscription = supabaseClient.channel('messages-realtime')
+  if(msgSubscription || !currentUser) return;
+  msgSubscription = supabaseClient.channel('ci-messages')
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' },
       function(payload){
         var msg = payload.new;
-        // Si c'est la conversation active
         if(currentChatUser &&
           ((msg.sender_id === currentUser.id && msg.receiver_id === currentChatUser.id) ||
            (msg.sender_id === currentChatUser.id && msg.receiver_id === currentUser.id))){
-          appendMessage(msg);
-          // Marquer comme lu si reçu
+          appendChatMessage(msg);
           if(msg.sender_id === currentChatUser.id){
             supabaseClient.from('messages').update({ read: true }).eq('id', msg.id);
           }
-        } else if(msg.receiver_id === currentUser.id){
-          // Notification message entrant
-          updateUnreadBadge();
-          renderContacts(allMembers);
         }
+        if(msg.receiver_id === currentUser.id){ updateUnreadBadge(); }
       })
     .subscribe();
 }
@@ -2149,18 +2306,20 @@ async function updateUnreadBadge(){
   const { count } = await supabaseClient.from('messages')
     .select('*', { count: 'exact', head: true })
     .eq('receiver_id', currentUser.id).eq('read', false);
-
-  var badge = document.getElementById('msg-badge');
-  var floatBadge = document.getElementById('msg-float-badge');
   var total = count || 0;
-
-  if(badge){ badge.textContent = total; badge.style.display = total > 0 ? 'inline' : 'none'; }
+  var floatBadge = document.getElementById('msg-float-badge');
   if(floatBadge){ floatBadge.textContent = total; floatBadge.style.display = total > 0 ? 'flex' : 'none'; }
 }
 
 function escapeHtml(text){
-  return text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  if(!text) return '';
+  return String(text).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
+
+// Fermer chat modal si clic dehors
+document.getElementById('chat-modal').addEventListener('click', function(e){
+  if(e.target === this) closeChatModal();
+});
 
 function showAdminTabIfAdmin(){
   if(currentProfile && currentProfile.role === 'admin'){
@@ -2400,6 +2559,7 @@ function showConnectedView(){
     document.getElementById('profil-nom').textContent = nom;
     document.getElementById('profil-email-display').textContent = currentUser.email;
     document.getElementById('profil-plan-display').textContent = currentProfile.plan || 'Gratuit';
+    updateProfilAvatar();
   }
 }
 
@@ -2516,6 +2676,136 @@ async function signOut(){
 }
 
 // Fermer modal si clic dehors
+// ===== AVATAR VIDÉO =====
+var mediaStream = null;
+var mediaRecorder = null;
+var recordedChunks = [];
+var recordingTimer = null;
+var recordingSeconds = 0;
+
+function openAvatarEditor(){
+  var modal = document.getElementById('avatar-editor-modal');
+  if(modal) modal.style.display = 'flex';
+}
+
+function closeAvatarEditor(){
+  stopCamera();
+  var modal = document.getElementById('avatar-editor-modal');
+  if(modal) modal.style.display = 'none';
+}
+
+async function startCamera(){
+  try {
+    mediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    var preview = document.getElementById('cam-preview');
+    if(preview){ preview.srcObject = mediaStream; preview.style.display = 'block'; }
+    document.getElementById('cam-placeholder').style.display = 'none';
+    document.getElementById('btn-record').style.display = 'block';
+    document.getElementById('btn-start-cam').style.display = 'none';
+  } catch(err){
+    showToast('Impossible d\'accéder à la caméra');
+  }
+}
+
+function stopCamera(){
+  if(mediaStream){ mediaStream.getTracks().forEach(function(t){ t.stop(); }); mediaStream = null; }
+  if(recordingTimer){ clearInterval(recordingTimer); recordingTimer = null; }
+  if(mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+}
+
+function startRecording(){
+  if(!mediaStream) return;
+  recordedChunks = [];
+  recordingSeconds = 0;
+  mediaRecorder = new MediaRecorder(mediaStream);
+  mediaRecorder.ondataavailable = function(e){ if(e.data.size > 0) recordedChunks.push(e.data); };
+  mediaRecorder.onstop = function(){ uploadRecordedVideo(); };
+  mediaRecorder.start();
+
+  document.getElementById('btn-record').style.display = 'none';
+  document.getElementById('btn-stop').style.display = 'block';
+  document.getElementById('rec-timer').style.display = 'block';
+
+  recordingTimer = setInterval(function(){
+    recordingSeconds++;
+    var s = recordingSeconds;
+    document.getElementById('rec-timer').textContent = '⬤ ' + Math.floor(s/60) + ':' + String(s%60).padStart(2,'0') + ' / 1:00';
+    if(recordingSeconds >= 60){ stopRecording(); }
+  }, 1000);
+}
+
+function stopRecording(){
+  if(recordingTimer){ clearInterval(recordingTimer); recordingTimer = null; }
+  if(mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+  document.getElementById('btn-stop').style.display = 'none';
+  document.getElementById('rec-timer').textContent = 'Envoi en cours...';
+}
+
+async function uploadRecordedVideo(){
+  try {
+    showToast('Upload en cours...');
+    // 1. Obtenir URL d'upload depuis notre fonction Vercel
+    const urlRes = await fetch('/api/upload-video', { method: 'POST' });
+    const urlData = await urlRes.json();
+    if(!urlData.uploadURL) throw new Error('URL upload invalide');
+
+    // 2. Uploader la vidéo
+    var blob = new Blob(recordedChunks, { type: 'video/webm' });
+    var formData = new FormData();
+    formData.append('file', blob, 'profile.webm');
+    await fetch(urlData.uploadURL, { method: 'POST', body: formData });
+
+    // 3. Sauvegarder l'UID dans Supabase
+    await supabaseClient.from('profiles').update({ video_uid: urlData.uid }).eq('id', currentUser.id);
+    currentProfile.video_uid = urlData.uid;
+
+    showToast('Vidéo de profil uploadée ! ✓');
+    closeAvatarEditor();
+    updateProfilAvatar();
+  } catch(err){
+    showToast('Erreur upload : ' + err.message);
+    document.getElementById('rec-timer').textContent = '';
+    document.getElementById('btn-record').style.display = 'block';
+  }
+}
+
+function triggerFileUpload(){
+  document.getElementById('avatar-file-input').click();
+}
+
+async function handleFileUpload(input){
+  var file = input.files[0];
+  if(!file) return;
+  if(file.size > 200 * 1024 * 1024){ showToast('Fichier trop large — max 200Mo'); return; }
+  try {
+    showToast('Upload en cours...');
+    const urlRes = await fetch('/api/upload-video', { method: 'POST' });
+    const urlData = await urlRes.json();
+    var formData = new FormData();
+    formData.append('file', file);
+    await fetch(urlData.uploadURL, { method: 'POST', body: formData });
+    await supabaseClient.from('profiles').update({ video_uid: urlData.uid }).eq('id', currentUser.id);
+    currentProfile.video_uid = urlData.uid;
+    showToast('Vidéo de profil uploadée ! ✓');
+    closeAvatarEditor();
+    updateProfilAvatar();
+  } catch(err){
+    showToast('Erreur : ' + err.message);
+  }
+}
+
+function updateProfilAvatar(){
+  if(!currentProfile) return;
+  var avatarText = document.getElementById('profil-avatar');
+  var avatarVideo = document.getElementById('profil-avatar-video');
+  if(currentProfile.video_uid && avatarVideo){
+    var src = 'https://customer-911pgg1vlhryqb16.cloudflarestream.com/'+currentProfile.video_uid+'/manifest/video.m3u8';
+    attachHLS(avatarVideo, currentProfile.video_uid, { autoplay: true, muted: true, loop: true, controls: false, lowQuality: true });
+    if(avatarText) avatarText.style.display = 'none';
+    avatarVideo.style.display = 'block';
+  }
+}
+
 document.getElementById('profil-modal').addEventListener('click', function(e){
   if(e.target === this) closeProfilModal();
 });
