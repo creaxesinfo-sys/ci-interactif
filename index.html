@@ -317,32 +317,35 @@ video { outline:none; }
 
 /* ===== MESSAGERIE ===== */
 .msg-layout{display:grid;grid-template-columns:280px 1fr;height:calc(100vh - 49px);}
-.msg-sidebar{border-right:1px solid #1a1a1a;background:#0d0d0d;overflow-y:auto;display:flex;flex-direction:column;}
-.msg-sidebar-header{padding:16px 20px;border-bottom:1px solid #1a1a1a;font-size:10px;letter-spacing:3px;color:#555;text-transform:uppercase;}
-.msg-search{padding:12px 16px;border-bottom:1px solid #1a1a1a;}
-.msg-search input{width:100%;background:#1a1a1a;border:1px solid #2a2a2a;color:#e8e8e8;font-family:Arial,sans-serif;font-size:12px;padding:8px 12px;outline:none;}
-.msg-search input:focus{border-color:#555;}
-.msg-contact{padding:14px 20px;cursor:pointer;border-bottom:1px solid #111;transition:background 0.15s;display:flex;align-items:center;gap:12px;}
-.msg-contact:hover{background:#1a1a1a;}
-.msg-contact.active{background:#1a1a1a;border-left:2px solid #fff;}
-.msg-contact-avatar{width:36px;height:36px;border-radius:50%;background:#1a1a1a;border:1px solid #2a2a2a;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;flex-shrink:0;}
+.msg-sidebar{border-right:1px solid #eee;background:#fafafa;overflow-y:auto;display:flex;flex-direction:column;}
+.msg-sidebar-header{padding:16px 20px;border-bottom:1px solid #eee;font-size:10px;letter-spacing:3px;color:#888;text-transform:uppercase;background:#fff;}
+.msg-search{padding:12px 16px;border-bottom:1px solid #eee;background:#fff;}
+.msg-search input{width:100%;background:#f2f2f2;border:none;border-radius:20px;color:#333;font-family:Arial,sans-serif;font-size:12px;padding:8px 14px;outline:none;}
+.msg-search input:focus{background:#eee;}
+.msg-contact{padding:12px 16px;cursor:pointer;border-bottom:1px solid #f0f0f0;transition:background 0.15s;display:flex;align-items:center;gap:12px;}
+.msg-contact:hover{background:#f0f0f0;}
+.msg-contact.active{background:#ebebeb;border-left:3px solid #222;}
+.msg-contact-avatar{width:40px;height:40px;border-radius:50%;background:#e8e8e8;border:none;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:#333;flex-shrink:0;}
 .msg-contact-info{flex:1;min-width:0;}
-.msg-contact-name{font-size:12px;color:#ccc;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.msg-contact-preview{font-size:10px;color:#444;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.msg-contact-unread{background:#fff;color:#000;font-size:9px;font-weight:700;padding:2px 6px;border-radius:10px;flex-shrink:0;}
-.msg-main{display:flex;flex-direction:column;background:#111;}
-.msg-main-empty{flex:1;display:flex;align-items:center;justify-content:center;color:#2a2a2a;font-size:11px;letter-spacing:4px;text-transform:uppercase;}
-.msg-main-header{padding:16px 24px;border-bottom:1px solid #1a1a1a;display:flex;align-items:center;gap:12px;background:#0d0d0d;}
-.msg-messages{flex:1;overflow-y:auto;padding:20px 24px;display:flex;flex-direction:column;gap:10px;}
-.msg-bubble{max-width:65%;padding:10px 14px;font-size:13px;line-height:1.6;}
-.msg-bubble.sent{background:#1a1a1a;color:#e8e8e8;align-self:flex-end;border:1px solid #2a2a2a;}
-.msg-bubble.received{background:#0d0d0d;color:#ccc;align-self:flex-start;border:1px solid #1a1a1a;}
-.msg-bubble-time{font-size:9px;color:#333;margin-top:4px;letter-spacing:1px;}
-.msg-input-area{padding:16px 24px;border-top:1px solid #1a1a1a;display:flex;gap:10px;background:#0d0d0d;}
-.msg-input{flex:1;background:#1a1a1a;border:1px solid #2a2a2a;color:#e8e8e8;font-family:Arial,sans-serif;font-size:13px;padding:12px 14px;outline:none;resize:none;}
-.msg-input:focus{border-color:#555;}
-.msg-send-btn{background:#fff;border:none;color:#000;font-family:Arial,sans-serif;font-size:11px;letter-spacing:2px;padding:12px 20px;cursor:pointer;text-transform:uppercase;font-weight:700;transition:opacity 0.15s;white-space:nowrap;}
-.msg-send-btn:hover{opacity:0.85;}
+.msg-contact-name{font-size:13px;color:#111;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.msg-contact-preview{font-size:11px;color:#888;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.msg-contact-unread{background:#222;color:#fff;font-size:9px;font-weight:700;padding:3px 8px;border-radius:12px;flex-shrink:0;}
+.msg-main{display:flex;flex-direction:column;background:#f7f7f7;}
+.msg-main-empty{flex:1;display:flex;align-items:center;justify-content:center;color:#ccc;font-size:11px;letter-spacing:4px;text-transform:uppercase;}
+.msg-main-header{padding:14px 20px;border-bottom:1px solid #eee;display:flex;align-items:center;gap:12px;background:#fff;}
+.msg-messages{flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:10px;background:#f0f2f5;}
+.msg-bubble{max-width:75%;padding:10px 16px;font-size:13px;line-height:1.6;border-radius:20px;}
+.msg-bubble.sent{background:#1a1a1a;color:#fff;align-self:flex-end;border-bottom-right-radius:4px;}
+.msg-bubble.received{background:#fff;color:#111;align-self:flex-start;border-bottom-left-radius:4px;box-shadow:0 1px 6px rgba(0,0,0,0.08);}
+.msg-bubble-time{font-size:9px;color:#aaa;margin-top:3px;letter-spacing:1px;}
+.msg-bubble.sent .msg-bubble-time{color:rgba(255,255,255,0.35);}
+.msg-input-area{padding:12px 16px;border-top:1px solid #ebebeb;display:flex;gap:8px;background:#f8f8f8;align-items:center;border-radius:0 0 20px 20px;}
+.msg-input{flex:1;background:#fff;border:1px solid #e0e0e0;border-radius:20px;color:#222;font-family:Arial,sans-serif;font-size:13px;padding:10px 16px;outline:none;resize:none;transition:border-color 0.15s;}
+.msg-input:focus{border-color:#aaa;}
+.msg-send-btn{background:#1a1a1a;border:none;color:#fff;width:38px;height:38px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;transition:opacity 0.15s;flex-shrink:0;}
+.msg-send-btn:hover{opacity:0.75;}
+.msg-unread-badge{background:#22c55e;color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:10px;margin-left:6px;display:inline-block;animation:pulse 1s ease-in-out infinite alternate;}
+@keyframes pulse{from{opacity:1;}to{opacity:0.6;}}
 /* Icône flottante */
 
 
@@ -642,11 +645,13 @@ video { outline:none; }
 <div class="nav" id="main-nav">
   <div class="nav-brand" onclick="goHome()">CI</div>
   <button class="nav-btn active" id="nav-film" onclick="navTo('film',this)">Film</button>
+  <button class="nav-btn" id="nav-admin" onclick="navTo('admin',this)" style="display:none;">Réalisateur</button>
   <button class="nav-btn" id="nav-membres" onclick="navTo('membres',this)" style="display:none;">Utilisateurs</button>
   <button class="nav-btn" id="nav-creations" onclick="navTo('creations',this)">Nos Créations</button>
   <div style="flex:1;"></div>
   <button class="nav-btn" id="nav-profil" onclick="openProfilModal()" style="border-left:1px solid #2e2e2e;">
     <span id="nav-profil-label">⬤ Profil</span>
+    <span id="msg-notif-badge" style="display:none;background:#c44;color:#fff;font-size:8px;font-weight:700;padding:2px 5px;border-radius:10px;margin-left:6px;"></span>
   </button>
 </div>
 
@@ -853,24 +858,21 @@ video { outline:none; }
 </div>
 
 <!-- ===== MODAL CHAT ===== -->
-<div id="chat-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:9000;align-items:flex-end;justify-content:flex-end;padding:0;">
-  <div style="background:#111;border:1px solid #2a2a2a;border-bottom:none;width:100%;max-width:420px;height:70vh;display:flex;flex-direction:column;">
-    <!-- Header -->
-    <div style="padding:16px 20px;border-bottom:1px solid #1a1a1a;display:flex;align-items:center;justify-content:space-between;background:#0d0d0d;">
+<div id="chat-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:9000;align-items:flex-end;justify-content:flex-end;padding:0;">
+  <div style="background:#f2f4f7;border-radius:24px 24px 0 0;width:100%;max-width:420px;height:72vh;display:flex;flex-direction:column;box-shadow:0 -8px 40px rgba(0,0,0,0.12);">
+    <div style="padding:14px 20px;border-bottom:1px solid #e8e8e8;display:flex;align-items:center;justify-content:space-between;background:#fff;border-radius:24px 24px 0 0;">
       <div style="display:flex;align-items:center;gap:10px;">
-        <div class="msg-contact-avatar" id="chat-modal-avatar">?</div>
+        <div id="chat-modal-avatar" style="width:38px;height:38px;border-radius:50%;overflow:hidden;background:#e0e0e0;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;color:#555;flex-shrink:0;">?</div>
         <div>
-          <div style="font-size:13px;font-weight:700;color:#fff;" id="chat-modal-name"></div>
-          <div style="font-size:9px;color:#444;letter-spacing:2px;text-transform:uppercase;" id="chat-modal-plan"></div>
+          <div style="font-size:14px;font-weight:700;color:#111;" id="chat-modal-name"></div>
+          <div style="font-size:10px;color:#bbb;letter-spacing:1px;text-transform:uppercase;" id="chat-modal-plan"></div>
         </div>
       </div>
-      <button onclick="closeChatModal()" style="background:none;border:none;color:#444;font-size:20px;cursor:pointer;transition:color 0.15s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#444'">×</button>
+      <button onclick="closeChatModal()" style="background:#f0f0f0;border:none;color:#888;font-size:18px;cursor:pointer;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;transition:background 0.15s;" onmouseover="this.style.background='#e0e0e0'" onmouseout="this.style.background='#f0f0f0'">×</button>
     </div>
-    <!-- Messages -->
-    <div class="msg-messages" id="chat-modal-messages" style="flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:8px;"></div>
-    <!-- Input -->
-    <div style="padding:12px 20px;border-top:1px solid #1a1a1a;display:flex;gap:8px;background:#0d0d0d;">
-      <textarea class="msg-input" id="chat-modal-input" placeholder="Écrire un message..." rows="1" style="flex:1;" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChatMessage();}"></textarea>
+    <div id="chat-modal-messages" style="flex:1;overflow-y:auto;padding:20px 16px;display:flex;flex-direction:column;gap:6px;background:#f2f4f7;"></div>
+    <div class="msg-input-area">
+      <textarea class="msg-input" id="chat-modal-input" placeholder="Écrire un message..." rows="1" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChatMessage();}"></textarea>
       <button class="msg-send-btn" onclick="sendChatMessage()">↑</button>
     </div>
   </div>
@@ -2068,10 +2070,32 @@ async function updateUserPlan(userId, plan){
 }
 
 async function deleteUser(userId, nom){
-  if(!confirm('Supprimer le compte de ' + nom + ' ?')) return;
+  if(!confirm('Supprimer le compte de ' + nom + ' ? Cette action est irréversible.')) return;
+  
+  // 1. Supprimer les messages
+  await supabaseClient.from('messages').delete().eq('sender_id', userId);
+  await supabaseClient.from('messages').delete().eq('receiver_id', userId);
+  
+  // 2. Supprimer le profil
   const { error } = await supabaseClient.from('profiles').delete().eq('id', userId);
-  if(!error){ showToast('Utilisateur supprimé'); renderUsersTab(); }
-  else showToast('Erreur suppression');
+  if(error){ showToast('Erreur suppression'); return; }
+  
+  // 3. Supprimer le compte auth via Vercel
+  try {
+    await fetch('/api/delete-user', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId })
+    });
+  } catch(e) {}
+  
+  showToast('Compte supprimé définitivement ✓');
+  
+  // 4. Fermer le chat si ouvert avec cet utilisateur
+  if(currentChatUser && currentChatUser.id === userId) closeChatModal();
+  
+  // 5. Rafraîchir la page utilisateurs
+  renderMembres();
 }
 
 // ===== MEMBRES & MESSAGERIE =====
@@ -2119,7 +2143,17 @@ async function renderMembres(){
 
     // Grand avatar vidéo
     var avatarWrap = document.createElement('div');
-    avatarWrap.style.cssText = 'width:100px;height:100px;border-radius:50%;background:#1a1a1a;border:2px solid '+(isMe?'#fff':'#2a2a2a')+';overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:32px;font-weight:700;color:#fff;';
+    avatarWrap.style.cssText = 'width:100px;height:100px;border-radius:50%;background:#1a1a1a;border:2px solid '+(isMe?'#fff':'#2a2a2a')+';overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:32px;font-weight:700;color:#fff;position:relative;flex-shrink:0;';
+
+    if(isMe){
+      avatarWrap.style.cursor = 'pointer';
+      avatarWrap.title = 'Cliquer pour changer ta vidéo';
+      avatarWrap.addEventListener('click', function(e){ e.stopPropagation(); openAvatarEditor(); });
+      var camIcon = document.createElement('div');
+      camIcon.style.cssText = 'position:absolute;bottom:2px;right:2px;width:26px;height:26px;background:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;z-index:10;pointer-events:none;';
+      camIcon.textContent = '📷';
+      avatarWrap.appendChild(camIcon);
+    }
     if(member.video_uid && member.video_uid.trim()){
       var vid = document.createElement('video');
       vid.muted = true; vid.loop = true; vid.playsInline = true; vid.autoplay = true;
@@ -2154,7 +2188,8 @@ async function renderMembres(){
     if(!isMe){
       var msgBtn = document.createElement('button');
       msgBtn.style.cssText = bs; msgBtn.textContent = '💬 Message';
-      msgBtn.onmouseover=function(){this.style.borderColor='#fff';this.style.color='#fff';}; msgBtn.onmouseout=function(){this.style.borderColor='#2a2a2a';this.style.color='#555';};
+      msgBtn.setAttribute('data-sender-id', member.id);
+      msgBtn.onmouseover=function(){this.style.borderColor='#555';this.style.color='#111';}; msgBtn.onmouseout=function(){this.style.borderColor='#e0e0e0';this.style.color='#666';};
       msgBtn.onclick=function(){ openChatModal(member); };
       actions.appendChild(msgBtn);
     }
@@ -2202,10 +2237,14 @@ async function openChatModal(member){
   document.getElementById('chat-modal-name').textContent = member.nom || member.email;
   document.getElementById('chat-modal-plan').textContent = (member.plan||'gratuit').toUpperCase();
 
-  // Marquer comme lus
+  // Marquer comme lus et enlever badge vert
   await supabaseClient.from('messages').update({ read: true })
     .eq('sender_id', member.id).eq('receiver_id', currentUser.id);
-
+  
+  // Enlever badge vert sur le bouton message
+  var btns = document.querySelectorAll('[data-sender-id="'+member.id+'"]');
+  btns.forEach(function(btn){ var n = btn.querySelector('.msg-notif'); if(n) n.remove(); });
+  
   loadChatMessages();
   updateUnreadBadge();
   document.getElementById('chat-modal-input').focus();
@@ -2255,6 +2294,16 @@ async function sendChatMessage(){
   if(!content) return;
   input.value = '';
   input.style.height = 'auto';
+
+  // Afficher le message immédiatement côté envoyeur
+  var tempMsg = {
+    sender_id: currentUser.id,
+    receiver_id: currentChatUser.id,
+    content: content,
+    created_at: new Date().toISOString(),
+    read: false
+  };
+  appendChatMessage(tempMsg);
 
   await supabaseClient.from('messages').insert({
     sender_id: currentUser.id,
@@ -2354,15 +2403,21 @@ function subscribeToMessages(){
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' },
       function(payload){
         var msg = payload.new;
+        // Message dans conversation active
         if(currentChatUser &&
           ((msg.sender_id === currentUser.id && msg.receiver_id === currentChatUser.id) ||
            (msg.sender_id === currentChatUser.id && msg.receiver_id === currentUser.id))){
-          appendChatMessage(msg);
-          if(msg.sender_id === currentChatUser.id){
+          // Eviter doublon si déjà ajouté localement
+          if(msg.sender_id !== currentUser.id){
+            appendChatMessage(msg);
             supabaseClient.from('messages').update({ read: true }).eq('id', msg.id);
           }
         }
-        if(msg.receiver_id === currentUser.id){ updateUnreadBadge(); }
+        // Notification si message reçu
+        if(msg.receiver_id === currentUser.id){
+          updateUnreadBadge();
+          updateMsgBtnBadge(msg.sender_id);
+        }
       })
     .subscribe();
 }
@@ -2373,8 +2428,24 @@ async function updateUnreadBadge(){
     .select('*', { count: 'exact', head: true })
     .eq('receiver_id', currentUser.id).eq('read', false);
   var total = count || 0;
-  
-  
+  var badge = document.getElementById('msg-notif-badge');
+  if(badge){
+    badge.textContent = total > 0 ? total : '';
+    badge.style.display = total > 0 ? 'inline' : 'none';
+  }
+}
+
+function updateMsgBtnBadge(senderId){
+  var btns = document.querySelectorAll('[data-sender-id="'+senderId+'"]');
+  btns.forEach(function(btn){
+    var existing = btn.querySelector('.msg-notif');
+    if(!existing){
+      var dot = document.createElement('span');
+      dot.className = 'msg-notif msg-unread-badge';
+      dot.textContent = '●';
+      btn.appendChild(dot);
+    }
+  });
 }
 
 function escapeHtml(text){
@@ -2396,6 +2467,9 @@ function showAdminTabIfAdmin(){
   // Onglet Utilisateurs visible pour TOUS les connectés
   var navMembres = document.getElementById('nav-membres');
   if(navMembres) navMembres.style.display = '';
+  // Onglet Réalisateur visible pour TOUS les connectés
+  var navAdmin = document.getElementById('nav-admin');
+  if(navAdmin) navAdmin.style.display = '';
   // Bouton Utilisateurs dans profil — admin seulement
   if(currentProfile && currentProfile.role === 'admin'){
     var profilBtn = document.getElementById('profil-btn-users');
@@ -2607,15 +2681,18 @@ async function initAuth(){
       showMessagingIfLoggedIn();
       showToast('Bienvenue ' + (currentProfile?.nom || '') + ' !');
       goToRealisateur('storyboard');
+      // Aller sur la page Utilisateurs après connexion
+      setTimeout(function(){
+        navTo('membres', document.getElementById('nav-membres'));
+        renderMembres();
+      }, 300);
     } else if(event === 'SIGNED_OUT'){
       currentUser = null; currentProfile = null;
       updateNavProfil();
-      
       var navMembres = document.getElementById('nav-membres');
-      
-      
+      var navAdmin = document.getElementById('nav-admin');
       if(navMembres) navMembres.style.display = 'none';
-      
+      if(navAdmin) navAdmin.style.display = 'none';
       ['atab-scenes','atab-storyboard','atab-publish'].forEach(function(id){
         var t = document.getElementById(id);
         if(t) t.style.display = 'none';
@@ -2842,33 +2919,27 @@ function stopRecording(){
 async function uploadRecordedVideo(){
   try {
     showToast('Upload en cours...');
-    // 1. Obtenir URL d'upload depuis notre fonction Vercel
     const urlRes = await fetch('/api/upload-video', { method: 'POST' });
     const urlData = await urlRes.json();
     if(!urlData.uploadURL) throw new Error('URL upload invalide');
 
-    // 2. Uploader la vidéo
     var blob = new Blob(recordedChunks, { type: 'video/webm' });
     var formData = new FormData();
     formData.append('file', blob, 'profile.webm');
     await fetch(urlData.uploadURL, { method: 'POST', body: formData });
 
-    // 3. Sauvegarder l'UID dans Supabase
-    await supabaseClient.from('profiles').update({ video_uid: urlData.uid }).eq('id', currentUser.id);
+    await supabaseClient.from('profiles').update({ video_uid: urlData.uid, video_status: 'pending' }).eq('id', currentUser.id);
     currentProfile.video_uid = urlData.uid;
+    currentProfile.video_status = 'pending';
 
-    showToast('Vidéo de profil uploadée ! ✓');
     closeAvatarEditor();
+    showPendingVideoMessage();
     updateProfilAvatar();
   } catch(err){
     showToast('Erreur upload : ' + err.message);
     document.getElementById('rec-timer').textContent = '';
     document.getElementById('btn-record').style.display = 'block';
   }
-}
-
-function triggerFileUpload(){
-  document.getElementById('avatar-file-input').click();
 }
 
 async function handleFileUpload(input){
@@ -2882,14 +2953,34 @@ async function handleFileUpload(input){
     var formData = new FormData();
     formData.append('file', file);
     await fetch(urlData.uploadURL, { method: 'POST', body: formData });
-    await supabaseClient.from('profiles').update({ video_uid: urlData.uid }).eq('id', currentUser.id);
+    await supabaseClient.from('profiles').update({ video_uid: urlData.uid, video_status: 'pending' }).eq('id', currentUser.id);
     currentProfile.video_uid = urlData.uid;
-    showToast('Vidéo de profil uploadée ! ✓');
+    currentProfile.video_status = 'pending';
     closeAvatarEditor();
+    showPendingVideoMessage();
     updateProfilAvatar();
   } catch(err){
     showToast('Erreur : ' + err.message);
   }
+}
+
+function showPendingVideoMessage(){
+  // Affiche un modal/overlay "En attente de probation"
+  var existing = document.getElementById('pending-video-msg');
+  if(existing) existing.remove();
+
+  var overlay = document.createElement('div');
+  overlay.id = 'pending-video-msg';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:9999;display:flex;align-items:center;justify-content:center;';
+  overlay.innerHTML =
+    '<div style="background:#111;border:1px solid #2a2a2a;max-width:380px;width:90%;padding:36px;text-align:center;">' +
+      '<div style="font-size:36px;margin-bottom:20px;">⏳</div>' +
+      '<div style="font-size:12px;color:#fff;font-weight:700;letter-spacing:4px;text-transform:uppercase;margin-bottom:12px;">Vidéo en attente</div>' +
+      '<div style="font-size:11px;color:#555;letter-spacing:2px;line-height:1.8;margin-bottom:24px;">Ta vidéo de profil a été envoyée avec succès et est en attente de probation. Elle sera visible sur ton profil après approbation par l\'administrateur.</div>' +
+      '<div style="font-size:9px;color:#333;letter-spacing:3px;text-transform:uppercase;margin-bottom:24px;">Délai habituel : quelques minutes</div>' +
+      '<button onclick="document.getElementById(\'pending-video-msg\').remove()" style="background:#fff;border:none;color:#000;font-family:Arial,sans-serif;font-size:10px;letter-spacing:3px;padding:12px 32px;cursor:pointer;text-transform:uppercase;font-weight:700;">OK</button>' +
+    '</div>';
+  document.body.appendChild(overlay);
 }
 
 function updateProfilAvatar(){
