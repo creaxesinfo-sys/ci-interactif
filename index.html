@@ -349,6 +349,11 @@ video { outline:none; }
 /* Icône flottante */
 
 
+.sub-tab{background:none;border:none;border-bottom:2px solid transparent;color:#aaa;font-family:Arial,sans-serif;font-size:11px;letter-spacing:2px;text-transform:uppercase;padding:12px 20px;cursor:pointer;transition:all 0.15s;}
+.sub-tab:hover{color:#555;}
+.sub-tab.active{color:#111;border-bottom:2px solid #111;}
+.sub-tab-content{display:block;}
+
 /* TRANSITION */
 #transition-overlay{position:fixed;inset:0;background:#000;z-index:200;pointer-events:none;opacity:0;transition:opacity 0.3s ease;}
 #transition-overlay.fade-in{opacity:1;}
@@ -648,6 +653,7 @@ video { outline:none; }
   <button class="nav-btn" id="nav-admin" onclick="navTo('admin',this)" style="display:none;">Réalisateur</button>
   <button class="nav-btn" id="nav-membres" onclick="navTo('membres',this)" style="display:none;">Utilisateurs</button>
   <button class="nav-btn" id="nav-creations" onclick="navTo('creations',this)">Nos Créations</button>
+  <button class="nav-btn" id="nav-subvention" onclick="navTo('subvention',this)">Subvention CALC</button>
   <div style="flex:1;"></div>
   <button class="nav-btn" id="nav-profil" onclick="openProfilModal()" style="border-left:1px solid #2e2e2e;">
     <span id="nav-profil-label">⬤ Profil</span>
@@ -848,11 +854,11 @@ video { outline:none; }
 </div><!-- end page-admin -->
 
 <!-- ===== PAGE MEMBRES ===== -->
-<div id="page-membres" class="page">
-  <div style="background:#000;border-bottom:1px solid #2e2e2e;padding:40px 32px 20px;">
-    <div style="font-size:10px;color:#555;letter-spacing:5px;text-transform:uppercase;margin-bottom:8px;">CINÉMA INTERACTIF</div>
-    <div style="font-size:clamp(24px,5vw,42px);font-weight:700;color:#fff;letter-spacing:6px;text-transform:uppercase;">UTILISATEURS</div>
-    <div style="font-size:11px;color:#444;letter-spacing:2px;margin-top:6px;" id="membres-count">— membres</div>
+<div id="page-membres" class="page" style="background:#f2f4f7;">
+  <div style="background:#fff;border-bottom:1px solid #e8e8e8;padding:40px 32px 20px;">
+    <div style="font-size:10px;color:#aaa;letter-spacing:5px;text-transform:uppercase;margin-bottom:8px;">CINÉMA INTERACTIF</div>
+    <div style="font-size:clamp(24px,5vw,42px);font-weight:700;color:#111;letter-spacing:6px;text-transform:uppercase;">UTILISATEURS</div>
+    <div style="font-size:11px;color:#bbb;letter-spacing:2px;margin-top:6px;" id="membres-count">— membres</div>
   </div>
   <div style="max-width:1100px;margin:0 auto;padding:32px;" id="membres-grid"></div>
 </div>
@@ -879,6 +885,122 @@ video { outline:none; }
 </div>
 
 <!-- Bulle flottante supprimée -->
+
+<!-- ===== PAGE SUBVENTION ===== -->
+<div id="page-subvention" class="page" style="background:#f9f9f9;">
+  <!-- Header -->
+  <div style="background:#fff;border-bottom:1px solid #e8e8e8;padding:40px 32px 0;">
+    <div style="font-size:10px;color:#aaa;letter-spacing:5px;text-transform:uppercase;margin-bottom:8px;">CI — CINÉMA INTERACTIF</div>
+    <div style="font-size:clamp(22px,4vw,38px);font-weight:700;color:#111;letter-spacing:4px;text-transform:uppercase;margin-bottom:4px;">DEMANDE DE SUBVENTION</div>
+    <div style="font-size:11px;color:#bbb;letter-spacing:2px;margin-bottom:0;">Dossier complet · 2026</div>
+    <!-- Sous-onglets -->
+    <div style="display:flex;gap:0;margin-top:24px;border-bottom:none;">
+      <button class="sub-tab active" id="stab-projet" onclick="switchSubTab('projet',this)">Projet</button>
+      <button class="sub-tab" id="stab-artistes" onclick="switchSubTab('artistes',this)">Artistes</button>
+      <button class="sub-tab" id="stab-budget" onclick="switchSubTab('budget',this)">Budget</button>
+      <button class="sub-tab" id="stab-test" onclick="switchSubTab('test',this)">Test Interactif</button>
+    </div>
+  </div>
+
+  <!-- Contenu des onglets -->
+  <div style="max-width:900px;margin:0 auto;padding:40px 32px;">
+
+    <!-- PROJET -->
+    <div id="stab-content-projet" class="sub-tab-content">
+      <div style="background:#fff;border-radius:16px;padding:32px;box-shadow:0 2px 12px rgba(0,0,0,0.06);margin-bottom:20px;">
+        <div style="font-size:10px;color:#aaa;letter-spacing:4px;text-transform:uppercase;margin-bottom:12px;">Description du projet</div>
+        <div style="font-size:22px;font-weight:700;color:#111;margin-bottom:16px;">CI — Cinéma Interactif</div>
+        <div style="font-size:14px;color:#555;line-height:1.9;">
+          CI est une plateforme numérique SaaS de création de cinéma interactif. Elle permet à tout utilisateur inscrit d'accéder à un module de création avancé pour concevoir, monter et publier des films interactifs où les choix du spectateur influencent le déroulement de l'histoire.
+        </div>
+      </div>
+      <div style="background:#fff;border-radius:16px;padding:32px;box-shadow:0 2px 12px rgba(0,0,0,0.06);margin-bottom:20px;">
+        <div style="font-size:10px;color:#aaa;letter-spacing:4px;text-transform:uppercase;margin-bottom:12px;">Objectif principal</div>
+        <div style="font-size:14px;color:#555;line-height:1.9;">
+          La demande de subvention vise principalement l'<strong style="color:#111;">acquisition de matériel de production professionnel</strong> afin de lancer le premier jeu interactif cinématique sur la plateforme CI. Ce projet inaugural servira de vitrine technologique et artistique, démontrant les capacités uniques de la plateforme à fusionner cinéma et interactivité numérique.
+        </div>
+      </div>
+      <div style="background:#fff;border-radius:16px;padding:32px;box-shadow:0 2px 12px rgba(0,0,0,0.06);">
+        <div style="font-size:10px;color:#aaa;letter-spacing:4px;text-transform:uppercase;margin-bottom:16px;">Objectifs spécifiques</div>
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <div style="display:flex;align-items:flex-start;gap:12px;"><div style="width:6px;height:6px;border-radius:50%;background:#111;margin-top:7px;flex-shrink:0;"></div><div style="font-size:14px;color:#555;line-height:1.7;">Acquérir du matériel de tournage professionnel (caméras, éclairage, son)</div></div>
+          <div style="display:flex;align-items:flex-start;gap:12px;"><div style="width:6px;height:6px;border-radius:50%;background:#111;margin-top:7px;flex-shrink:0;"></div><div style="font-size:14px;color:#555;line-height:1.7;">Produire le premier jeu cinématique interactif sur la plateforme CI</div></div>
+          <div style="display:flex;align-items:flex-start;gap:12px;"><div style="width:6px;height:6px;border-radius:50%;background:#111;margin-top:7px;flex-shrink:0;"></div><div style="font-size:14px;color:#555;line-height:1.7;">Démocratiser la création de films interactifs pour les artistes indépendants</div></div>
+          <div style="display:flex;align-items:flex-start;gap:12px;"><div style="width:6px;height:6px;border-radius:50%;background:#111;margin-top:7px;flex-shrink:0;"></div><div style="font-size:14px;color:#555;line-height:1.7;">Développer un modèle économique durable pour la plateforme numérique</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ARTISTES -->
+    <div id="stab-content-artistes" class="sub-tab-content" style="display:none;">
+      <div style="background:#fff;border-radius:16px;padding:32px;box-shadow:0 2px 12px rgba(0,0,0,0.06);margin-bottom:20px;">
+        <div style="font-size:10px;color:#aaa;letter-spacing:4px;text-transform:uppercase;margin-bottom:16px;">Équipe artistique</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px;">
+          <div style="background:#f9f9f9;border-radius:12px;padding:20px;">
+            <div style="width:52px;height:52px;border-radius:50%;background:#e0e0e0;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:#888;margin-bottom:12px;">B</div>
+            <div style="font-size:13px;font-weight:700;color:#111;margin-bottom:4px;">Brian</div>
+            <div style="font-size:11px;color:#888;margin-bottom:8px;">Directeur / Développeur</div>
+            <div style="font-size:11px;color:#aaa;line-height:1.6;">Conception de la plateforme CI, direction artistique et technique du projet.</div>
+          </div>
+          <div style="background:#f9f9f9;border-radius:12px;padding:20px;border:2px dashed #e8e8e8;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px;cursor:pointer;min-height:140px;" onclick="showToast('Artiste à ajouter')">
+            <div style="font-size:28px;color:#ddd;">+</div>
+            <div style="font-size:11px;color:#ccc;letter-spacing:2px;text-transform:uppercase;">Ajouter un artiste</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BUDGET -->
+    <div id="stab-content-budget" class="sub-tab-content" style="display:none;">
+      <div style="background:#fff;border-radius:16px;padding:32px;box-shadow:0 2px 12px rgba(0,0,0,0.06);margin-bottom:20px;">
+        <div style="font-size:10px;color:#aaa;letter-spacing:4px;text-transform:uppercase;margin-bottom:16px;">Budget prévisionnel</div>
+        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+          <thead>
+            <tr style="border-bottom:2px solid #f0f0f0;">
+              <th style="text-align:left;padding:10px 0;color:#888;font-weight:600;letter-spacing:1px;font-size:11px;text-transform:uppercase;">Poste</th>
+              <th style="text-align:right;padding:10px 0;color:#888;font-weight:600;letter-spacing:1px;font-size:11px;text-transform:uppercase;">Montant</th>
+            </tr>
+          </thead>
+          <tbody id="budget-rows">
+            <tr style="border-bottom:1px solid #f5f5f5;"><td style="padding:12px 0;color:#555;">Caméra professionnelle (4K)</td><td style="text-align:right;color:#111;font-weight:600;">8 000 $</td></tr>
+            <tr style="border-bottom:1px solid #f5f5f5;"><td style="padding:12px 0;color:#555;">Équipement d'éclairage</td><td style="text-align:right;color:#111;font-weight:600;">3 500 $</td></tr>
+            <tr style="border-bottom:1px solid #f5f5f5;"><td style="padding:12px 0;color:#555;">Équipement audio</td><td style="text-align:right;color:#111;font-weight:600;">2 000 $</td></tr>
+            <tr style="border-bottom:1px solid #f5f5f5;"><td style="padding:12px 0;color:#555;">Post-production & montage</td><td style="text-align:right;color:#111;font-weight:600;">4 000 $</td></tr>
+            <tr style="border-bottom:1px solid #f5f5f5;"><td style="padding:12px 0;color:#555;">Développement plateforme</td><td style="text-align:right;color:#111;font-weight:600;">5 000 $</td></tr>
+            <tr style="border-bottom:1px solid #f5f5f5;"><td style="padding:12px 0;color:#555;">Marketing & lancement</td><td style="text-align:right;color:#111;font-weight:600;">2 500 $</td></tr>
+            <tr style="border-bottom:1px solid #f5f5f5;"><td style="padding:12px 0;color:#555;">Hébergement & infrastructure</td><td style="text-align:right;color:#111;font-weight:600;">1 500 $</td></tr>
+          </tbody>
+          <tfoot>
+            <tr style="border-top:2px solid #111;">
+              <td style="padding:14px 0;font-weight:700;color:#111;font-size:14px;">TOTAL</td>
+              <td style="text-align:right;font-weight:700;color:#111;font-size:14px;">26 500 $</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      <div style="background:#f0f0f0;border-radius:12px;padding:16px 20px;font-size:12px;color:#888;line-height:1.7;">
+        * Budget estimatif sujet à modification. Les montants sont en dollars canadiens avant taxes.
+      </div>
+    </div>
+
+    <!-- TEST INTERACTIF -->
+    <div id="stab-content-test" class="sub-tab-content" style="display:none;">
+      <div style="background:#fff;border-radius:16px;padding:32px;box-shadow:0 2px 12px rgba(0,0,0,0.06);margin-bottom:20px;">
+        <div style="font-size:10px;color:#aaa;letter-spacing:4px;text-transform:uppercase;margin-bottom:12px;">Test interactif</div>
+        <div style="font-size:18px;font-weight:700;color:#111;margin-bottom:12px;">Premier jeu cinématique</div>
+        <div style="font-size:14px;color:#888;line-height:1.8;margin-bottom:24px;">
+          Cette section contiendra le début du premier film interactif cinématique en cours de montage. Il servira de démonstration des capacités de la plateforme CI pour la demande de subvention.
+        </div>
+        <div style="background:#f5f5f5;border-radius:12px;aspect-ratio:16/9;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;border:2px dashed #e0e0e0;">
+          <div style="font-size:40px;">🎬</div>
+          <div style="font-size:12px;color:#bbb;letter-spacing:3px;text-transform:uppercase;">Vidéo interactive à venir</div>
+          <div style="font-size:11px;color:#ccc;">En cours de montage</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
 
 <!-- ===== PAGE NOS CRÉATIONS ===== -->
 <div id="page-creations" class="page">
@@ -982,6 +1104,7 @@ function navTo(page, btn){
   if(page==='admin'){ muteAllVideos(); renderAdmin(); renderStoryboard(); showAdminTabIfAdmin(); }
   else if(page==='creations'){ muteAllVideos(); renderCreations(); }
   else if(page==='membres'){ muteAllVideos(); renderMembres(); }
+  else if(page==='subvention'){ muteAllVideos(); }
   else if(page==='messages'){ muteAllVideos(); }
   else if(page==='film' && isPlayerActive()){ unmutePlayerVideo(); }
 }
@@ -1693,6 +1816,14 @@ async function deleteUser(userId){
   showToast('Utilisateur supprimé');
 }
 
+function switchSubTab(tab, btn){
+  document.querySelectorAll('.sub-tab').forEach(function(b){ b.classList.remove('active'); });
+  document.querySelectorAll('.sub-tab-content').forEach(function(c){ c.style.display='none'; });
+  if(btn) btn.classList.add('active');
+  var content = document.getElementById('stab-content-'+tab);
+  if(content) content.style.display = 'block';
+}
+
 function switchAdminTab(tab, btn){
   document.querySelectorAll('.admin-tab').forEach(function(b){ b.classList.remove('active'); });
   document.querySelectorAll('.admin-tab-content').forEach(function(c){ c.style.display='none'; });
@@ -1984,12 +2115,12 @@ async function renderUsersTab(){
   if(s4) s4.textContent = users.filter(function(u){return u.plan==='studio';}).length;
 
   list.innerHTML = '';
-  list.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1px;background:#2a2a2a;';
+  list.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;background:transparent;';
 
   users.forEach(function(user){
     var isAdmin = user.role === 'admin';
     var card = document.createElement('div');
-    card.style.cssText = 'background:#111;padding:24px 16px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;';
+    card.style.cssText = 'background:#f8f9fb;border-radius:24px;padding:24px 16px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;box-shadow:0 2px 16px rgba(0,0,0,0.05);border:1px solid #eff0f2;';
 
     // Grand avatar
     var avatarWrap = document.createElement('div');
@@ -2022,7 +2153,7 @@ async function renderUsersTab(){
     // Options admin
     if(!isAdmin){
       var actions = document.createElement('div');
-      actions.style.cssText = 'width:100%;display:flex;flex-direction:column;gap:6px;margin-top:6px;border-top:1px solid #1a1a1a;padding-top:12px;';
+      actions.style.cssText = 'width:100%;display:flex;flex-direction:column;gap:6px;margin-top:6px;border-top:1px solid #eef0f2;padding-top:12px;';
 
       // Plan selector
       var planRow = document.createElement('div');
@@ -2041,7 +2172,7 @@ async function renderUsersTab(){
       actions.appendChild(planRow);
 
       // Boutons
-      var bs = 'width:100%;background:none;border:1px solid #2a2a2a;color:#555;font-family:Arial,sans-serif;font-size:9px;letter-spacing:2px;padding:8px;cursor:pointer;text-transform:uppercase;transition:all 0.15s;';
+      var bs = 'width:100%;background:#f5f5f5;border:1px solid #e8e8e8;color:#555;font-family:Arial,sans-serif;font-size:9px;letter-spacing:2px;padding:8px;cursor:pointer;text-transform:uppercase;transition:all 0.15s;border-radius:10px;';
 
       var b1 = document.createElement('button'); b1.style.cssText=bs; b1.textContent='👁 Voir les films';
       b1.onmouseover=function(){this.style.borderColor='#fff';this.style.color='#fff';}; b1.onmouseout=function(){this.style.borderColor='#2a2a2a';this.style.color='#555';};
@@ -2078,24 +2209,26 @@ async function deleteUser(userId, nom){
   
   // 2. Supprimer le profil
   const { error } = await supabaseClient.from('profiles').delete().eq('id', userId);
-  if(error){ showToast('Erreur suppression'); return; }
+  if(error){ showToast('Erreur : ' + error.message); return; }
   
   // 3. Supprimer le compte auth via Vercel
   try {
-    await fetch('/api/delete-user', {
+    const r = await fetch('/api/delete-user', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId })
     });
-  } catch(e) {}
-  
-  showToast('Compte supprimé définitivement ✓');
+    const d = await r.json();
+    console.log('delete-user response:', d);
+  } catch(e) { console.log('delete-user error:', e); }
   
   // 4. Fermer le chat si ouvert avec cet utilisateur
   if(currentChatUser && currentChatUser.id === userId) closeChatModal();
   
-  // 5. Rafraîchir la page utilisateurs
-  renderMembres();
+  showToast('Compte supprimé ✓');
+  
+  // 5. Forcer rechargement après court délai
+  setTimeout(function(){ renderMembres(); }, 800);
 }
 
 // ===== MEMBRES & MESSAGERIE =====
@@ -2130,7 +2263,7 @@ async function renderMembres(){
   if(countEl) countEl.textContent = members.length + ' utilisateur' + (members.length > 1 ? 's' : '');
 
   var list = document.createElement('div');
-  list.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1px;background:#2a2a2a;';
+  list.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;background:transparent;';
 
   var isAdmin = currentProfile && currentProfile.role === 'admin';
 
@@ -2139,7 +2272,7 @@ async function renderMembres(){
     var isMemberAdmin = member.role === 'admin';
 
     var card = document.createElement('div');
-    card.style.cssText = 'background:#111;padding:24px 16px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;';
+    card.style.cssText = 'background:#f8f9fb;border-radius:24px;padding:24px 16px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;box-shadow:0 2px 16px rgba(0,0,0,0.05);border:1px solid #eff0f2;';
 
     // Grand avatar vidéo
     var avatarWrap = document.createElement('div');
@@ -2169,28 +2302,45 @@ async function renderMembres(){
     info.style.cssText = 'width:100%;';
     info.innerHTML =
       '<div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:4px;">' +
-        '<div style="font-size:14px;font-weight:700;color:#fff;">'+(member.nom||'Sans nom')+'</div>' +
-        (isMe?'<div style="font-size:8px;background:#fff;color:#000;padding:2px 5px;letter-spacing:1px;">MOI</div>':'') +
-        (isMemberAdmin&&!isMe?'<div style="font-size:8px;background:#333;color:#888;padding:2px 5px;letter-spacing:1px;">ADMIN</div>':'') +
+        '<div style="font-size:14px;font-weight:700;color:#111;">'+(member.nom||'Sans nom')+'</div>' +
+        (isMe?'<div style="font-size:8px;background:#111;color:#fff;padding:2px 5px;letter-spacing:1px;border-radius:4px;">MOI</div>':'') +
+        (isMemberAdmin&&!isMe?'<div style="font-size:8px;background:#eee;color:#888;padding:2px 5px;letter-spacing:1px;border-radius:4px;">ADMIN</div>':'') +
       '</div>' +
-      (isAdmin?'<div style="font-size:10px;color:#444;margin-bottom:4px;">'+(member.email||'')+'</div>':'') +
-      '<div style="display:inline-block;font-size:9px;color:#555;border:1px solid #2a2a2a;padding:2px 8px;letter-spacing:2px;text-transform:uppercase;">'+(member.plan||'gratuit')+'</div>' +
-      '<div style="font-size:9px;color:#2a2a2a;margin-top:4px;">Inscrit le '+(member.created_at?new Date(member.created_at).toLocaleDateString('fr-CA'):'—')+'</div>';
+      (isAdmin?'<div style="font-size:10px;color:#888;margin-bottom:4px;">'+(member.email||'')+'</div>':'') +
+      '<div style="display:inline-block;font-size:9px;color:#888;border:1px solid #e0e0e0;padding:2px 8px;letter-spacing:2px;text-transform:uppercase;border-radius:8px;">'+(member.plan||'gratuit')+'</div>' +
+      '<div style="font-size:9px;color:#ccc;margin-top:4px;">Inscrit le '+(member.created_at?new Date(member.created_at).toLocaleDateString('fr-CA'):'—')+'</div>';
 
     card.appendChild(avatarWrap);
     card.appendChild(info);
 
     // Actions
     var actions = document.createElement('div');
-    actions.style.cssText = 'width:100%;display:flex;flex-direction:column;gap:6px;margin-top:4px;border-top:1px solid #1a1a1a;padding-top:12px;';
-    var bs = 'width:100%;background:none;border:1px solid #2a2a2a;color:#555;font-family:Arial,sans-serif;font-size:9px;letter-spacing:2px;padding:8px;cursor:pointer;text-transform:uppercase;transition:all 0.15s;';
+    actions.style.cssText = 'width:100%;display:flex;flex-direction:column;gap:6px;margin-top:4px;border-top:1px solid #eef0f2;padding-top:12px;';
+    var bs = 'width:100%;background:#f5f5f5;border:1px solid #e8e8e8;color:#555;font-family:Arial,sans-serif;font-size:9px;letter-spacing:2px;padding:8px;cursor:pointer;text-transform:uppercase;transition:all 0.15s;border-radius:10px;';
 
     if(!isMe){
       var msgBtn = document.createElement('button');
-      msgBtn.style.cssText = bs; msgBtn.textContent = '💬 Message';
+      msgBtn.style.cssText = bs; 
       msgBtn.setAttribute('data-sender-id', member.id);
-      msgBtn.onmouseover=function(){this.style.borderColor='#555';this.style.color='#111';}; msgBtn.onmouseout=function(){this.style.borderColor='#e0e0e0';this.style.color='#666';};
+      msgBtn.onmouseover=function(){this.style.borderColor='#ccc';this.style.color='#111';}; 
+      msgBtn.onmouseout=function(){this.style.borderColor='#e8e8e8';this.style.color='#666';};
       msgBtn.onclick=function(){ openChatModal(member); };
+      
+      // Vérifier messages non lus de cet utilisateur
+      supabaseClient.from('messages')
+        .select('*', { count: 'exact', head: true })
+        .eq('sender_id', member.id)
+        .eq('receiver_id', currentUser.id)
+        .eq('read', false)
+        .then(function(res){
+          var unread = res.count || 0;
+          if(unread > 0){
+            msgBtn.innerHTML = '💬 Message <span class="msg-unread-badge">'+unread+'</span>';
+          } else {
+            msgBtn.textContent = '💬 Message';
+          }
+        });
+      
       actions.appendChild(msgBtn);
     }
 
@@ -2459,7 +2609,10 @@ document.getElementById('chat-modal').addEventListener('click', function(e){
 });
 
 function showAdminTabIfAdmin(){
-  // Afficher les onglets de base pour tous les connectés
+  // Cacher subvention quand connecté
+  var navSub = document.getElementById('nav-subvention');
+  if(navSub) navSub.style.display = 'none';
+  // Afficher onglets réalisateur
   ['atab-scenes','atab-storyboard','atab-publish'].forEach(function(id){
     var t = document.getElementById(id);
     if(t) t.style.display = '';
@@ -2691,8 +2844,10 @@ async function initAuth(){
       updateNavProfil();
       var navMembres = document.getElementById('nav-membres');
       var navAdmin = document.getElementById('nav-admin');
+      var navSub = document.getElementById('nav-subvention');
       if(navMembres) navMembres.style.display = 'none';
       if(navAdmin) navAdmin.style.display = 'none';
+      if(navSub) navSub.style.display = '';
       ['atab-scenes','atab-storyboard','atab-publish'].forEach(function(id){
         var t = document.getElementById(id);
         if(t) t.style.display = 'none';
