@@ -2,7 +2,13 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="CI">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#000000">
+<link rel="manifest" href="/manifest.json">
 <title>CI — CINÉMA INTERACTIF</title>
 <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@100&display=swap" rel="stylesheet">
 <link rel="dns-prefetch" href="//iframe.videodelivery.net">
@@ -540,6 +546,49 @@ video { outline:none; }
 
 <!-- ===== ÉCRAN AUTH ===== -->
 <!-- ===== MODAL AVATAR ÉDITEUR ===== -->
+<!-- ===== MODAL CONFIGURATION AI ===== -->
+<div id="ai-setup-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.95);z-index:9800;align-items:center;justify-content:center;">
+  <div style="background:#111;border:1px solid #2a2a2a;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;border-radius:16px;position:relative;">
+    
+    <!-- Header -->
+    <div style="padding:28px 28px 0;text-align:center;position:sticky;top:0;background:#111;z-index:2;border-bottom:1px solid #1a1a1a;padding-bottom:20px;">
+      <div style="font-size:9px;color:#555;letter-spacing:4px;text-transform:uppercase;margin-bottom:8px;">CI — CINÉMA INTERACTIF</div>
+      <div style="font-size:22px;font-weight:700;color:#fff;letter-spacing:2px;margin-bottom:6px;">Configure ton AI</div>
+      <div style="font-size:11px;color:#444;line-height:1.7;margin-bottom:16px;">Ton AI personnel répondra aux messages à ta place dans ton style unique. Réponds honnêtement pour un meilleur résultat.</div>
+      <!-- Barre de progression -->
+      <div style="background:#1a1a1a;border-radius:4px;height:4px;margin-bottom:8px;">
+        <div id="ai-progress-bar" style="background:#fff;height:4px;border-radius:4px;width:0%;transition:width 0.3s;"></div>
+      </div>
+      <div style="font-size:10px;color:#444;letter-spacing:2px;" id="ai-progress-text">Question 1 / 40</div>
+    </div>
+
+    <!-- Zone question -->
+    <div style="padding:28px;">
+      <div id="ai-category-badge" style="font-size:9px;color:#555;letter-spacing:3px;text-transform:uppercase;margin-bottom:12px;"></div>
+      <div id="ai-question-text" style="font-size:16px;color:#fff;line-height:1.7;margin-bottom:24px;font-weight:500;"></div>
+
+      <!-- Réponse texte -->
+      <div id="ai-input-wrap">
+        <textarea id="ai-answer-input" placeholder="Ta réponse..." rows="3" style="width:100%;background:#0d0d0d;border:1px solid #2a2a2a;color:#e8e8e8;font-family:Arial,sans-serif;font-size:13px;padding:14px 16px;outline:none;resize:none;border-radius:10px;transition:border-color 0.2s;box-sizing:border-box;" onfocus="this.style.borderColor='#555'" onblur="this.style.borderColor='#2a2a2a'"></textarea>
+      </div>
+
+      <!-- Choix multiples -->
+      <div id="ai-choices-wrap" style="display:none;display:flex;flex-direction:column;gap:8px;"></div>
+
+      <!-- Boutons nav -->
+      <div style="display:flex;gap:10px;margin-top:20px;">
+        <button onclick="aiPrevQuestion()" id="ai-prev-btn" style="flex:1;background:none;border:1px solid #2a2a2a;color:#555;font-family:Arial,sans-serif;font-size:10px;letter-spacing:2px;padding:12px;cursor:pointer;text-transform:uppercase;border-radius:8px;transition:all 0.15s;" onmouseover="this.style.borderColor='#666';this.style.color='#888'" onmouseout="this.style.borderColor='#2a2a2a';this.style.color='#555'">← Précédent</button>
+        <button onclick="aiNextQuestion()" id="ai-next-btn" style="flex:2;background:#fff;border:none;color:#000;font-family:Arial,sans-serif;font-size:11px;letter-spacing:3px;padding:12px;cursor:pointer;text-transform:uppercase;font-weight:700;border-radius:8px;transition:opacity 0.2s;">Suivant →</button>
+      </div>
+
+      <!-- Skip -->
+      <div style="text-align:center;margin-top:12px;">
+        <button onclick="skipAISetup()" style="background:none;border:none;color:#333;font-family:Arial,sans-serif;font-size:10px;letter-spacing:2px;cursor:pointer;text-transform:uppercase;text-decoration:underline;" onmouseover="this.style.color='#555'" onmouseout="this.style.color='#333'">Configurer plus tard</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div id="avatar-editor-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:9500;align-items:center;justify-content:center;">
   <div style="background:#111;border:1px solid #2a2a2a;width:100%;max-width:440px;padding:28px;position:relative;">
     <button onclick="closeAvatarEditor()" style="position:absolute;top:14px;right:16px;background:none;border:none;color:#444;font-size:18px;cursor:pointer;">×</button>
@@ -640,6 +689,7 @@ video { outline:none; }
       </div>
       <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px;">
         <button id="profil-btn-users" onclick="closeProfilModal();navTo('membres',document.getElementById('nav-membres'));" style="display:none;width:100%;background:none;border:1px solid #2a2a2a;color:#888;font-family:Arial,sans-serif;font-size:10px;letter-spacing:3px;padding:11px;cursor:pointer;text-transform:uppercase;transition:all 0.15s;" onmouseover="this.style.borderColor='#fff';this.style.color='#fff'" onmouseout="this.style.borderColor='#2a2a2a';this.style.color='#888'">👥 UTILISATEURS</button>
+        <button onclick="closeProfilModal();openAISetup();" style="width:100%;background:none;border:1px solid #2a2a2a;color:#888;font-family:Arial,sans-serif;font-size:10px;letter-spacing:3px;padding:11px;cursor:pointer;text-transform:uppercase;transition:all 0.15s;" onmouseover="this.style.borderColor='#fff';this.style.color='#fff'" onmouseout="this.style.borderColor='#2a2a2a';this.style.color='#888'" id="profil-btn-ai">🤖 CONFIGURER MON AI</button>
       </div>
       <button onclick="signOut()" style="width:100%;background:none;border:1px solid #2a2a2a;color:#555;font-family:Arial,sans-serif;font-size:10px;letter-spacing:3px;padding:11px;cursor:pointer;text-transform:uppercase;transition:all 0.15s;" onmouseover="this.style.borderColor='#666';this.style.color='#888'" onmouseout="this.style.borderColor='#2a2a2a';this.style.color='#555'">Déconnexion</button>
     </div>
@@ -659,6 +709,7 @@ video { outline:none; }
     <span id="nav-profil-label">⬤ Profil</span>
     <span id="msg-notif-badge" style="display:none;background:#c44;color:#fff;font-size:8px;font-weight:700;padding:2px 5px;border-radius:10px;margin-left:6px;"></span>
   </button>
+  <button onclick="toggleFullscreen()" id="btn-fullscreen" title="Plein écran" style="background:none;border:none;border-left:1px solid #2e2e2e;color:#555;font-size:14px;padding:0 14px;cursor:pointer;height:100%;transition:color 0.15s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#555'">⛶</button>
 </div>
 
 <!-- ===== PAGE FILM (accueil + lecteur) ===== -->
@@ -885,6 +936,27 @@ video { outline:none; }
 </div>
 
 <!-- Bulle flottante supprimée -->
+
+<!-- ===== AI ASSISTANT CI ===== -->
+<div id="ci-ai-btn" style="display:none;position:fixed;bottom:24px;right:24px;z-index:800;background:#111;border:1px solid #2a2a2a;border-radius:50%;width:52px;height:52px;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 4px 20px rgba(0,0,0,0.5);transition:transform 0.2s;font-size:22px;" onclick="toggleCIChat()" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">🎬</div>
+
+<div id="ci-ai-modal" style="display:none;position:fixed;bottom:88px;right:24px;z-index:800;background:#f2f4f7;border-radius:24px 24px 24px 4px;width:320px;max-height:480px;flex-direction:column;box-shadow:0 8px 40px rgba(0,0,0,0.2);">
+  <div style="padding:14px 18px;background:#111;border-radius:24px 24px 0 0;display:flex;align-items:center;justify-content:space-between;">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div style="width:32px;height:32px;border-radius:50%;background:#222;border:1px solid #333;display:flex;align-items:center;justify-content:center;font-size:16px;">🎬</div>
+      <div>
+        <div style="font-size:12px;font-weight:700;color:#fff;">CI — Assistant</div>
+        <div style="font-size:9px;color:#444;letter-spacing:2px;">Cinéma Interactif</div>
+      </div>
+    </div>
+    <button onclick="toggleCIChat()" style="background:none;border:none;color:#444;font-size:16px;cursor:pointer;">×</button>
+  </div>
+  <div id="ci-ai-messages" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:8px;max-height:320px;"></div>
+  <div style="padding:10px 12px;border-top:1px solid #ebebeb;display:flex;gap:8px;background:#f8f8f8;border-radius:0 0 24px 24px;">
+    <input type="text" id="ci-ai-input" placeholder="Pose ta question..." style="flex:1;background:#fff;border:1px solid #e0e0e0;border-radius:20px;color:#222;font-family:Arial,sans-serif;font-size:12px;padding:8px 14px;outline:none;" onkeydown="if(event.key==='Enter') sendCIMessage()">
+    <button onclick="sendCIMessage()" style="background:#111;border:none;color:#fff;width:34px;height:34px;border-radius:50%;cursor:pointer;font-size:14px;">↑</button>
+  </div>
+</div>
 
 <!-- ===== PAGE SUBVENTION ===== -->
 <div id="page-subvention" class="page" style="background:#111;">
@@ -2357,6 +2429,8 @@ var conversationsPanelOpen = false;
 
 function showMessagingIfLoggedIn(){
   if(!currentUser) return;
+  var ciBtn = document.getElementById('ci-ai-btn');
+  if(ciBtn) ciBtn.style.display = 'flex';
   subscribeToMessages();
   updateUnreadBadge();
 }
@@ -2682,19 +2756,40 @@ function subscribeToMessages(){
         if(currentChatUser &&
           ((msg.sender_id === currentUser.id && msg.receiver_id === currentChatUser.id) ||
            (msg.sender_id === currentChatUser.id && msg.receiver_id === currentUser.id))){
-          // Eviter doublon si déjà ajouté localement
           if(msg.sender_id !== currentUser.id){
             appendChatMessage(msg);
             supabaseClient.from('messages').update({ read: true }).eq('id', msg.id);
           }
         }
         // Notification si message reçu
-        if(msg.receiver_id === currentUser.id){
+        if(msg.receiver_id === currentUser.id && msg.sender_id !== currentUser.id){
           updateUnreadBadge();
           updateMsgBtnBadge(msg.sender_id);
+          playNotificationSound();
+          // Déclencher réponse AI si configuré
+          if(currentProfile && currentProfile.ai_configured){
+            supabaseClient.from('profiles').select('*').eq('id', msg.sender_id).single().then(function(res){
+              if(res.data) generateAIResponse(res.data, msg.content);
+            });
+          }
         }
       })
     .subscribe();
+}
+
+function playNotificationSound(){
+  try {
+    var ctx = new (window.AudioContext || window.webkitAudioContext)();
+    var osc = ctx.createOscillator();
+    var gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.frequency.setValueAtTime(880, ctx.currentTime);
+    osc.frequency.setValueAtTime(1100, ctx.currentTime + 0.1);
+    gain.gain.setValueAtTime(0.15, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.3);
+  } catch(e) {}
 }
 
 async function updateUnreadBadge(){
@@ -2959,10 +3054,13 @@ async function initAuth(){
       showMessagingIfLoggedIn();
       showToast('Bienvenue ' + (currentProfile?.nom || '') + ' !');
       goToRealisateur('storyboard');
-      // Aller sur la page Utilisateurs après connexion
       setTimeout(function(){
         navTo('membres', document.getElementById('nav-membres'));
         renderMembres();
+        // Démarrer configuration AI si pas encore fait
+        if(currentProfile && !currentProfile.ai_configured){
+          setTimeout(function(){ openAISetup(); }, 800);
+        }
       }, 300);
     } else if(event === 'SIGNED_OUT'){
       currentUser = null; currentProfile = null;
@@ -3282,6 +3380,346 @@ document.getElementById('profil-modal').addEventListener('click', function(e){
 window.addEventListener('load', function(){
   initAuth();
 });
+
+// ===== SYSTÈME AI PERSONNEL =====
+var aiCurrentQ = 0;
+var aiAnswers = {};
+var aiQuestions = [
+  // PERSONNALITÉ
+  { cat:'🧠 Personnalité', q:'Comment te décrirais-tu en quelques mots ?', type:'text' },
+  { cat:'🧠 Personnalité', q:'Qu\'est-ce qui te passionne le plus dans la vie ?', type:'text' },
+  { cat:'🧠 Personnalité', q:'Comment réagis-tu face à un problème difficile ?', type:'choices', choices:['Je l\'analyse calmement','Je cherche de l\'aide','Je fonce et j\'improvise','Je prends du recul'] },
+  { cat:'🧠 Personnalité', q:'Quel type de personne es-tu dans un groupe ?', type:'choices', choices:['Le leader','Le créatif','Le médiateur','L\'observateur'] },
+  { cat:'🧠 Personnalité', q:'Qu\'est-ce qui t\'énerve le plus ?', type:'text' },
+  { cat:'🧠 Personnalité', q:'Qu\'est-ce qui te rend le plus heureux/heureuse ?', type:'text' },
+  { cat:'🧠 Personnalité', q:'Es-tu plutôt introverti(e) ou extraverti(e) ?', type:'choices', choices:['Très introverti(e)','Plutôt introverti(e)','Plutôt extraverti(e)','Très extraverti(e)'] },
+  { cat:'🧠 Personnalité', q:'Comment prends-tu tes décisions ?', type:'choices', choices:['Avec ma tête (logique)','Avec mon cœur (émotions)','Les deux à parts égales','Ça dépend de la situation'] },
+
+  // STYLE DE COMMUNICATION
+  { cat:'💬 Style de communication', q:'Comment écrirais-tu un message amical typique ?', type:'text' },
+  { cat:'💬 Style de communication', q:'Utilises-tu beaucoup d\'emojis dans tes messages ?', type:'choices', choices:['Oui beaucoup ! 😄🔥','Parfois 😊','Rarement','Jamais'] },
+  { cat:'💬 Style de communication', q:'Quel est ton style d\'écriture habituel ?', type:'choices', choices:['Court et direct','Long et détaillé','Décontracté et drôle','Formel et précis'] },
+  { cat:'💬 Style de communication', q:'Utilises-tu des abréviations (lol, omg, tsé, etc.) ?', type:'choices', choices:['Oui souvent','Parfois','Rarement','Jamais'] },
+  { cat:'💬 Style de communication', q:'Quelle est ta langue principale ?', type:'choices', choices:['Français','Anglais','Français et anglais','Autre'] },
+  { cat:'💬 Style de communication', q:'Parles-tu en joual ou en français standard ?', type:'choices', choices:['Joual québécois','Français standard','Entre les deux','Autre dialecte'] },
+  { cat:'💬 Style de communication', q:'Quand tu es enthousiaste, comment l\'exprimes-tu par écrit ?', type:'text' },
+  { cat:'💬 Style de communication', q:'Comment exprimes-tu ton désaccord poliment ?', type:'text' },
+
+  // RELATIONS & SOCIAL
+  { cat:'🤝 Relations', q:'Comment te comportes-tu avec de nouvelles personnes ?', type:'choices', choices:['Très chaleureux(se) et ouvert(e)','Réservé(e) au début','Curieux(se) et poseur(se) de questions','Observateur(trice) et discret(e)'] },
+  { cat:'🤝 Relations', q:'Qu\'est-ce qui est important pour toi dans une amitié ?', type:'text' },
+  { cat:'🤝 Relations', q:'Comment montres-tu que tu te soucies de quelqu\'un ?', type:'text' },
+  { cat:'🤝 Relations', q:'Comment réagis-tu quand quelqu\'un partage une mauvaise nouvelle ?', type:'choices', choices:['J\'offre du soutien émotionnel','Je donne des conseils pratiques','J\'écoute sans trop intervenir','Je cherche à faire rire'] },
+  { cat:'🤝 Relations', q:'Quelle fréquence de communication préfères-tu avec tes contacts ?', type:'choices', choices:['Tous les jours','Quelques fois par semaine','Quand j\'ai quelque chose à dire','Rarement mais intensément'] },
+
+  // HUMOUR & LÉGÈRETÉ
+  { cat:'😄 Humour', q:'Quel type d\'humour as-tu ?', type:'choices', choices:['Humour noir','Humour absurde','Humour autodérision','Humour situationnel'] },
+  { cat:'😄 Humour', q:'Est-ce que tu fais souvent des blagues dans tes messages ?', type:'choices', choices:['Oui tout le temps','Parfois','Rarement','Non jamais'] },
+  { cat:'😄 Humour', q:'Donne un exemple de quelque chose que tu trouves drôle :', type:'text' },
+
+  // VALEURS & VISION
+  { cat:'🌟 Valeurs', q:'Quelle est ta valeur la plus importante dans la vie ?', type:'choices', choices:['La liberté','La famille','L\'authenticité','La réussite'] },
+  { cat:'🌟 Valeurs', q:'Qu\'est-ce que tu penses de la technologie et de l\'IA ?', type:'choices', choices:['Fasciné(e) et enthousiaste','Prudent(e) mais ouvert(e)','Sceptique','Neutre'] },
+  { cat:'🌟 Valeurs', q:'Quelle est ta philosophie de vie en une phrase ?', type:'text' },
+
+  // CRÉATIVITÉ & INTÉRÊTS
+  { cat:'🎨 Créativité', q:'Quels sont tes centres d\'intérêt principaux ?', type:'text' },
+  { cat:'🎨 Créativité', q:'Es-tu une personne créative ?', type:'choices', choices:['Très créatif(ve)','Assez créatif(ve)','Un peu','Pas vraiment'] },
+  { cat:'🎨 Créativité', q:'Quel type de contenu cinématique préfères-tu ?', type:'choices', choices:['Thriller/Suspense','Drame/Émotion','Comédie','Science-fiction/Fantasy'] },
+  { cat:'🎨 Créativité', q:'Qu\'est-ce qui t\'a amené(e) sur CI — Cinéma Interactif ?', type:'text' },
+
+  // RÉPONSES AUX AUTRES
+  { cat:'🤖 Style AI', q:'Quand quelqu\'un te dit bonjour, comment ton AI devrait-il répondre ?', type:'text' },
+  { cat:'🤖 Style AI', q:'Si quelqu\'un te pose une question sur la plateforme CI, ton AI devrait :', type:'choices', choices:['Répondre en détail','Répondre brièvement et rediriger','Inviter à en discuter','Répondre avec humour'] },
+  { cat:'🤖 Style AI', q:'Comment veux-tu que ton AI signe ses messages ?', type:'text' },
+  { cat:'🤖 Style AI', q:'Y a-t-il des sujets que ton AI devrait éviter ?', type:'text' },
+  { cat:'🤖 Style AI', q:'Ton AI peut-il partager des opinions personnelles ?', type:'choices', choices:['Oui librement','Oui avec nuance','Rarement','Non jamais'] },
+  { cat:'🤖 Style AI', q:'Quel ton ton AI devrait-il adopter par défaut ?', type:'choices', choices:['Chaleureux et amical','Professionnel et précis','Décontracté et drôle','Inspirant et motivant'] },
+  { cat:'🤖 Style AI', q:'Comment ton AI devrait-il réagir face à un message agressif ?', type:'choices', choices:['Rester calme et bienveillant','Rediriger la conversation','Ignorer le ton et répondre au fond','Mentionner poliment le ton'] },
+  { cat:'🤖 Style AI', q:'Y a-t-il autre chose que ton AI devrait savoir sur toi ?', type:'text' },
+  { cat:'🤖 Style AI', q:'Quelle est une phrase que tu dis souvent ?', type:'text' },
+  { cat:'🤖 Style AI', q:'Décris ton humeur habituelle en un mot :', type:'text' },
+];
+
+function openAISetup(){
+  aiCurrentQ = 0;
+  aiAnswers = {};
+  var modal = document.getElementById('ai-setup-modal');
+  if(modal){ modal.style.display = 'flex'; renderAIQuestion(); }
+}
+
+function closeAISetup(){
+  var modal = document.getElementById('ai-setup-modal');
+  if(modal) modal.style.display = 'none';
+}
+
+function skipAISetup(){
+  closeAISetup();
+  showToast('Tu peux configurer ton AI plus tard depuis ton profil');
+}
+
+function renderAIQuestion(){
+  var q = aiQuestions[aiCurrentQ];
+  if(!q) return;
+
+  var progress = ((aiCurrentQ + 1) / aiQuestions.length) * 100;
+  document.getElementById('ai-progress-bar').style.width = progress + '%';
+  document.getElementById('ai-progress-text').textContent = 'Question ' + (aiCurrentQ + 1) + ' / ' + aiQuestions.length;
+  document.getElementById('ai-category-badge').textContent = q.cat;
+  document.getElementById('ai-question-text').textContent = q.q;
+
+  var inputWrap = document.getElementById('ai-input-wrap');
+  var choicesWrap = document.getElementById('ai-choices-wrap');
+
+  if(q.type === 'text'){
+    inputWrap.style.display = 'block';
+    choicesWrap.style.display = 'none';
+    var input = document.getElementById('ai-answer-input');
+    input.value = aiAnswers[aiCurrentQ] || '';
+    setTimeout(function(){ input.focus(); }, 100);
+  } else {
+    inputWrap.style.display = 'none';
+    choicesWrap.style.display = 'flex';
+    choicesWrap.innerHTML = '';
+    q.choices.forEach(function(choice, i){
+      var btn = document.createElement('button');
+      var isSelected = aiAnswers[aiCurrentQ] === choice;
+      btn.style.cssText = 'width:100%;background:'+(isSelected?'#fff':'#0d0d0d')+';border:1px solid '+(isSelected?'#fff':'#2a2a2a')+';color:'+(isSelected?'#000':'#888')+';font-family:Arial,sans-serif;font-size:12px;padding:12px 16px;cursor:pointer;text-align:left;border-radius:10px;transition:all 0.15s;';
+      btn.textContent = choice;
+      btn.onclick = function(){
+        aiAnswers[aiCurrentQ] = choice;
+        renderAIQuestion();
+      };
+      choicesWrap.appendChild(btn);
+    });
+  }
+
+  document.getElementById('ai-prev-btn').style.opacity = aiCurrentQ === 0 ? '0.3' : '1';
+  var nextBtn = document.getElementById('ai-next-btn');
+  nextBtn.textContent = aiCurrentQ === aiQuestions.length - 1 ? '✓ Terminer et activer mon AI' : 'Suivant →';
+}
+
+function aiNextQuestion(){
+  var q = aiQuestions[aiCurrentQ];
+  if(q.type === 'text'){
+    var val = document.getElementById('ai-answer-input').value.trim();
+    if(val) aiAnswers[aiCurrentQ] = val;
+  }
+
+  if(aiCurrentQ === aiQuestions.length - 1){
+    saveAIProfile();
+    return;
+  }
+  aiCurrentQ++;
+  renderAIQuestion();
+}
+
+function aiPrevQuestion(){
+  if(aiCurrentQ > 0){ aiCurrentQ--; renderAIQuestion(); }
+}
+
+async function saveAIProfile(){
+  if(!currentUser) return;
+
+  // Construire le profil AI
+  var profile = {};
+  aiQuestions.forEach(function(q, i){
+    if(aiAnswers[i]){ profile[q.cat + ' — ' + q.q] = aiAnswers[i]; }
+  });
+
+  // Analyser le style
+  var style = analyzeUserStyle(profile);
+
+  var aiData = {
+    questions: profile,
+    style: style,
+    configured_at: new Date().toISOString()
+  };
+
+  await supabaseClient.from('profiles').update({
+    ai_profile: aiData,
+    ai_configured: true
+  }).eq('id', currentUser.id);
+
+  currentProfile.ai_profile = aiData;
+  currentProfile.ai_configured = true;
+
+  closeAISetup();
+  showToast('🤖 Ton AI est maintenant configuré et actif !');
+}
+
+function analyzeUserStyle(profile){
+  var answers = Object.values(profile).join(' ').toLowerCase();
+  var style = {
+    language: 'français',
+    tone: 'amical',
+    humor: false,
+    formal: false,
+    emojis: false,
+    verbose: false
+  };
+
+  if(answers.includes('anglais')) style.language = 'anglais';
+  if(answers.includes('joual') || answers.includes('québécois')) style.dialect = 'joual';
+  if(answers.includes('formel') || answers.includes('professionnel')) style.formal = true;
+  if(answers.includes('drôle') || answers.includes('humour') || answers.includes('blague')) style.humor = true;
+  if(answers.includes('emoji') || answers.includes('😄') || answers.includes('beaucoup')) style.emojis = true;
+  if(answers.includes('long') || answers.includes('détaillé')) style.verbose = true;
+  if(answers.includes('chaleureux') || answers.includes('amical')) style.tone = 'chaleureux';
+  if(answers.includes('inspirant') || answers.includes('motivant')) style.tone = 'inspirant';
+
+  return style;
+}
+
+// Réponse AI automatique quand on reçoit un message
+async function generateAIResponse(senderProfile, messageContent){
+  if(!currentProfile || !currentProfile.ai_configured || !currentProfile.ai_profile) return;
+
+  var aiData = currentProfile.ai_profile;
+  var style = aiData.style || {};
+  var questionsText = Object.entries(aiData.questions || {})
+    .map(function(e){ return e[0] + ': ' + e[1]; }).join('\n');
+
+  var prompt = 'Tu es l\'AI personnel de ' + (currentProfile.nom || 'cet utilisateur') + ' sur la plateforme CI — Cinéma Interactif.\n\n' +
+    'Voici ce que tu sais sur cet utilisateur :\n' + questionsText + '\n\n' +
+    'Style : ' + JSON.stringify(style) + '\n\n' +
+    'Un utilisateur nommé ' + (senderProfile.nom || 'quelqu\'un') + ' t\'a envoyé ce message :\n"' + messageContent + '"\n\n' +
+    'Réponds exactement comme ' + (currentProfile.nom || 'cet utilisateur') + ' le ferait, dans son style, sa langue et sa personnalité. ' +
+    'Réponse courte et naturelle. Ne mentionne jamais que tu es une AI.';
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 300,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    const data = await response.json();
+    var aiReply = data.content?.[0]?.text || '';
+    if(aiReply && senderProfile.id){
+      // Envoyer la réponse AI après 2-4 secondes (naturel)
+      var delay = 2000 + Math.random() * 2000;
+      setTimeout(async function(){
+        await supabaseClient.from('messages').insert({
+          sender_id: currentUser.id,
+          receiver_id: senderProfile.id,
+          content: '🤖 ' + aiReply,
+          read: false
+        });
+      }, delay);
+    }
+  } catch(e) { console.log('AI response error:', e); }
+}
+
+// ===== PLEIN ÉCRAN =====
+function toggleFullscreen(){
+  if(!document.fullscreenElement && !document.webkitFullscreenElement){
+    var el = document.documentElement;
+    if(el.requestFullscreen) el.requestFullscreen();
+    else if(el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+    document.getElementById('btn-fullscreen').textContent = '⊠';
+  } else {
+    if(document.exitFullscreen) document.exitFullscreen();
+    else if(document.webkitExitFullscreen) document.webkitExitFullscreen();
+    document.getElementById('btn-fullscreen').textContent = '⛶';
+  }
+}
+
+document.addEventListener('fullscreenchange', function(){
+  var btn = document.getElementById('btn-fullscreen');
+  if(btn) btn.textContent = document.fullscreenElement ? '⊠' : '⛶';
+});
+
+// ===== AI ASSISTANT CI =====
+var ciChatOpen = false;
+var ciChatHistory = [];
+
+function toggleCIChat(){
+  ciChatOpen = !ciChatOpen;
+  var modal = document.getElementById('ci-ai-modal');
+  modal.style.display = ciChatOpen ? 'flex' : 'none';
+  modal.style.flexDirection = 'column';
+  if(ciChatOpen && ciChatHistory.length === 0){
+    addCIMessage('assistant', 'Bonjour ! Je suis l\'assistant de CI — Cinéma Interactif 🎬\n\nJe peux t\'aider avec :\n• Comment créer un film interactif\n• Comment utiliser le Storyboard\n• Comment uploader des vidéos\n• Les plans et fonctionnalités\n\nQue veux-tu savoir ?');
+  }
+  if(ciChatOpen) setTimeout(function(){ document.getElementById('ci-ai-input').focus(); }, 100);
+}
+
+function addCIMessage(role, text){
+  var list = document.getElementById('ci-ai-messages');
+  var div = document.createElement('div');
+  var isSent = role === 'user';
+  div.style.cssText = 'max-width:85%;padding:8px 12px;font-size:12px;line-height:1.6;border-radius:16px;' +
+    (isSent ? 'background:#1a1a1a;color:#fff;align-self:flex-end;border-bottom-right-radius:4px;' :
+               'background:#fff;color:#111;align-self:flex-start;border-bottom-left-radius:4px;box-shadow:0 1px 4px rgba(0,0,0,0.08);white-space:pre-line;');
+  div.textContent = text;
+  list.appendChild(div);
+  list.scrollTop = list.scrollHeight;
+}
+
+async function sendCIMessage(){
+  var input = document.getElementById('ci-ai-input');
+  var text = input.value.trim();
+  if(!text) return;
+  input.value = '';
+
+  addCIMessage('user', text);
+  ciChatHistory.push({ role: 'user', content: text });
+
+  // Indicateur de frappe
+  var typing = document.createElement('div');
+  typing.id = 'ci-typing';
+  typing.style.cssText = 'font-size:11px;color:#aaa;padding:8px 12px;align-self:flex-start;';
+  typing.textContent = '...';
+  document.getElementById('ci-ai-messages').appendChild(typing);
+
+  try {
+    var systemPrompt = 'Tu es l\'assistant officiel de CI — Cinéma Interactif, une plateforme SaaS de création de films interactifs. ' +
+      'Tu connais parfaitement la plateforme :\n' +
+      '- Storyboard : outil visuel pour créer des arbres de scènes interactives\n' +
+      '- Scènes : gestion des vidéos HLS via Cloudflare Stream\n' +
+      '- Hotspots : zones cliquables sur la vidéo pour créer les choix\n' +
+      '- Plans : Gratuit (1 film, 2Go), Pro (5 films, 20Go, 15$/mois), Studio (illimité, 100Go, 49$/mois)\n' +
+      '- Upload vidéo : via Cloudflare Stream, format HLS\n' +
+      '- Profil AI : chaque utilisateur peut configurer son AI personnel\n' +
+      '- Messagerie : chat en temps réel entre membres\n' +
+      '- Publication : génère un lien direct pour partager le film\n' +
+      'Réponds en français, de façon concise et amicale. Tu peux utiliser des emojis.';
+
+    var messages = [{ role: 'user', content: systemPrompt + '\n\nQuestion de l\'utilisateur : ' + text }];
+    if(ciChatHistory.length > 2){
+      messages = ciChatHistory.slice(-6).map(function(m){
+        return { role: m.role, content: m.content };
+      });
+      messages[0].content = systemPrompt + '\n\n' + messages[0].content;
+    }
+
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 400,
+        messages: messages
+      })
+    });
+    const data = await response.json();
+    var reply = data.content?.[0]?.text || 'Désolé, je n\'ai pas pu répondre. Réessaie !';
+
+    var typingEl = document.getElementById('ci-typing');
+    if(typingEl) typingEl.remove();
+
+    addCIMessage('assistant', reply);
+    ciChatHistory.push({ role: 'assistant', content: reply });
+  } catch(e) {
+    var typingEl = document.getElementById('ci-typing');
+    if(typingEl) typingEl.remove();
+    addCIMessage('assistant', 'Erreur de connexion. Réessaie dans un instant.');
+  }
+}
 
 function showToast(msg){
   var t=document.getElementById('toast');
