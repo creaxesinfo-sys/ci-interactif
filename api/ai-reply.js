@@ -14,8 +14,8 @@ export default async function handler(req, res) {
     }
     const SUPABASE_URL = process.env.SUPABASE_URL;
     const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
-    const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
-    if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY || !ANTHROPIC_API_KEY) {
+    const GROQ_API_KEY = process.env.GROQ_API_KEY;
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY || !GROQ_API_KEY) {
       return res.status(200).json({ skipped: 'missing env vars' });
     }
     // 1. Charger le profil du destinataire
@@ -46,26 +46,24 @@ export default async function handler(req, res) {
       `${senderName} vient de lui envoyer :\n"${msg.content}"\n\n` +
       `Réponds exactement comme ${receiver.nom || 'cet utilisateur'} le ferait, dans son style et sa langue. ` +
       `Réponse courte et naturelle (1-3 phrases max). Ne mentionne jamais que tu es une AI.`;
-    // 4. Appel Anthropic
-    const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
+    // 4. Appel Groq (gratuit)
+    const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01',
+        'Authorization': `Bearer ${GROQ_API_KEY}`,
       },
       body: JSON.stringify({
-        model: 'claude-haiku-4-5',
+        model: 'llama3-8b-8192',
         max_tokens: 200,
         messages: [{ role: 'user', content: prompt }],
       }),
     });
-    const anthropicData = await anthropicRes.json();
-    console.log('Anthropic status:', anthropicRes.status);
-    console.log('Anthropic data:', JSON.stringify(anthropicData));
-    const aiReply = anthropicData.content?.[0]?.text;
+    const groqData = await groqRes.json();
+    console.log('Groq status:', groqRes.status);
+    const aiReply = groqData.choices?.[0]?.message?.content;
     if (!aiReply) {
-      return res.status(200).json({ skipped: 'no reply', anthropicData });
+      return res.status(200).json({ skipped: 'no reply', groqData });
     }
     // 5. Insérer la réponse dans Supabase
     const insertRes = await fetch(`${SUPABASE_URL}/rest/v1/messages`, {
@@ -84,8 +82,6 @@ export default async function handler(req, res) {
       }),
     });
     console.log('Insert status:', insertRes.status);
-    const insertBody = await insertRes.text();
-    console.log('Insert body:', insertBody);
     return res.status(200).json({ success: true, reply: aiReply });
   } catch (err) {
     console.error('ai-reply error:', err);
