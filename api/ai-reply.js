@@ -4,23 +4,25 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // Répondre IMMÉDIATEMENT à Supabase pour éviter le timeout
-  res.status(200).json({ received: true });
-
   try {
     const payload = req.body;
     const msg = payload.record || payload;
 
-    if (!msg?.receiver_id || !msg?.sender_id || !msg?.content) return;
+    if (!msg?.receiver_id || !msg?.sender_id || !msg?.content) {
+      return res.status(200).json({ skipped: 'missing fields' });
+    }
 
-    // Éviter boucle infinie
-    if (msg.content.startsWith('🤖')) return;
+    if (msg.content.startsWith('🤖')) {
+      return res.status(200).json({ skipped: 'AI message' });
+    }
 
     const SUPABASE_URL = process.env.SUPABASE_URL;
     const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
     const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
-    if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY || !ANTHROPIC_API_KEY) return;
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY || !ANTHROPIC_API_KEY) {
+      return res.status(200).json({ skipped: 'missing env vars' });
+    }
 
     // 1. Charger le profil du destinataire
     const receiverRes = await fetch(
@@ -28,7 +30,10 @@ export default async function handler(req, res) {
       { headers: { apikey: SUPABASE_SERVICE_KEY, Authorization: `Bearer ${SUPABASE_SERVICE_KEY}` } }
     );
     const receiver = (await receiverRes.json())?.[0];
-    if (!receiver?.ai_configured || !receiver?.ai_profile) return;
+
+    if (!receiver?.ai_configured || !receiver?.ai_profile) {
+      return res.status(200).json({ skipped: 'AI not configured' });
+    }
 
     // 2. Charger le profil de l'expéditeur
     const senderRes = await fetch(
@@ -68,12 +73,12 @@ export default async function handler(req, res) {
 
     const anthropicData = await anthropicRes.json();
     const aiReply = anthropicData.content?.[0]?.text;
-    if (!aiReply) return;
 
-    // 5. Délai naturel court
-    await new Promise(r => setTimeout(r, 1500));
+    if (!aiReply) {
+      return res.status(200).json({ skipped: 'no reply generated' });
+    }
 
-    // 6. Insérer la réponse
+    // 5. Insérer la réponse dans Supabase
     await fetch(`${SUPABASE_URL}/rest/v1/messages`, {
       method: 'POST',
       headers: {
@@ -90,7 +95,10 @@ export default async function handler(req, res) {
       }),
     });
 
+    return res.status(200).json({ success: true });
+
   } catch (err) {
     console.error('ai-reply error:', err);
+    return res.status(200).json({ error: err.message });
   }
 }
