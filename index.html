@@ -3394,60 +3394,8 @@ window.addEventListener('load', function(){
 var aiCurrentQ = 0;
 var aiAnswers = {};
 var aiQuestions = [
-  // PERSONNALITÉ
-  { cat:'🧠 Personnalité', q:'Comment te décrirais-tu en quelques mots ?', type:'text' },
-  { cat:'🧠 Personnalité', q:'Qu\'est-ce qui te passionne le plus dans la vie ?', type:'text' },
-  { cat:'🧠 Personnalité', q:'Comment réagis-tu face à un problème difficile ?', type:'choices', choices:['Je l\'analyse calmement','Je cherche de l\'aide','Je fonce et j\'improvise','Je prends du recul'] },
-  { cat:'🧠 Personnalité', q:'Quel type de personne es-tu dans un groupe ?', type:'choices', choices:['Le leader','Le créatif','Le médiateur','L\'observateur'] },
-  { cat:'🧠 Personnalité', q:'Qu\'est-ce qui t\'énerve le plus ?', type:'text' },
-  { cat:'🧠 Personnalité', q:'Qu\'est-ce qui te rend le plus heureux/heureuse ?', type:'text' },
-  { cat:'🧠 Personnalité', q:'Es-tu plutôt introverti(e) ou extraverti(e) ?', type:'choices', choices:['Très introverti(e)','Plutôt introverti(e)','Plutôt extraverti(e)','Très extraverti(e)'] },
-  { cat:'🧠 Personnalité', q:'Comment prends-tu tes décisions ?', type:'choices', choices:['Avec ma tête (logique)','Avec mon cœur (émotions)','Les deux à parts égales','Ça dépend de la situation'] },
-
-  // STYLE DE COMMUNICATION
-  { cat:'💬 Style de communication', q:'Comment écrirais-tu un message amical typique ?', type:'text' },
-  { cat:'💬 Style de communication', q:'Utilises-tu beaucoup d\'emojis dans tes messages ?', type:'choices', choices:['Oui beaucoup ! 😄🔥','Parfois 😊','Rarement','Jamais'] },
-  { cat:'💬 Style de communication', q:'Quel est ton style d\'écriture habituel ?', type:'choices', choices:['Court et direct','Long et détaillé','Décontracté et drôle','Formel et précis'] },
-  { cat:'💬 Style de communication', q:'Utilises-tu des abréviations (lol, omg, tsé, etc.) ?', type:'choices', choices:['Oui souvent','Parfois','Rarement','Jamais'] },
-  { cat:'💬 Style de communication', q:'Quelle est ta langue principale ?', type:'choices', choices:['Français','Anglais','Français et anglais','Autre'] },
-  { cat:'💬 Style de communication', q:'Parles-tu en joual ou en français standard ?', type:'choices', choices:['Joual québécois','Français standard','Entre les deux','Autre dialecte'] },
-  { cat:'💬 Style de communication', q:'Quand tu es enthousiaste, comment l\'exprimes-tu par écrit ?', type:'text' },
-  { cat:'💬 Style de communication', q:'Comment exprimes-tu ton désaccord poliment ?', type:'text' },
-
-  // RELATIONS & SOCIAL
-  { cat:'🤝 Relations', q:'Comment te comportes-tu avec de nouvelles personnes ?', type:'choices', choices:['Très chaleureux(se) et ouvert(e)','Réservé(e) au début','Curieux(se) et poseur(se) de questions','Observateur(trice) et discret(e)'] },
-  { cat:'🤝 Relations', q:'Qu\'est-ce qui est important pour toi dans une amitié ?', type:'text' },
-  { cat:'🤝 Relations', q:'Comment montres-tu que tu te soucies de quelqu\'un ?', type:'text' },
-  { cat:'🤝 Relations', q:'Comment réagis-tu quand quelqu\'un partage une mauvaise nouvelle ?', type:'choices', choices:['J\'offre du soutien émotionnel','Je donne des conseils pratiques','J\'écoute sans trop intervenir','Je cherche à faire rire'] },
-  { cat:'🤝 Relations', q:'Quelle fréquence de communication préfères-tu avec tes contacts ?', type:'choices', choices:['Tous les jours','Quelques fois par semaine','Quand j\'ai quelque chose à dire','Rarement mais intensément'] },
-
-  // HUMOUR & LÉGÈRETÉ
-  { cat:'😄 Humour', q:'Quel type d\'humour as-tu ?', type:'choices', choices:['Humour noir','Humour absurde','Humour autodérision','Humour situationnel'] },
-  { cat:'😄 Humour', q:'Est-ce que tu fais souvent des blagues dans tes messages ?', type:'choices', choices:['Oui tout le temps','Parfois','Rarement','Non jamais'] },
-  { cat:'😄 Humour', q:'Donne un exemple de quelque chose que tu trouves drôle :', type:'text' },
-
-  // VALEURS & VISION
-  { cat:'🌟 Valeurs', q:'Quelle est ta valeur la plus importante dans la vie ?', type:'choices', choices:['La liberté','La famille','L\'authenticité','La réussite'] },
-  { cat:'🌟 Valeurs', q:'Qu\'est-ce que tu penses de la technologie et de l\'IA ?', type:'choices', choices:['Fasciné(e) et enthousiaste','Prudent(e) mais ouvert(e)','Sceptique','Neutre'] },
-  { cat:'🌟 Valeurs', q:'Quelle est ta philosophie de vie en une phrase ?', type:'text' },
-
-  // CRÉATIVITÉ & INTÉRÊTS
-  { cat:'🎨 Créativité', q:'Quels sont tes centres d\'intérêt principaux ?', type:'text' },
-  { cat:'🎨 Créativité', q:'Es-tu une personne créative ?', type:'choices', choices:['Très créatif(ve)','Assez créatif(ve)','Un peu','Pas vraiment'] },
-  { cat:'🎨 Créativité', q:'Quel type de contenu cinématique préfères-tu ?', type:'choices', choices:['Thriller/Suspense','Drame/Émotion','Comédie','Science-fiction/Fantasy'] },
-  { cat:'🎨 Créativité', q:'Qu\'est-ce qui t\'a amené(e) sur CI — Cinéma Interactif ?', type:'text' },
-
-  // RÉPONSES AUX AUTRES
-  { cat:'🤖 Style AI', q:'Quand quelqu\'un te dit bonjour, comment ton AI devrait-il répondre ?', type:'text' },
-  { cat:'🤖 Style AI', q:'Si quelqu\'un te pose une question sur la plateforme CI, ton AI devrait :', type:'choices', choices:['Répondre en détail','Répondre brièvement et rediriger','Inviter à en discuter','Répondre avec humour'] },
-  { cat:'🤖 Style AI', q:'Comment veux-tu que ton AI signe ses messages ?', type:'text' },
-  { cat:'🤖 Style AI', q:'Y a-t-il des sujets que ton AI devrait éviter ?', type:'text' },
-  { cat:'🤖 Style AI', q:'Ton AI peut-il partager des opinions personnelles ?', type:'choices', choices:['Oui librement','Oui avec nuance','Rarement','Non jamais'] },
-  { cat:'🤖 Style AI', q:'Quel ton ton AI devrait-il adopter par défaut ?', type:'choices', choices:['Chaleureux et amical','Professionnel et précis','Décontracté et drôle','Inspirant et motivant'] },
-  { cat:'🤖 Style AI', q:'Comment ton AI devrait-il réagir face à un message agressif ?', type:'choices', choices:['Rester calme et bienveillant','Rediriger la conversation','Ignorer le ton et répondre au fond','Mentionner poliment le ton'] },
-  { cat:'🤖 Style AI', q:'Y a-t-il autre chose que ton AI devrait savoir sur toi ?', type:'text' },
-  { cat:'🤖 Style AI', q:'Quelle est une phrase que tu dis souvent ?', type:'text' },
-  { cat:'🤖 Style AI', q:'Décris ton humeur habituelle en un mot :', type:'text' },
+  { cat:'🧠 Personnalité', q:'Comment te décrirais-tu en quelques mots ? (ex: drôle, direct, curieux...)', type:'text' },
+  { cat:'💬 Style', q:'Quel est ton style de communication habituel ?', type:'choices', choices:['Court et direct','Chaleureux et bavard','Avec humour','Formel et précis'] },
 ];
 
 function openAISetup(){
