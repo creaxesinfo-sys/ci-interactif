@@ -2654,21 +2654,24 @@ async function sendChatMessage(){
   };
   appendChatMessage(tempMsg);
 
-  const { data: insertedMsg } = await supabaseClient.from('messages').insert({
+  await supabaseClient.from('messages').insert({
     sender_id: currentUser.id,
     receiver_id: currentChatUser.id,
     content: content,
     read: false
-  }).select().single();
+  });
 
   // Déclencher la réponse AI directement (sans webhook Supabase)
-  if(insertedMsg) {
-    fetch('/api/ai-reply', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ record: insertedMsg })
-    }).catch(function(){});
-  }
+  var msgRecord = {
+    sender_id: currentUser.id,
+    receiver_id: currentChatUser.id,
+    content: content
+  };
+  fetch('/api/ai-reply', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ record: msgRecord })
+  }).catch(function(){});
 }
 
 // ===== PANEL CONVERSATIONS =====
