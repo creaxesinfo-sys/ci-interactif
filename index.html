@@ -3657,17 +3657,13 @@ async function sendCIMessage(){
       messages[0].content = systemPrompt + '\n\n' + messages[0].content;
     }
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const response = await fetch('/api/groq-chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 400,
-        messages: messages
-      })
+      body: JSON.stringify({ messages: messages })
     });
     const data = await response.json();
-    var reply = data.content?.[0]?.text || 'Désolé, je n\'ai pas pu répondre. Réessaie !';
+    var reply = data.reply || 'Désolé, je n\'ai pas pu répondre. Réessaie !';
 
     var typingEl = document.getElementById('ci-typing');
     if(typingEl) typingEl.remove();
