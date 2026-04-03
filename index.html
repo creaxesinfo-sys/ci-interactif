@@ -1935,6 +1935,8 @@ function saveScene(){
 }
 
 function deleteScene(id){
+  var scene = scenes.find(function(s){ return s.id===id; });
+  if(scene && scene.type==='start'){ showToast('La scène de départ ne peut pas être supprimée'); return; }
   if(!confirm('Supprimer cette scène ?'))return;
   scenes=scenes.filter(function(s){return s.id!==id;});
   scenes.forEach(function(s){s.choices=s.choices.filter(function(c){return c.targetId!==id;});});
@@ -2297,7 +2299,7 @@ function makeSBCard(scene){
     '<button class="sb-card-btn" onclick="openModal('+scene.id+')">✎ Éditer</button>'+
     '<button class="sb-card-btn" onclick="testScene('+scene.id+')" title="Tester">▶ Test</button>'+
     (scene.type!=='end'?'<button class="sb-card-btn" onclick="addChildScene('+scene.id+')">+ Scène</button>':'')+
-    '<button class="sb-card-btn" onclick="deleteScene('+scene.id+')" style="color:#2a2a2a;">✕</button>';
+    (scene.type!=='start'?'<button class="sb-card-btn" onclick="deleteScene('+scene.id+')" style="color:#2a2a2a;">✕</button>':'');
   card.appendChild(actions);
   return card;
 }
