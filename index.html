@@ -640,7 +640,10 @@ video { outline:none; }
           <input id="auth-name" type="text" placeholder="Ton nom" style="width:100%;background:#0d0d0d;border:1px solid #2a2a2a;color:#e8e8e8;font-family:Arial,sans-serif;font-size:13px;padding:12px 14px;outline:none;transition:border-color 0.2s;" onfocus="this.style.borderColor='#fff'" onblur="this.style.borderColor='#2a2a2a'">
         </div>
         <input id="auth-email" type="email" placeholder="Email" style="width:100%;background:#0d0d0d;border:1px solid #2a2a2a;color:#e8e8e8;font-family:Arial,sans-serif;font-size:13px;padding:12px 14px;outline:none;transition:border-color 0.2s;" onfocus="this.style.borderColor='#fff'" onblur="this.style.borderColor='#2a2a2a'">
-        <input id="auth-password" type="password" placeholder="Mot de passe" style="width:100%;background:#0d0d0d;border:1px solid #2a2a2a;color:#e8e8e8;font-family:Arial,sans-serif;font-size:13px;padding:12px 14px;outline:none;transition:border-color 0.2s;" onfocus="this.style.borderColor='#fff'" onblur="this.style.borderColor='#2a2a2a'" onkeydown="if(event.key==='Enter') submitAuth()">
+        <div style="position:relative;">
+          <input id="auth-password" type="password" placeholder="Mot de passe" style="width:100%;background:#0d0d0d;border:1px solid #2a2a2a;color:#e8e8e8;font-family:Arial,sans-serif;font-size:13px;padding:12px 44px 12px 14px;outline:none;transition:border-color 0.2s;" onfocus="this.style.borderColor='#fff'" onblur="this.style.borderColor='#2a2a2a'" onkeydown="if(event.key==='Enter') submitAuth()">
+          <button type="button" onclick="togglePasswordVisibility()" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:#444;cursor:pointer;font-size:14px;padding:0;line-height:1;" id="pwd-toggle-btn" title="Afficher/masquer">👁</button>
+        </div>
 
         <!-- Plans -->
         <div id="auth-plan-field" style="display:none;margin-top:8px;">
@@ -1279,7 +1282,13 @@ video { outline:none; }
 
 <script>
 // ===== DATA =====
-var scenes = JSON.parse(localStorage.getItem('ci_scenes') || 'null') || defaultScenes();
+var _savedScenes = JSON.parse(localStorage.getItem('ci_scenes') || 'null');
+// Forcer reset si les scènes sont les anciennes par défaut avec choices
+if(_savedScenes && _savedScenes.length && _savedScenes[0] && _savedScenes[0].choices && _savedScenes[0].choices.length > 0 && _savedScenes[0].uid === ''){
+  _savedScenes = null;
+  localStorage.removeItem('ci_scenes');
+}
+var scenes = _savedScenes || defaultScenes();
 var currentSceneId = null;
 var editingSceneId = null;
 var countdownInterval = null;
@@ -1288,7 +1297,7 @@ var choiceRows = [];
 
 function defaultScenes(){
   return [
-    {id:1,title:"Scène 1",description:"",uid:"",type:"start",timer:0,choices:[{text:"Option 1",targetId:null,x:30,y:75,delay:0}]}
+    {id:1,title:"Scène 1",description:"",uid:"",type:"start",timer:0,choices:[]}
   ];
 }
 function save(){localStorage.setItem('ci_scenes',JSON.stringify(scenes));}
@@ -3368,6 +3377,19 @@ function showAuthError(msg){
   var el = document.getElementById('auth-error');
   el.textContent=msg; el.style.display='block';
   resetAuthBtn(document.getElementById('auth-submit-btn').textContent.includes('INSCRIRE'));
+}
+
+function togglePasswordVisibility(){
+  var input = document.getElementById('auth-password');
+  var btn = document.getElementById('pwd-toggle-btn');
+  if(!input) return;
+  if(input.type === 'password'){
+    input.type = 'text';
+    if(btn) btn.style.color = '#fff';
+  } else {
+    input.type = 'password';
+    if(btn) btn.style.color = '#444';
+  }
 }
 
 async function signOut(){
