@@ -1200,8 +1200,8 @@ video { outline:none; }
       <button class="modal-close" onclick="closeModal()">×</button>
     </div>
     <div class="modal-body">
-      <div class="field"><label>Titre de la scène</label><input type="text" id="f-title" placeholder="Ex: L'interrogatoire commence…"></div>
-      <div class="field"><label>Description / Narration</label><textarea id="f-desc" placeholder="Ambiance, contexte, ce qui se passe…"></textarea></div>
+      <div class="field"><label>Titre de la scène</label><input type="text" id="f-title" placeholder="Titre de la scène"></div>
+      <div class="field"><label>Description / Narration</label><textarea id="f-desc" placeholder="Description (optionnelle)"></textarea></div>
       <div class="field">
         <label>Vidéo de la scène</label>
         <div id="scene-upload-zone" style="border:2px dashed #2a2a2a;background:#0d0d0d;padding:20px;text-align:center;cursor:pointer;transition:all 0.2s;margin-bottom:10px;" ondragover="sceneUploadDragOver(event)" ondragleave="sceneUploadDragLeave(event)" ondrop="sceneUploadDrop(event)" onclick="document.getElementById('scene-file-input').click()">
@@ -1217,16 +1217,14 @@ video { outline:none; }
       </div>
       <input type="hidden" id="f-type" value="normal"><input type="hidden" id="f-back" value="auto">
       <div class="field" id="choices-section">
-        <label>Choix — Hotspots transparents sur la vidéo</label>
+        <label>Boutons de lien</label>
         <div class="hotspot-editor">
-          <div class="hotspot-editor-title">Position des hotspots (% de la vidéo) — glissez dans la prévisualisation ci-dessous</div>
           <div class="scene-preview-wrap" id="modal-preview">
             <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#333;font-size:10px;letter-spacing:3px;text-transform:uppercase;">Ajoutez un UID vidéo pour prévisualiser</div>
           </div>
-          <div class="drag-hint">Glissez les cercles sur votre vidéo pour positionner les hotspots</div>
         </div>
         <div class="choices-editor" id="choices-editor"></div>
-        <button class="btn-add-choice" onclick="addChoiceRow()">+ AJOUTER UN HOTSPOT</button>
+        <button class="btn-add-choice" onclick="addChoiceRow()">+ AJOUTER UN BOUTON DE LIEN</button>
       </div>
       <div class="field"><label>Minuterie (secondes, 0 = désactivée)</label><input type="number" id="f-timer" placeholder="0" min="0" max="120"><div class="field-hint">Si le spectateur ne choisit pas, le premier choix s'active automatiquement.</div></div>
     </div>
@@ -1248,13 +1246,7 @@ var choiceRows = [];
 
 function defaultScenes(){
   return [
-    {id:1,title:"Une nuit de tempête",description:"La pluie martèle les vitres de votre appartement. Le téléphone sonne — numéro inconnu. Votre instinct vous dit que rien ne sera plus pareil après cette nuit.",uid:"",type:"start",timer:0,choices:[{text:"Décrocher le téléphone",targetId:2},{text:"Ignorer l'appel et verrouiller la porte",targetId:3}]},
-    {id:2,title:"La voix dans le noir",description:"Une voix distordue murmure votre adresse. Puis : « Regardez sous votre lit. » Votre cœur s'emballe.",uid:"",type:"normal",timer:15,choices:[{text:"Regarder sous le lit",targetId:4},{text:"Fuir immédiatement",targetId:5}]},
-    {id:3,title:"Le refuge",description:"Vous barricadez la porte. Silence. Puis un bruit sourd venu du placard. Vous n'êtes pas seul.",uid:"",type:"normal",timer:0,choices:[{text:"Ouvrir le placard",targetId:4},{text:"Appeler la police",targetId:6}]},
-    {id:4,title:"La vérité cachée",description:"Sous le lit, une enveloppe. À l'intérieur : des photos. De vous. Surveillé depuis des semaines.",uid:"",type:"normal",timer:0,choices:[{text:"Suivre les indices",targetId:5},{text:"Brûler les photos",targetId:7}]},
-    {id:5,title:"FIN — L'Évasion",description:"Vous disparaissez dans la nuit. Nouvelle identité, nouvelle vie. Mais eux aussi savent disparaître.",uid:"",type:"end",timer:0,choices:[]},
-    {id:6,title:"FIN — La Vérité",description:"La police arrive. Le coupable est arrêté. Mais les questions restent : pourquoi vous ?",uid:"",type:"end",timer:0,choices:[]},
-    {id:7,title:"FIN — Le Complot",description:"En brûlant les photos, vous brûlez votre seule preuve. Le jeu recommence — mais cette fois, ce sont eux qui mènent.",uid:"",type:"end",timer:0,choices:[]}
+    {id:1,title:"Scène 1",description:"",uid:"",type:"start",timer:0,choices:[{text:"Option 1",targetId:null,x:30,y:75,delay:0}]}
   ];
 }
 function save(){localStorage.setItem('ci_scenes',JSON.stringify(scenes));}
@@ -1654,23 +1646,27 @@ function closeModal(){
 function renderChoiceEditor(){
   var editor=document.getElementById('choices-editor');
   editor.innerHTML='';
-  var others=scenes.filter(function(s){return s.id!==editingSceneId;});
+  // Seulement les scènes qui ont une vidéo uploadée
+  var others=scenes.filter(function(s){ return s.id!==editingSceneId && s.uid && s.uid.trim(); });
 
   updateModalPreview();
 
   choiceRows.forEach(function(row,i){
-    var options=others.map(function(s){
-      return '<option value="'+s.id+'"'+(s.id===row.targetId?' selected':'')+'>'+
-        '#'+s.id+' '+s.title.substring(0,18)+'</option>';
-    }).join('');
+    var options = others.length > 0
+      ? others.map(function(s){
+          return '<option value="'+s.id+'"'+(s.id===row.targetId?' selected':'')+'>'+
+            s.title.substring(0,24)+'</option>';
+        }).join('')
+      : '';
+
     var div=document.createElement('div');
-    div.className='choice-row';
-    div.style.cssText='display:grid;grid-template-columns:1fr 1fr auto auto;gap:6px;margin-bottom:6px;align-items:center;';
+    div.style.cssText='display:grid;grid-template-columns:1fr auto auto;gap:8px;margin-bottom:8px;align-items:center;';
     div.innerHTML=
-      '<input type="text" placeholder="Texte du hotspot…" value="'+(row.text||'')+'" oninput="choiceRows['+i+'].text=this.value;updatePreviewLabels()">'+
-      '<select onchange="choiceRows['+i+'].targetId=parseInt(this.value)"><option value="">→ Scène</option>'+options+'</select>'+
-      '<div style="font-size:9px;color:#444;letter-spacing:1px;white-space:nowrap;">X:<span id="px-'+i+'">'+Math.round(row.x||20+i*30)+'</span>% Y:<span id="py-'+i+'">'+Math.round(row.y||75)+'</span>%</div>'+
-      '<button class="btn-rm-choice" onclick="removeChoiceRow('+i+')">×</button>';
+      '<select style="background:#1a1a1a;border:1px solid #2a2a2a;color:#e8e8e8;font-family:Arial,sans-serif;font-size:12px;padding:10px 12px;width:100%;" onchange="choiceRows['+i+'].targetId=parseInt(this.value)||null">'+
+        '<option value="">'+(others.length===0?'Ajouter une scène':'Scène')+'</option>'+options+
+      '</select>'+
+      '<div style="display:flex;align-items:center;gap:4px;"><input type="number" min="0" max="300" value="'+(row.delay||0)+'" title="Délai apparition (s)" style="width:52px;background:#1a1a1a;border:1px solid #2a2a2a;color:#e8e8e8;font-family:Arial,sans-serif;font-size:11px;padding:8px;" oninput="choiceRows['+i+'].delay=parseInt(this.value)||0"><span style="font-size:9px;color:#555;">s</span></div>'+
+      '<button onclick="removeChoiceRow('+i+')" style="background:none;border:1px solid #2a2a2a;color:#555;width:34px;height:38px;cursor:pointer;font-size:16px;transition:all 0.15s;" onmouseover="this.style.borderColor='#c44';this.style.color='#c44'" onmouseout="this.style.borderColor='#2a2a2a';this.style.color='#555'">×</button>';
     editor.appendChild(div);
   });
   updatePreviewHotspots();
@@ -1769,7 +1765,7 @@ function testScene(sceneId){
   setTimeout(function(){ loadScene(sceneId); }, 100);
 }
 
-function addChoiceRow(){choiceRows.push({text:'',targetId:null});renderChoiceEditor();}
+function addChoiceRow(){choiceRows.push({text:'Option '+(choiceRows.length+1),targetId:null,x:20+choiceRows.length*30,y:75,delay:0});renderChoiceEditor();}
 function removeChoiceRow(i){choiceRows.splice(i,1);renderChoiceEditor();}
 
 function saveScene(){
