@@ -1192,41 +1192,83 @@ video { outline:none; }
   <div style="max-width:1100px;margin:0 auto;padding:40px 32px;" id="creations-grid"></div>
 </div>
 
-<!-- MODAL -->
+<!-- MODAL SCENE -->
 <div id="modal-overlay">
-  <div class="modal">
+  <div class="modal" style="max-width:680px;">
     <div class="modal-header">
       <div class="modal-title" id="modal-title">Nouvelle Scène</div>
       <button class="modal-close" onclick="closeModal()">×</button>
     </div>
     <div class="modal-body">
-      <div class="field"><label>Titre de la scène</label><input type="text" id="f-title" placeholder="Titre de la scène"></div>
-      <div class="field"><label>Description / Narration</label><textarea id="f-desc" placeholder="Description (optionnelle)"></textarea></div>
+
+      <!-- Titre -->
+      <div class="field">
+        <label>Titre de la scène</label>
+        <input type="text" id="f-title" placeholder="Titre de la scène">
+      </div>
+
+      <!-- Champs cachés -->
+      <input type="hidden" id="f-type" value="normal">
+      <input type="hidden" id="f-back" value="auto">
+      <input type="hidden" id="f-desc" value="">
+
+      <!-- Upload + Lecteur vidéo -->
       <div class="field">
         <label>Vidéo de la scène</label>
-        <div id="scene-upload-zone" style="border:2px dashed #2a2a2a;background:#0d0d0d;padding:20px;text-align:center;cursor:pointer;transition:all 0.2s;margin-bottom:10px;" ondragover="sceneUploadDragOver(event)" ondragleave="sceneUploadDragLeave(event)" ondrop="sceneUploadDrop(event)" onclick="document.getElementById('scene-file-input').click()">
-          <div id="scene-upload-icon" style="font-size:24px;margin-bottom:6px;">🎬</div>
+
+        <!-- Zone drag & drop (visible seulement si pas de vidéo) -->
+        <div id="scene-upload-zone"
+          style="border:2px dashed #2a2a2a;background:#0d0d0d;padding:28px 20px;text-align:center;cursor:pointer;transition:all 0.2s;border-radius:4px;"
+          ondragover="sceneUploadDragOver(event)"
+          ondragleave="sceneUploadDragLeave(event)"
+          ondrop="sceneUploadDrop(event)"
+          onclick="document.getElementById('scene-file-input').click()">
+          <div id="scene-upload-icon" style="font-size:28px;margin-bottom:8px;">🎬</div>
           <div id="scene-upload-label" style="font-size:10px;color:#555;letter-spacing:3px;text-transform:uppercase;">Glisser une vidéo ici ou cliquer pour parcourir</div>
-          <div id="scene-upload-progress" style="display:none;margin-top:12px;">
-            <div style="background:#1a1a1a;height:3px;overflow:hidden;"><div id="scene-upload-bar" style="height:3px;background:#fff;width:0%;transition:width 0.3s;"></div></div>
-            <div id="scene-upload-status" style="font-size:9px;color:#888;letter-spacing:2px;margin-top:5px;"></div>
+          <div id="scene-upload-progress" style="display:none;margin-top:14px;">
+            <div style="background:#1a1a1a;border-radius:2px;height:3px;overflow:hidden;">
+              <div id="scene-upload-bar" style="height:3px;background:#fff;width:0%;transition:width 0.2s;"></div>
+            </div>
+            <div id="scene-upload-status" style="font-size:9px;color:#888;letter-spacing:2px;margin-top:6px;"></div>
           </div>
         </div>
         <input type="file" id="scene-file-input" accept="video/*" style="display:none;" onchange="handleSceneFileUpload(this)">
-        <input type="text" id="f-uid" placeholder="Ou colle l'URL HLS / UID Cloudflare" style="width:100%;background:#1a1a1a;border:1px solid #2a2a2a;color:#e8e8e8;font-family:Arial,sans-serif;font-size:13px;padding:10px 14px;outline:none;" oninput="updateModalPreview()">
-      </div>
-      <input type="hidden" id="f-type" value="normal"><input type="hidden" id="f-back" value="auto">
-      <div class="field" id="choices-section">
-        <label>Boutons de lien</label>
-        <div class="hotspot-editor">
-          <div class="scene-preview-wrap" id="modal-preview">
-            <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#333;font-size:10px;letter-spacing:3px;text-transform:uppercase;">Ajoutez un UID vidéo pour prévisualiser</div>
+        <input type="hidden" id="f-uid">
+
+        <!-- Lecteur vidéo intégré (caché jusqu'à upload) -->
+        <div id="modal-player-wrap" style="display:none;background:#000;border-radius:4px;overflow:hidden;margin-top:0;">
+          <!-- Vidéo + hotspots overlay -->
+          <div style="position:relative;width:100%;aspect-ratio:16/9;" id="modal-video-container">
+            <video id="modal-player-video" style="width:100%;height:100%;object-fit:cover;display:block;" muted playsinline></video>
+            <!-- Hotspots fictifs draggables -->
+            <div id="modal-hotspots-overlay" style="position:absolute;inset:0;pointer-events:none;"></div>
+          </div>
+          <!-- Contrôles -->
+          <div style="background:#111;padding:10px 14px;display:flex;align-items:center;gap:10px;border-top:1px solid #1a1a1a;">
+            <button id="modal-play-btn" onclick="modalTogglePlay()" style="background:none;border:none;color:#fff;font-size:20px;cursor:pointer;padding:0;line-height:1;flex-shrink:0;">▶</button>
+            <button onclick="modalReplay()" style="background:none;border:none;color:#555;font-size:13px;cursor:pointer;padding:0;flex-shrink:0;" title="Recommencer">↺</button>
+            <div id="modal-scrub" style="flex:1;height:4px;background:#2a2a2a;border-radius:2px;cursor:pointer;position:relative;" onclick="modalScrub(event)">
+              <div id="modal-scrub-fill" style="height:4px;background:#fff;border-radius:2px;width:0%;pointer-events:none;"></div>
+            </div>
+            <span id="modal-time" style="font-size:10px;color:#555;white-space:nowrap;flex-shrink:0;">0:00</span>
+            <button onclick="modalChangeVideo()" style="background:none;border:1px solid #2a2a2a;color:#555;font-family:Arial,sans-serif;font-size:9px;letter-spacing:2px;padding:5px 10px;cursor:pointer;text-transform:uppercase;flex-shrink:0;">Changer</button>
           </div>
         </div>
-        <div class="choices-editor" id="choices-editor"></div>
+      </div>
+
+      <!-- Boutons de lien -->
+      <div class="field">
+        <div id="choices-editor" style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px;"></div>
         <button class="btn-add-choice" onclick="addChoiceRow()">+ AJOUTER UN BOUTON DE LIEN</button>
       </div>
-      <div class="field"><label>Minuterie (secondes, 0 = désactivée)</label><input type="number" id="f-timer" placeholder="0" min="0" max="120"><div class="field-hint">Si le spectateur ne choisit pas, le premier choix s'active automatiquement.</div></div>
+
+      <!-- Minuterie -->
+      <div class="field">
+        <label>Minuterie auto (secondes, 0 = désactivée)</label>
+        <input type="number" id="f-timer" placeholder="0" min="0" max="120">
+        <div class="field-hint">Si le spectateur ne choisit pas, le premier bouton s'active automatiquement.</div>
+      </div>
+
     </div>
     <div class="modal-footer">
       <button class="btn-save" onclick="saveScene()">SAUVEGARDER</button>
@@ -1617,23 +1659,38 @@ function openModal(id){
   editingSceneId=id||null;
   choiceRows=[];
   document.getElementById('modal-title').textContent=id?'Éditer la Scène':'Nouvelle Scène';
+
+  // Reset upload zone
+  var uploadZone=document.getElementById('scene-upload-zone');
+  var playerWrap=document.getElementById('modal-player-wrap');
+  var vid=document.getElementById('modal-player-video');
+  if(uploadZone) uploadZone.style.display='block';
+  if(playerWrap) playerWrap.style.display='none';
+  var icon=document.getElementById('scene-upload-icon');
+  var label=document.getElementById('scene-upload-label');
+  var prog=document.getElementById('scene-upload-progress');
+  if(icon) icon.textContent='🎬';
+  if(label) label.textContent='Glisser une vidéo ici ou cliquer pour parcourir';
+  if(prog) prog.style.display='none';
+  if(uploadZone){ uploadZone.style.borderColor='#2a2a2a'; uploadZone.style.background='#0d0d0d'; }
+
   if(id){
     var s=scenes.find(function(x){return x.id===id;});
     document.getElementById('f-title').value=s.title;
-    document.getElementById('f-desc').value=s.description;
     document.getElementById('f-uid').value=s.uid||'';
-    document.getElementById('f-type').value=s.type;
-    document.getElementById('f-back').value=s.backBtn||'auto';
+    document.getElementById('f-type').value=s.type||'normal';
     document.getElementById('f-timer').value=s.timer||0;
-    choiceRows=s.choices.map(function(c){return{text:c.text,targetId:c.targetId,x:c.x,y:c.y};});
+    choiceRows=s.choices.map(function(c){return{text:c.text||'',targetId:c.targetId,x:c.x,y:c.y,delay:c.delay||0};});
+    // Si vidéo existante → afficher lecteur
+    if(s.uid && s.uid.trim()){
+      setTimeout(function(){ modalInitPlayer(s.uid.trim()); }, 100);
+    }
   } else {
     document.getElementById('f-title').value='';
-    document.getElementById('f-desc').value='';
     document.getElementById('f-uid').value='';
     document.getElementById('f-type').value='normal';
     document.getElementById('f-timer').value=0;
   }
-  toggleChoicesSection();
   renderChoiceEditor();
   document.getElementById('modal-overlay').classList.add('active');
 }
@@ -1643,78 +1700,144 @@ function closeModal(){
   editingSceneId=null;
 }
 
-function renderChoiceEditor(){
-  var editor=document.getElementById('choices-editor');
-  editor.innerHTML='';
-  // Seulement les scènes qui ont une vidéo uploadée
-  var others=scenes.filter(function(s){ return s.id!==editingSceneId && s.uid && s.uid.trim(); });
+// ===== MODAL LECTEUR VIDEO =====
+function modalInitPlayer(uid){
+  var playerWrap = document.getElementById('modal-player-wrap');
+  var uploadZone = document.getElementById('scene-upload-zone');
+  var vid = document.getElementById('modal-player-video');
+  if(!uid || !vid) return;
 
-  updateModalPreview();
+  // Cacher zone upload, montrer lecteur
+  if(uploadZone) uploadZone.style.display = 'none';
+  if(playerWrap) playerWrap.style.display = 'block';
 
-  choiceRows.forEach(function(row,i){
-    var options = others.length > 0
-      ? others.map(function(s){
-          return '<option value="'+s.id+'"'+(s.id===row.targetId?' selected':'')+'>'+
-            s.title.substring(0,24)+'</option>';
-        }).join('')
-      : '';
-
-    var div=document.createElement('div');
-    div.style.cssText='display:grid;grid-template-columns:1fr auto auto;gap:8px;margin-bottom:8px;align-items:center;';
-    div.innerHTML=
-      '<select style="background:#1a1a1a;border:1px solid #2a2a2a;color:#e8e8e8;font-family:Arial,sans-serif;font-size:12px;padding:10px 12px;width:100%;" onchange="choiceRows['+i+'].targetId=parseInt(this.value)||null">'+
-        '<option value="">'+(others.length===0?'Ajouter une scène':'Scène')+'</option>'+options+
-      '</select>'+
-      '<div style="display:flex;align-items:center;gap:4px;"><input type="number" min="0" max="300" value="'+(row.delay||0)+'" title="Délai apparition (s)" style="width:52px;background:#1a1a1a;border:1px solid #2a2a2a;color:#e8e8e8;font-family:Arial,sans-serif;font-size:11px;padding:8px;" oninput="choiceRows['+i+'].delay=parseInt(this.value)||0"><span style="font-size:9px;color:#555;">s</span></div>'+
-      '<button onclick="removeChoiceRow('+i+')" style="background:none;border:1px solid #2a2a2a;color:#555;width:34px;height:38px;cursor:pointer;font-size:16px;">×</button>';
-    editor.appendChild(div);
-  });
-  updatePreviewHotspots();
-}
-
-function updateModalPreview(){
-  var uid=document.getElementById('f-uid').value.trim();
-  var preview=document.getElementById('modal-preview');
-  if(!preview)return;
-  if(uid){
-    var previewVid = createVideoEl(uid, {
-      autoplay: false, muted: true, controls: false, lowQuality: true,
-      style: 'width:100%;height:100%;object-fit:cover;pointer-events:none;'
-    });
-    preview.innerHTML = '';
-    preview.appendChild(previewVid);
-  } else {
-    preview.innerHTML='<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#333;font-size:10px;letter-spacing:3px;text-transform:uppercase;">Ajoutez un UID vidéo pour prévisualiser</div>';
+  // Attacher HLS seulement si nouveau UID
+  if(vid.dataset.uid !== uid){
+    vid.dataset.uid = uid;
+    if(vid._hls){ vid._hls.destroy(); }
+    attachHLS(vid, uid, {autoplay:false, muted:true, controls:false});
+    vid.ontimeupdate = modalUpdateScrub;
+    vid.onplay = function(){ var b=document.getElementById('modal-play-btn'); if(b) b.textContent='⏸'; };
+    vid.onpause = function(){ var b=document.getElementById('modal-play-btn'); if(b) b.textContent='▶'; };
   }
-  setTimeout(updatePreviewHotspots,200);
+  renderChoiceEditor();
 }
 
-function updatePreviewHotspots(){
-  var preview=document.getElementById('modal-preview');
-  if(!preview)return;
-  preview.querySelectorAll('.preview-hotspot').forEach(function(el){el.remove();});
-  choiceRows.forEach(function(row,i){
-    var x=row.x!==undefined?row.x:20+i*30;
-    var y=row.y!==undefined?row.y:75;
-    var dot=document.createElement('div');
-    dot.className='preview-hotspot';
-    dot.id='ph-'+i;
-    dot.style.left=x+'%';
-    dot.style.top=y+'%';
-    dot.textContent=String.fromCharCode(65+i);
-    dot.dataset.idx=i;
-    dot.addEventListener('mousedown',startDrag);
-    dot.addEventListener('touchstart',startDragTouch,{passive:false});
-    preview.appendChild(dot);
+function modalTogglePlay(){
+  var vid = document.getElementById('modal-player-video');
+  if(!vid) return;
+  if(vid.paused) vid.play(); else vid.pause();
+}
+
+function modalReplay(){
+  var vid = document.getElementById('modal-player-video');
+  if(!vid) return;
+  vid.currentTime = 0; vid.play();
+}
+
+function modalScrub(e){
+  var vid = document.getElementById('modal-player-video');
+  var bar = document.getElementById('modal-scrub');
+  if(!vid || !bar || !vid.duration) return;
+  var rect = bar.getBoundingClientRect();
+  var pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+  vid.currentTime = pct * vid.duration;
+}
+
+function modalUpdateScrub(){
+  var vid = document.getElementById('modal-player-video');
+  var fill = document.getElementById('modal-scrub-fill');
+  var time = document.getElementById('modal-time');
+  if(!vid || !fill) return;
+  var pct = vid.duration ? (vid.currentTime / vid.duration) * 100 : 0;
+  fill.style.width = pct + '%';
+  if(time){
+    var t = Math.floor(vid.currentTime);
+    time.textContent = Math.floor(t/60) + ':' + (t%60 < 10 ? '0' : '') + (t%60);
+  }
+}
+
+function modalChangeVideo(){
+  // Réafficher la zone upload pour changer la vidéo
+  var uploadZone = document.getElementById('scene-upload-zone');
+  var playerWrap = document.getElementById('modal-player-wrap');
+  var vid = document.getElementById('modal-player-video');
+  if(uploadZone) uploadZone.style.display = 'block';
+  if(playerWrap) playerWrap.style.display = 'none';
+  if(vid){ vid.pause(); vid.dataset.uid = ''; }
+  document.getElementById('f-uid').value = '';
+  // Reset upload zone
+  var icon = document.getElementById('scene-upload-icon');
+  var label = document.getElementById('scene-upload-label');
+  var prog = document.getElementById('scene-upload-progress');
+  if(icon) icon.textContent = '🎬';
+  if(label) label.textContent = 'Glisser une vidéo ici ou cliquer pour parcourir';
+  if(prog) prog.style.display = 'none';
+}
+
+function updateModalPreview(){ renderChoiceEditor(); }
+
+function renderChoiceEditor(){
+  var editor = document.getElementById('choices-editor');
+  if(!editor) return;
+  editor.innerHTML = '';
+  // Scènes avec vidéo uploadée seulement
+  var others = scenes.filter(function(s){ return s.id !== editingSceneId && s.uid && s.uid.trim(); });
+
+  choiceRows.forEach(function(row, i){
+    var options = others.map(function(s){
+      return '<option value="'+s.id+'"'+(s.id===row.targetId?' selected':'')+'>'+s.title.substring(0,28)+'</option>';
+    }).join('');
+
+    var wrap = document.createElement('div');
+    wrap.style.cssText = 'background:#0d0d0d;border:1px solid #1a1a1a;border-radius:4px;padding:12px;margin-bottom:6px;';
+
+    var row1 = document.createElement('div');
+    row1.style.cssText = 'display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:center;margin-bottom:8px;';
+    row1.innerHTML =
+      '<input type="text" placeholder="Nom du bouton…" value="'+(row.text||'')+'" style="background:#1a1a1a;border:1px solid #2a2a2a;color:#e8e8e8;font-family:Arial,sans-serif;font-size:12px;padding:9px 12px;outline:none;" oninput="choiceRows['+i+'].text=this.value;renderHotspotsOnVideo()">'+
+      '<select style="background:#1a1a1a;border:1px solid #2a2a2a;color:#e8e8e8;font-family:Arial,sans-serif;font-size:12px;padding:9px 12px;" onchange="choiceRows['+i+'].targetId=parseInt(this.value)||null">'+
+        '<option value="">'+(others.length===0?'— Ajouter une scène —':'— Scène liée —')+'</option>'+options+
+      '</select>'+
+      '<button onclick="removeChoiceRow('+i+')" style="background:none;border:1px solid #2a2a2a;color:#555;width:34px;height:36px;cursor:pointer;font-size:16px;">×</button>';
+
+    var row2 = document.createElement('div');
+    row2.style.cssText = 'display:flex;align-items:center;gap:8px;';
+    row2.innerHTML =
+      '<span style="font-size:10px;color:#555;letter-spacing:2px;">DÉLAI APPARITION</span>'+
+      '<input type="number" min="0" max="300" value="'+(row.delay||0)+'" style="width:60px;background:#1a1a1a;border:1px solid #2a2a2a;color:#e8e8e8;font-family:Arial,sans-serif;font-size:12px;padding:6px 10px;" oninput="choiceRows['+i+'].delay=parseInt(this.value)||0">'+
+      '<span style="font-size:10px;color:#555;">secondes</span>'+
+      '<span style="font-size:9px;color:#333;margin-left:auto;">Glisser le rond sur la vidéo pour positionner</span>';
+
+    wrap.appendChild(row1);
+    wrap.appendChild(row2);
+    editor.appendChild(wrap);
+  });
+
+  renderHotspotsOnVideo();
+}
+
+function renderHotspotsOnVideo(){
+  var overlay = document.getElementById('modal-hotspots-overlay');
+  if(!overlay) return;
+  overlay.innerHTML = '';
+  overlay.style.pointerEvents = 'auto';
+  choiceRows.forEach(function(row, i){
+    var x = row.x !== undefined ? row.x : 20 + i*25;
+    var y = row.y !== undefined ? row.y : 75;
+    var dot = document.createElement('div');
+    dot.style.cssText = 'position:absolute;transform:translate(-50%,-50%);left:'+x+'%;top:'+y+'%;width:46px;height:46px;border-radius:50%;border:2px solid rgba(255,255,255,0.7);background:rgba(255,255,255,0.1);cursor:move;display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;font-family:Arial,sans-serif;user-select:none;pointer-events:auto;';
+    dot.textContent = row.text ? row.text.charAt(0).toUpperCase() : String.fromCharCode(65+i);
+    dot.title = row.text || 'Bouton '+(i+1)+' — Glisser pour repositionner';
+    dot.dataset.idx = i;
+    dot.addEventListener('mousedown', startDrag);
+    dot.addEventListener('touchstart', startDragTouch, {passive:false});
+    overlay.appendChild(dot);
   });
 }
 
-function updatePreviewLabels(){
-  choiceRows.forEach(function(row,i){
-    var dot=document.getElementById('ph-'+i);
-    if(dot)dot.textContent=String.fromCharCode(65+i);
-  });
-}
+function updatePreviewHotspots(){ renderHotspotsOnVideo(); }
+function updatePreviewLabels(){ renderHotspotsOnVideo(); }
 
 // ===== DRAG & DROP =====
 var dragging=null,dragIdx=-1;
@@ -1738,7 +1861,9 @@ function startDragTouch(e){
 function onDrag(e){if(dragging)moveDot(e.clientX,e.clientY);}
 function onDragTouch(e){e.preventDefault();if(dragging)moveDot(e.touches[0].clientX,e.touches[0].clientY);}
 function moveDot(cx,cy){
-  var preview=document.getElementById('modal-preview');
+  var preview=document.getElementById('modal-video-container');
+  if(!preview) preview=document.getElementById('modal-preview');
+  if(!preview) return;
   var rect=preview.getBoundingClientRect();
   var x=Math.max(0,Math.min(100,((cx-rect.left)/rect.width)*100));
   var y=Math.max(0,Math.min(100,((cy-rect.top)/rect.height)*100));
@@ -3864,7 +3989,7 @@ async function uploadSceneVideo(file){
       var fd=new FormData(); fd.append('file',file); xhr.send(fd);
     });
     var uidInput=document.getElementById('f-uid');
-    if(uidInput){uidInput.value=urlData.uid; updateModalPreview();}
+    if(uidInput){uidInput.value=urlData.uid; modalInitPlayer(urlData.uid);}
     if(bar)bar.style.width='100%';
     if(icon)icon.textContent='✓';
     if(label)label.textContent='Vidéo uploadée !';
