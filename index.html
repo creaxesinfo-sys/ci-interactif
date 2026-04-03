@@ -1921,14 +1921,7 @@ function saveScene(){
   } else {
     var newId=Math.max.apply(null,[0].concat(scenes.map(function(s){return s.id;})))+1;
     scenes.push(Object.assign({id:newId},data));
-    // Auto-lier au parent si ajout depuis storyboard
-    if(window._pendingParentId){
-      var parentIdx = scenes.findIndex(function(s){ return s.id===window._pendingParentId; });
-      if(parentIdx >= 0){
-        scenes[parentIdx].choices.push({ text: 'Suite...', targetId: newId, x: 50, y: 75 });
-      }
-      window._pendingParentId = null;
-    }
+
     showToast('Scène créée');
   }
   save();
@@ -1947,6 +1940,7 @@ function deleteScene(id){
   scenes.forEach(function(s){s.choices=s.choices.filter(function(c){return c.targetId!==id;});});
   save();
   renderAdmin();
+  renderStoryboard();
   updateInfoGrid();
   showToast('Scène supprimée');
 }
@@ -2385,8 +2379,29 @@ function sbCreateFirstScene(){
 }
 
 function addChildScene(parentId){
-  window._pendingParentId = parentId;
-  openModal();
+  // Créer la nouvelle scène directement
+  var newId = Math.max.apply(null, [0].concat(scenes.map(function(s){ return s.id; }))) + 1;
+  var newScene = {
+    id: newId,
+    title: 'Scène ' + newId,
+    description: '',
+    uid: '',
+    type: 'normal',
+    timer: 0,
+    choices: []
+  };
+  scenes.push(newScene);
+
+  // Lier automatiquement au parent
+  var parent = scenes.find(function(s){ return s.id === parentId; });
+  if(parent){
+    parent.choices.push({ text: 'Scène '+newId, targetId: newId, x: 50, y: 75, delay: 0 });
+  }
+
+  save();
+  renderAdmin();
+  renderStoryboard();
+  showToast('Scène ' + newId + ' ajoutée !');
 }
 
 function drawSBArrows(levels, container){
