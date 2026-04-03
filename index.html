@@ -3957,7 +3957,7 @@ function handleSceneFileUpload(input){
   if(input.files[0]) uploadSceneVideo(input.files[0]);
 }
 async function uploadSceneVideo(file){
-  if(file.size>500*1024*1024){showToast('Fichier trop large — max 500Mo');return;}
+  // Pas de limite de taille — Cloudflare Stream gère jusqu'à 30Go
   var zone=document.getElementById('scene-upload-zone');
   var prog=document.getElementById('scene-upload-progress');
   var bar=document.getElementById('scene-upload-bar');
