@@ -27,6 +27,31 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_
 *{box-sizing:border-box;margin:0;padding:0;}
 body{background:#1a1a1a;color:#e8e8e8;font-family:Arial,sans-serif;min-height:100vh;}
 
+/* ===== SPLASH SCREEN ===== */
+#splash{position:fixed;inset:0;background:#000;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;}
+#splash-canvas{position:absolute;inset:0;width:100%;height:100%;}
+.splash-inner{position:relative;z-index:2;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.splash-eyebrow{font-size:9px;color:#333;letter-spacing:6px;text-transform:uppercase;margin-bottom:32px;opacity:0;animation:splashFadeUp 1s ease 0.8s forwards;}
+.splash-ci{font-size:clamp(120px,28vw,320px);font-weight:100;letter-spacing:40px;color:#fff;line-height:1;font-family:'Raleway','Helvetica Neue',Helvetica,Arial,sans-serif;opacity:0;animation:splashFadeUp 2s ease 0.3s forwards;}
+.splash-sub{font-size:11px;letter-spacing:8px;color:#444;text-transform:uppercase;margin-top:12px;opacity:0;animation:splashFadeUp 1s ease 1.4s forwards;}
+.splash-btn-wrap{margin-top:64px;opacity:0;animation:splashFadeUp 1s ease 2.4s forwards;}
+.splash-btn{background:transparent;border:1px solid rgba(255,255,255,0.2);color:#fff;font-family:Arial,sans-serif;font-size:10px;letter-spacing:5px;text-transform:uppercase;padding:16px 52px;cursor:pointer;transition:all 0.3s;position:relative;overflow:hidden;}
+.splash-btn::before{content:'';position:absolute;inset:0;background:rgba(255,255,255,0.04);transform:scaleX(0);transform-origin:left;transition:transform 0.3s ease;}
+.splash-btn:hover::before{transform:scaleX(1);}
+.splash-btn:hover{border-color:rgba(255,255,255,0.5);}
+.splash-corner{position:absolute;width:20px;height:20px;z-index:3;}
+.splash-corner-tl{top:24px;left:24px;border-top:1px solid #222;border-left:1px solid #222;}
+.splash-corner-tr{top:24px;right:24px;border-top:1px solid #222;border-right:1px solid #222;}
+.splash-corner-bl{bottom:24px;left:24px;border-bottom:1px solid #222;border-left:1px solid #222;}
+.splash-corner-br{bottom:24px;right:24px;border-bottom:1px solid #222;border-right:1px solid #222;}
+.splash-hud-bl{position:absolute;bottom:28px;left:56px;font-size:9px;color:#222;letter-spacing:3px;text-transform:uppercase;z-index:3;}
+.splash-hud-br{position:absolute;bottom:28px;right:56px;font-size:9px;color:#222;letter-spacing:3px;text-transform:uppercase;z-index:3;text-align:right;}
+.splash-line{width:1px;height:60px;background:linear-gradient(to bottom,transparent,rgba(255,255,255,0.15),transparent);margin:0 auto 0;opacity:0;animation:splashFadeUp 1s ease 2s forwards;}
+#splash::after{content:'';position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.06) 2px,rgba(0,0,0,0.06) 4px);pointer-events:none;z-index:4;}
+@keyframes splashFadeUp{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:translateY(0);}}
+.splash-exit{animation:splashExit 0.8s ease forwards!important;}
+@keyframes splashExit{to{opacity:0;transform:scale(1.04);pointer-events:none;}}
+
 /* ===== LOADER ===== */
 #loader{position:fixed;top:0;left:0;right:0;bottom:0;background:#000;z-index:9999;overflow:hidden;font-family:Arial,sans-serif;}
 #loader-canvas{position:absolute;top:0;left:0;width:100%;height:100%;}
@@ -378,6 +403,75 @@ video { outline:none; }
 </style>
 </head>
 <body>
+
+<!-- ===== SPLASH SCREEN ===== -->
+<div id="splash">
+  <canvas id="splash-canvas"></canvas>
+  <div class="splash-corner splash-corner-tl"></div>
+  <div class="splash-corner splash-corner-tr"></div>
+  <div class="splash-corner splash-corner-bl"></div>
+  <div class="splash-corner splash-corner-br"></div>
+  <div class="splash-hud-bl">CINÉMA INTERACTIF // v1.0</div>
+  <div class="splash-hud-br" id="splash-time">--:--:--</div>
+  <div class="splash-inner">
+    <div class="splash-eyebrow">Bienvenue sur</div>
+    <div class="splash-ci">CI</div>
+    <div class="splash-sub">Cinéma Interactif</div>
+    <div class="splash-line"></div>
+    <div class="splash-btn-wrap">
+      <button class="splash-btn" onclick="enterSite()">Entrer dans CI</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== SPLASH SCREEN =====
+(function(){
+  var cv = document.getElementById('splash-canvas');
+  var cx = cv.getContext('2d');
+  function resize(){ cv.width = window.innerWidth; cv.height = window.innerHeight; }
+  resize(); window.addEventListener('resize', resize);
+  var pts = [];
+  for(var i=0;i<50;i++) pts.push({x:Math.random(),y:Math.random(),vx:(Math.random()-0.5)*0.0002,vy:(Math.random()-0.5)*0.0002,a:Math.random()*0.06+0.01,r:Math.random()*1.2+0.3});
+  function draw(){
+    cx.clearRect(0,0,cv.width,cv.height);
+    cx.strokeStyle='rgba(255,255,255,0.018)';cx.lineWidth=0.5;
+    var gs=80;
+    for(var gx=0;gx<cv.width;gx+=gs){cx.beginPath();cx.moveTo(gx,0);cx.lineTo(gx,cv.height);cx.stroke();}
+    for(var gy=0;gy<cv.height;gy+=gs){cx.beginPath();cx.moveTo(0,gy);cx.lineTo(cv.width,gy);cx.stroke();}
+    pts.forEach(function(p){
+      p.x+=p.vx;p.y+=p.vy;
+      if(p.x<0)p.x=1;if(p.x>1)p.x=0;
+      if(p.y<0)p.y=1;if(p.y>1)p.y=0;
+      cx.beginPath();cx.arc(p.x*cv.width,p.y*cv.height,p.r,0,Math.PI*2);
+      cx.fillStyle='rgba(255,255,255,'+p.a+')';cx.fill();
+    });
+    var vg=cx.createRadialGradient(cv.width/2,cv.height/2,cv.height*0.1,cv.width/2,cv.height/2,cv.height*0.85);
+    vg.addColorStop(0,'rgba(0,0,0,0)');vg.addColorStop(1,'rgba(0,0,0,0.82)');
+    cx.fillStyle=vg;cx.fillRect(0,0,cv.width,cv.height);
+    if(document.getElementById('splash')) requestAnimationFrame(draw);
+  }
+  draw();
+  var st=document.getElementById('splash-time');
+  setInterval(function(){
+    var n=new Date();
+    if(st) st.textContent=String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0')+':'+String(n.getSeconds()).padStart(2,'0');
+  },1000);
+})();
+
+function enterSite(){
+  var splash = document.getElementById('splash');
+  // Plein écran sur tout le navigateur
+  var fn = document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen || document.documentElement.mozRequestFullScreen || document.documentElement.msRequestFullscreen;
+  if(fn) fn.call(document.documentElement);
+  // Animation de sortie du splash
+  splash.style.transition = 'opacity 0.7s ease, transform 0.7s ease';
+  splash.style.opacity = '0';
+  splash.style.transform = 'scale(1.04)';
+  splash.style.pointerEvents = 'none';
+  setTimeout(function(){ splash.style.display = 'none'; }, 750);
+}
+</script>
 
 <!-- LOADER -->
 <div id="loader">
@@ -940,26 +1034,7 @@ video { outline:none; }
 
 <!-- Bulle flottante supprimée -->
 
-<!-- ===== AI ASSISTANT CI ===== -->
-<div id="ci-ai-btn" style="display:none;position:fixed;bottom:24px;right:24px;z-index:800;background:#111;border:1px solid #2a2a2a;border-radius:50%;width:52px;height:52px;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 4px 20px rgba(0,0,0,0.5);transition:transform 0.2s;font-size:22px;" onclick="toggleCIChat()" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">🎬</div>
 
-<div id="ci-ai-modal" style="display:none;position:fixed;bottom:88px;right:24px;z-index:800;background:#f2f4f7;border-radius:24px 24px 24px 4px;width:320px;max-height:480px;flex-direction:column;box-shadow:0 8px 40px rgba(0,0,0,0.2);">
-  <div style="padding:14px 18px;background:#111;border-radius:24px 24px 0 0;display:flex;align-items:center;justify-content:space-between;">
-    <div style="display:flex;align-items:center;gap:10px;">
-      <div style="width:32px;height:32px;border-radius:50%;background:#222;border:1px solid #333;display:flex;align-items:center;justify-content:center;font-size:16px;">🎬</div>
-      <div>
-        <div style="font-size:12px;font-weight:700;color:#fff;">CI — Assistant</div>
-        <div style="font-size:9px;color:#444;letter-spacing:2px;">Cinéma Interactif</div>
-      </div>
-    </div>
-    <button onclick="toggleCIChat()" style="background:none;border:none;color:#444;font-size:16px;cursor:pointer;">×</button>
-  </div>
-  <div id="ci-ai-messages" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:8px;max-height:320px;"></div>
-  <div style="padding:10px 12px;border-top:1px solid #ebebeb;display:flex;gap:8px;background:#f8f8f8;border-radius:0 0 24px 24px;">
-    <input type="text" id="ci-ai-input" placeholder="Pose ta question..." style="flex:1;background:#fff;border:1px solid #e0e0e0;border-radius:20px;color:#222;font-family:Arial,sans-serif;font-size:12px;padding:8px 14px;outline:none;" onkeydown="if(event.key==='Enter') sendCIMessage()">
-    <button onclick="sendCIMessage()" style="background:#111;border:none;color:#fff;width:34px;height:34px;border-radius:50%;cursor:pointer;font-size:14px;">↑</button>
-  </div>
-</div>
 
 <!-- ===== PAGE SUBVENTION ===== -->
 <div id="page-subvention" class="page" style="background:#111;">
@@ -2595,8 +2670,6 @@ var conversationsPanelOpen = false;
 
 function showMessagingIfLoggedIn(){
   if(!currentUser) return;
-  var ciBtn = document.getElementById('ci-ai-btn');
-  if(ciBtn) ciBtn.style.display = 'flex';
   subscribeToMessages();
   updateUnreadBadge();
 }
@@ -3018,43 +3091,44 @@ function showAdminTabIfAdmin(){
   }
 }
 
-var publications = JSON.parse(localStorage.getItem('ci_publications') || '[]');
+// Publications gérées via Supabase (table films)
 
-function savePublications(){ localStorage.setItem('ci_publications', JSON.stringify(publications)); }
-
-function publishFilm(){
+async function publishFilm(){
   var title = document.getElementById('pub-title').value.trim();
   var desc = document.getElementById('pub-desc').value.trim();
   if(!title) return showToast('Ajoute un titre au film');
   if(!scenes.length) return showToast('Aucune scène configurée');
+  if(!currentUser) return showToast('Tu dois être connecté pour publier');
 
-  var id = 'film_' + Date.now();
   var startScene = scenes.find(function(s){ return s.type==='start'; }) || scenes[0];
   var heroUid = startScene ? startScene.uid : '';
-  // Si c'est une URL complète, extraire juste pour la miniature
   var heroHLS = heroUid.startsWith('http') ? heroUid : (heroUid ? CF_HLS + heroUid + '/manifest/video.m3u8' : '');
 
   var film = {
-    id: id,
-    title: title,
-    desc: desc || '',
-    scenes: JSON.parse(JSON.stringify(scenes)),
-    heroUid: heroUid,
-    heroHLS: heroHLS,
-    date: new Date().toLocaleDateString('fr-CA'),
-    sceneCount: scenes.length,
-    endingCount: scenes.filter(function(s){ return s.type==='end'; }).length,
-    publishedAt: Date.now()
+    user_id: currentUser.id,
+    titre: title,
+    description: desc || '',
+    scenes: scenes,
+    hero_uid: heroUid,
+    hero_hls: heroHLS,
+    scene_count: scenes.length,
+    ending_count: scenes.filter(function(s){ return s.type==='end'; }).length,
+    published: false,
+    published_at: new Date().toISOString()
   };
 
-  publications.unshift(film);
-  savePublications();
+  var btn = document.querySelector('[onclick="publishFilm()"]');
+  if(btn){ btn.textContent = 'Publication...'; btn.disabled = true; }
 
-  // Afficher le lien
-  var link = window.location.href.split('?')[0] + '?film=' + id;
+  const { data, error } = await supabaseClient.from('films').insert(film).select().single();
+
+  if(btn){ btn.textContent = '⬆ PUBLIER LE FILM'; btn.disabled = false; }
+
+  if(error){ showToast('Erreur : ' + error.message); return; }
+
   document.getElementById('pub-result').style.display = 'block';
-  document.getElementById('pub-link').textContent = link;
-  showToast('Film publié ! ✓');
+  document.getElementById('pub-link').textContent = 'Film sauvegardé — en attente de mise en ligne par l\'admin';
+  showToast('Film sauvegardé dans vos créations ✓');
   renderCreations();
 }
 
@@ -3063,60 +3137,46 @@ function copyPubLink(){
   navigator.clipboard.writeText(link).then(function(){ showToast('Lien copié !'); });
 }
 
-function copyCreationLink(id){
-  var link = window.location.href.split('?')[0] + '?film=' + id;
-  navigator.clipboard.writeText(link).then(function(){ showToast('Lien copié !'); });
-}
-
-function playCreation(id){
-  var film = publications.find(function(f){ return f.id === id; });
-  if(!film) return;
-  // Charger les scènes du film
-  scenes = JSON.parse(JSON.stringify(film.scenes));
-  sceneHistory = [];
-  showScreen('player-section');
-  navTo('film', document.getElementById('nav-film'));
-  var start = scenes.find(function(s){ return s.type==='start'; }) || scenes[0];
-  if(start) loadScene(start.id);
-}
-
-function deleteCreation(id){
-  if(!confirm('Supprimer ce film publié ?')) return;
-  publications = publications.filter(function(f){ return f.id !== id; });
-  savePublications();
-  renderCreations();
-  showToast('Film supprimé');
-}
-
 function showScreen(sectionId){
   document.getElementById('hero-section').style.display = sectionId === 'hero-section' ? '' : 'none';
   document.getElementById('player-section').style.display = sectionId === 'player-section' ? '' : 'none';
 }
 
-function renderCreations(){
+async function renderCreations(){
   var grid = document.getElementById('creations-grid');
   if(!grid) return;
-  var count = document.getElementById('creations-count');
-  if(count) count.textContent = publications.length + ' film' + (publications.length > 1 ? 's' : '') + ' publié' + (publications.length > 1 ? 's' : '');
+  grid.innerHTML = '<div style="padding:40px;text-align:center;color:#444;font-size:10px;letter-spacing:3px;text-transform:uppercase;">Chargement...</div>';
 
-  if(!publications.length){
-    grid.innerHTML = '<div class="creations-empty">Aucun film publié — crée et publie ton premier film depuis le Panneau Réalisateur</div>';
+  var query = supabaseClient.from('films').select('*').order('published_at', { ascending: false });
+  if(!currentProfile || currentProfile.role !== 'admin'){
+    query = query.eq('published', true);
+  }
+
+  const { data: films, error } = await query;
+
+  var count = document.getElementById('creations-count');
+
+  if(error || !films || !films.length){
+    if(count) count.textContent = '0 film publié';
+    grid.innerHTML = '<div class="creations-empty">Aucun film publié pour l\'instant</div>';
     return;
   }
+
+  if(count) count.textContent = films.length + ' film' + (films.length > 1 ? 's' : '') + ' publié' + (films.length > 1 ? 's' : '');
 
   grid.innerHTML = '';
   var list = document.createElement('div');
   list.className = 'creations-list';
 
-  publications.forEach(function(film){
+  films.forEach(function(film){
     var card = document.createElement('div');
     card.className = 'creation-card';
 
     // Thumbnail
     var thumb = document.createElement('div');
     thumb.className = 'creation-thumb';
-    if(film.heroHLS || film.heroUid){
-      var hlsSrc = film.heroHLS || makeHLSUrl(film.heroUid);
+    if(film.hero_hls || film.hero_uid){
+      var hlsSrc = film.hero_hls || makeHLSUrl(film.hero_uid);
       var vid = document.createElement('video');
       vid.muted = true; vid.loop = true; vid.playsInline = true;
       vid.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
@@ -3133,25 +3193,47 @@ function renderCreations(){
       thumb.innerHTML = '<div class="creation-thumb-placeholder">🎬</div>';
     }
 
+    // Badge statut (admin seulement)
+    if(currentProfile && currentProfile.role === 'admin'){
+      var badge = document.createElement('div');
+      badge.style.cssText = 'position:absolute;top:10px;left:10px;font-size:8px;letter-spacing:2px;padding:3px 8px;text-transform:uppercase;font-weight:700;border-radius:2px;' +
+        (film.published ? 'background:#4ade80;color:#000;' : 'background:#444;color:#aaa;');
+      badge.textContent = film.published ? '● EN LIGNE' : '○ HORS LIGNE';
+      thumb.style.position = 'relative';
+      thumb.appendChild(badge);
+    }
+
     // Info
     var info = document.createElement('div');
     info.className = 'creation-info';
+    var dateStr = film.published_at ? new Date(film.published_at).toLocaleDateString('fr-CA') : '—';
     info.innerHTML =
-      '<div class="creation-title">'+film.title+'</div>'+
-      (film.desc ? '<div class="creation-desc">'+film.desc+'</div>' : '')+
+      '<div class="creation-title">'+film.titre+'</div>'+
+      (film.description ? '<div class="creation-desc">'+film.description+'</div>' : '')+
       '<div class="creation-meta">'+
-        '<div class="creation-meta-item">Scènes <span>'+film.sceneCount+'</span></div>'+
-        '<div class="creation-meta-item">Fins <span>'+film.endingCount+'</span></div>'+
-        '<div class="creation-meta-item">Publié <span>'+film.date+'</span></div>'+
+        '<div class="creation-meta-item">Scènes <span>'+(film.scene_count||0)+'</span></div>'+
+        '<div class="creation-meta-item">Fins <span>'+(film.ending_count||0)+'</span></div>'+
+        '<div class="creation-meta-item">Publié <span>'+dateStr+'</span></div>'+
       '</div>';
 
     // Actions
     var actions = document.createElement('div');
     actions.className = 'creation-actions';
-    actions.innerHTML =
-      '<button class="btn-play-film" onclick="playCreation(\''+film.id+'\')">▶ LANCER</button>'+
-      '<button class="btn-copy-link" onclick="copyCreationLink(\''+film.id+'\')">⎘ COPIER LE LIEN</button>'+
-      '<button class="btn-delete-film" onclick="deleteCreation(\''+film.id+'\')">✕ supprimer</button>';
+
+    var playBtn = '<button class="btn-play-film" onclick="playCreationDB(\''+film.id+'\')">▶ LANCER</button>';
+
+    var adminBtns = '';
+    if(currentProfile && currentProfile.role === 'admin'){
+      var toggleLabel = film.published ? '◉ RETIRER DU SITE' : '◎ METTRE EN LIGNE';
+      var toggleStyle = film.published
+        ? 'background:rgba(196,68,68,0.15);border-color:#c44;color:#c44;'
+        : 'background:rgba(74,222,128,0.1);border-color:#4ade80;color:#4ade80;';
+      adminBtns =
+        '<button class="btn-copy-link" style="'+toggleStyle+'" onclick="toggleFilmPublished(\''+film.id+'\','+film.published+')">'+toggleLabel+'</button>'+
+        '<button class="btn-delete-film" onclick="deleteCreationDB(\''+film.id+'\')">✕ supprimer</button>';
+    }
+
+    actions.innerHTML = playBtn + adminBtns;
 
     card.appendChild(thumb);
     card.appendChild(info);
@@ -3162,13 +3244,39 @@ function renderCreations(){
   grid.appendChild(list);
 }
 
+async function toggleFilmPublished(filmId, currentState){
+  var newState = !currentState;
+  const { error } = await supabaseClient.from('films').update({ published: newState }).eq('id', filmId);
+  if(error){ showToast('Erreur : ' + error.message); return; }
+  showToast(newState ? 'Film mis en ligne ✓' : 'Film retiré du site');
+  renderCreations();
+}
+
+async function deleteCreationDB(filmId){
+  if(!confirm('Supprimer ce film définitivement ?')) return;
+  const { error } = await supabaseClient.from('films').delete().eq('id', filmId);
+  if(error){ showToast('Erreur : ' + error.message); return; }
+  showToast('Film supprimé ✓');
+  renderCreations();
+}
+
+async function playCreationDB(filmId){
+  const { data: film, error } = await supabaseClient.from('films').select('*').eq('id', filmId).single();
+  if(error || !film){ showToast('Film introuvable'); return; }
+  scenes = JSON.parse(JSON.stringify(film.scenes));
+  sceneHistory = [];
+  showScreen('player-section');
+  navTo('film', document.getElementById('nav-film'));
+  var start = scenes.find(function(s){ return s.type==='start'; }) || scenes[0];
+  if(start) loadScene(start.id);
+}
+
 // Charger un film depuis l'URL si ?film=id
-(function(){
+(async function(){
   var params = new URLSearchParams(window.location.search);
   var filmId = params.get('film');
   if(filmId){
-    var pubs = JSON.parse(localStorage.getItem('ci_publications') || '[]');
-    var film = pubs.find(function(f){ return f.id === filmId; });
+    const { data: film } = await supabaseClient.from('films').select('*').eq('id', filmId).single();
     if(film){
       scenes = JSON.parse(JSON.stringify(film.scenes));
       setTimeout(function(){
@@ -3814,93 +3922,7 @@ document.addEventListener('fullscreenchange', function(){
   if(btn) btn.textContent = document.fullscreenElement ? '⊠' : '⛶';
 });
 
-// ===== AI ASSISTANT CI =====
-var ciChatOpen = false;
-var ciChatHistory = [];
 
-function toggleCIChat(){
-  ciChatOpen = !ciChatOpen;
-  var modal = document.getElementById('ci-ai-modal');
-  modal.style.display = ciChatOpen ? 'flex' : 'none';
-  modal.style.flexDirection = 'column';
-  if(ciChatOpen && ciChatHistory.length === 0){
-    addCIMessage('assistant', 'Bonjour ! Je suis l\'assistant de CI — Cinéma Interactif 🎬\n\nJe peux t\'aider avec :\n• Comment créer un film interactif\n• Comment utiliser le Storyboard\n• Comment uploader des vidéos\n• Les plans et fonctionnalités\n\nQue veux-tu savoir ?');
-  }
-  if(ciChatOpen) setTimeout(function(){ document.getElementById('ci-ai-input').focus(); }, 100);
-}
-
-function addCIMessage(role, text){
-  var list = document.getElementById('ci-ai-messages');
-  var div = document.createElement('div');
-  var isSent = role === 'user';
-  div.style.cssText = 'max-width:85%;padding:8px 12px;font-size:12px;line-height:1.6;border-radius:16px;' +
-    (isSent ? 'background:#1a1a1a;color:#fff;align-self:flex-end;border-bottom-right-radius:4px;' :
-               'background:#fff;color:#111;align-self:flex-start;border-bottom-left-radius:4px;box-shadow:0 1px 4px rgba(0,0,0,0.08);white-space:pre-line;');
-  div.textContent = text;
-  list.appendChild(div);
-  list.scrollTop = list.scrollHeight;
-}
-
-async function sendCIMessage(){
-  var input = document.getElementById('ci-ai-input');
-  var text = input.value.trim();
-  if(!text) return;
-  input.value = '';
-
-  addCIMessage('user', text);
-  ciChatHistory.push({ role: 'user', content: text });
-
-  // Indicateur de frappe
-  var typing = document.createElement('div');
-  typing.id = 'ci-typing';
-  typing.style.cssText = 'font-size:11px;color:#aaa;padding:8px 12px;align-self:flex-start;';
-  typing.textContent = '...';
-  document.getElementById('ci-ai-messages').appendChild(typing);
-
-  try {
-    var systemPrompt = 'Tu es l\'assistant officiel de CI — Cinéma Interactif, une plateforme SaaS de création de films interactifs. ' +
-      'Tu connais parfaitement la plateforme :\n' +
-      '- Storyboard : outil visuel pour créer des arbres de scènes interactives\n' +
-      '- Scènes : gestion des vidéos HLS via Cloudflare Stream\n' +
-      '- Hotspots : zones cliquables sur la vidéo pour créer les choix\n' +
-      '- Plans : Gratuit (1 film, 2Go), Pro (5 films, 20Go, 15$/mois), Studio (illimité, 100Go, 49$/mois)\n' +
-      '- Upload vidéo : via Cloudflare Stream, format HLS\n' +
-      '- Profil AI : chaque utilisateur peut configurer son AI personnel\n' +
-      '- Messagerie : chat en temps réel entre membres\n' +
-      '- Publication : génère un lien direct pour partager le film\n' +
-      'Réponds en français, de façon concise et amicale. Tu peux utiliser des emojis.';
-
-    var messages = [{ role: 'user', content: systemPrompt + '\n\nQuestion de l\'utilisateur : ' + text }];
-    if(ciChatHistory.length > 2){
-      messages = ciChatHistory.slice(-6).map(function(m){
-        return { role: m.role, content: m.content };
-      });
-      messages[0].content = systemPrompt + '\n\n' + messages[0].content;
-    }
-
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 400,
-        messages: messages
-      })
-    });
-    const data = await response.json();
-    var reply = data.content?.[0]?.text || 'Désolé, je n\'ai pas pu répondre. Réessaie !';
-
-    var typingEl = document.getElementById('ci-typing');
-    if(typingEl) typingEl.remove();
-
-    addCIMessage('assistant', reply);
-    ciChatHistory.push({ role: 'assistant', content: reply });
-  } catch(e) {
-    var typingEl = document.getElementById('ci-typing');
-    if(typingEl) typingEl.remove();
-    addCIMessage('assistant', 'Erreur de connexion. Réessaie dans un instant.');
-  }
-}
 
 function showToast(msg){
   var t=document.getElementById('toast');
