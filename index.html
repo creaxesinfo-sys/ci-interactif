@@ -461,20 +461,34 @@ video { outline:none; }
 
 function enterSite(){
   var splash = document.getElementById('splash');
-  // Plein écran sur tout le navigateur
-  var fn = document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen || document.documentElement.mozRequestFullScreen || document.documentElement.msRequestFullscreen;
-  if(fn) fn.call(document.documentElement);
+  // Plein écran sur tout le site
+  var el = document.documentElement;
+  var fn = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen;
+  if(fn) fn.call(el);
   // Animation de sortie du splash
   splash.style.transition = 'opacity 0.7s ease, transform 0.7s ease';
   splash.style.opacity = '0';
   splash.style.transform = 'scale(1.04)';
   splash.style.pointerEvents = 'none';
-  setTimeout(function(){ splash.style.display = 'none'; }, 750);
+  setTimeout(function(){
+    splash.style.display = 'none';
+    // Afficher le loader
+    var loader = document.getElementById('loader');
+    if(loader){
+      loader.style.display = 'block';
+      setTimeout(function(){ loader.style.transition = 'opacity 0.5s ease'; loader.style.opacity = '1'; }, 30);
+    }
+    // Cacher topbar
+    var topbar = document.getElementById('player-topbar');
+    if(topbar) topbar.style.display = 'none';
+    // Démarrer le loader (qui appellera startHeroSequence à la fin)
+    startLoader();
+  }, 750);
 }
 </script>
 
 <!-- LOADER -->
-<div id="loader">
+<div id="loader" style="display:none;opacity:0;">
   <canvas id="loader-canvas"></canvas>
 
   <!-- HUD Corners -->
@@ -525,7 +539,7 @@ function enterSite(){
 </div>
 
 <script>
-(function(){
+function startLoader(){
   // Canvas — grille + particules
   var cv=document.getElementById('loader-canvas');
   var cx=cv.getContext('2d');
@@ -628,11 +642,18 @@ function enterSite(){
         var loader=document.getElementById('loader');
         loader.style.transition='opacity 1s ease';
         loader.style.opacity='0';
-        setTimeout(function(){loader.style.display='none';},1000);
+        setTimeout(function(){
+          loader.style.display='none';
+          // Fade in nav
+          var nav=document.getElementById('main-nav');
+          if(nav){ nav.style.opacity='1'; }
+          // Lancer la séquence hero
+          startHeroSequence();
+        },1000);
       },600);
     }
   },110);
-})();
+}
 </script>
 
 <div id="transition-overlay"></div>
@@ -794,7 +815,7 @@ function enterSite(){
 </div>
 
 <!-- NAV -->
-<div class="nav" id="main-nav">
+<div class="nav" id="main-nav" style="opacity:0;transition:opacity 0.8s ease;">
   <div class="nav-brand" onclick="goHome()">CI</div>
   <button class="nav-btn active" id="nav-film" onclick="navTo('film',this)">Film</button>
   <button class="nav-btn" id="nav-admin" onclick="navTo('admin',this)" style="display:none;">Réalisateur</button>
@@ -3932,47 +3953,35 @@ function showToast(msg){
 }
 
 // ===== HERO SEQUENCE =====
-(function(){
-  function startHeroSequence(){
-    var ci = document.getElementById('hero-ci');
-    var sub = document.getElementById('hero-sub-ci');
-    var btnWrap = document.getElementById('hero-btn-wrap');
-    if(!ci) return;
+function startHeroSequence(){
+  var ci = document.getElementById('hero-ci');
+  var sub = document.getElementById('hero-sub-ci');
+  var btnWrap = document.getElementById('hero-btn-wrap');
+  if(!ci) return;
 
-    // Fade in noir → transparent — après que le loader soit complètement disparu
-    var heroFade = document.getElementById('hero-fade');
-    if(heroFade){
-      setTimeout(function(){
-        heroFade.style.opacity = '0';
-      }, 1200);
-    }
-
-    // Étape 1 — CI apparaît (fade up) — 2s après le fade noir
-    setTimeout(function(){ ci.classList.add('visible'); }, 2000);
-
-    // Étape 2 — "Cinéma Interactif" apparaît 2s après CI
-    setTimeout(function(){ sub.classList.add('visible'); }, 4000);
-
-    // Étape 3 — Bouton apparaît 2s après le sous-titre
-    setTimeout(function(){ btnWrap.classList.add('visible'); }, 6200);
-
-    // Étape 4 — CI + sous-titre disparaissent, bouton reste
-    setTimeout(function(){
-      ci.style.transition='opacity 1.2s ease';
-      ci.style.opacity='0';
-      sub.style.transition='opacity 1.2s ease';
-      sub.style.opacity='0';
-    }, 8800);
+  // Fade in noir → transparent
+  var heroFade = document.getElementById('hero-fade');
+  if(heroFade){
+    setTimeout(function(){ heroFade.style.opacity = '0'; }, 400);
   }
 
-  var loaderCheck = setInterval(function(){
-    var loader = document.getElementById('loader');
-    if(!loader || loader.style.display === 'none' || parseFloat(loader.style.opacity) === 0){
-      clearInterval(loaderCheck);
-      setTimeout(startHeroSequence, 400);
-    }
-  }, 200);
-})();
+  // Étape 1 — CI apparaît
+  setTimeout(function(){ ci.classList.add('visible'); }, 1200);
+
+  // Étape 2 — "Cinéma Interactif"
+  setTimeout(function(){ sub.classList.add('visible'); }, 3000);
+
+  // Étape 3 — Bouton
+  setTimeout(function(){ btnWrap.classList.add('visible'); }, 5000);
+
+  // Étape 4 — CI + sous-titre disparaissent, bouton reste
+  setTimeout(function(){
+    ci.style.transition='opacity 1.2s ease';
+    ci.style.opacity='0';
+    sub.style.transition='opacity 1.2s ease';
+    sub.style.opacity='0';
+  }, 7500);
+}
 // ===== HERO VIDEO HLS =====
 (function(){
   var vid = document.getElementById('hero-video');
