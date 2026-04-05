@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="CI">
@@ -216,11 +216,6 @@ body{background:#1a1a1a;color:#e8e8e8;font-family:Arial,sans-serif;
 }
 .page-back-btn:hover{color:#fff;}
 .page-back-title{font-size:10px;color:#333;letter-spacing:4px;text-transform:uppercase;}
-
-/* ===== VRAI PLEIN ÉCRAN — cache toutes les barres système ===== */
-:fullscreen{ width:100vw !important; height:100vh !important; background:#000; }
-:-webkit-full-screen{ width:100vw !important; height:100vh !important; background:#000; }
-:-moz-full-screen{ width:100vw !important; height:100vh !important; background:#000; }
 
 /* ===== MAIN-NAV — CACHÉE PARTOUT (navigation via hero-nav uniquement) ===== */
 #main-nav{ display:none !important; }
@@ -619,33 +614,12 @@ var _iosDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
                  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 var _iosStandalone = window.navigator.standalone === true;
 
-// Plein écran universel — cache la barre système sur Android, iOS, Desktop
 function enterFullscreen(){
-  goTrueFullscreen(document.documentElement);
-}
-
-function goTrueFullscreen(el){
-  el = el || document.documentElement;
-  // Toujours utiliser documentElement pour cacher la barre Android
-  var target = document.documentElement;
+  var el = document.documentElement;
   try {
-    if(target.requestFullscreen){
-      target.requestFullscreen({ navigationUI: 'hide' }).then(function(){
-        // Verrouiller en paysage si possible (mobile)
-        if(screen.orientation && screen.orientation.lock){
-          screen.orientation.lock('landscape').catch(function(){});
-        }
-      }).catch(function(){});
-    } else if(target.webkitRequestFullscreen){
-      target.webkitRequestFullscreen();
-      if(screen.orientation && screen.orientation.lock){
-        screen.orientation.lock('landscape').catch(function(){});
-      }
-    } else if(target.mozRequestFullScreen){
-      target.mozRequestFullScreen();
-    } else if(target.msRequestFullscreen){
-      target.msRequestFullscreen();
-    }
+    if(el.requestFullscreen)            el.requestFullscreen().catch(function(){});
+    else if(el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+    else if(el.mozRequestFullScreen)    el.mozRequestFullScreen();
   } catch(e){}
 }
 
@@ -670,8 +644,9 @@ function hideFSGate(){
 var _fsUnlocked = false;
 
 function checkFSGate(){
+  // iOS = jamais de gate (pas d'API fullscreen, standalone ou simulé)
   if(_iosDevice || _iosStandalone) return;
-  if(!_fsUnlocked) return; // Pas encore cliqué CONTINUER → jamais afficher le gate
+  if(!_fsUnlocked) return;
   var isFS = !!(document.fullscreenElement || document.webkitFullscreenElement);
   if(isFS){ hideFSGate(); } else { showFSGate(); }
 }
@@ -1191,28 +1166,46 @@ function launchFullExperience(){
   var btn = document.getElementById('loader-continue-btn');
   if(btn) btn.style.pointerEvents = 'none';
 
-  _fsUnlocked = true;
-
   var loader = document.getElementById('loader');
   var vid = document.getElementById('splash-vid');
 
-  // 1. Plein écran — tous appareils (clic humain requis = OK ici)
-  goTrueFullscreen(document.documentElement);
+  // Tenter le plein écran sur TOUS les appareils
+  var el = document.documentElement;
+  var fsPromise = null;
+  try {
+    if(el.requestFullscreen){
+      fsPromise = el.requestFullscreen({ navigationUI: 'hide' });
+    } else if(el.webkitRequestFullscreen){
+      el.webkitRequestFullscreen();
+    } else if(el.mozRequestFullScreen){
+      el.mozRequestFullScreen();
+    }
+    // Verrouiller en paysage
+    if(screen.orientation && screen.orientation.lock){
+      screen.orientation.lock('landscape').catch(function(){});
+    }
+  } catch(e){}
 
-  // 2. Unmuter
+  // Déverrouiller le gate SEULEMENT si pas iOS (iOS = pas de fullscreenchange)
+  if(!isIOS()){
+    _fsUnlocked = true;
+  }
+  // Sur iOS : marquer comme "plein écran simulé", jamais montrer le gate
+  // _fsUnlocked reste false → checkFSGate ne s'affiche pas
+
+  // Unmuter
   if(vid){
     vid.muted = false;
     vid.volume = 0.85;
     if(vid.paused) vid.play().catch(function(){});
   }
 
-  // 3. Fondu rapide du loader
+  // Fondu du loader
   if(loader){
     loader.style.transition = 'opacity 0.6s ease';
     loader.style.opacity = '0';
     setTimeout(function(){
       loader.style.display = 'none';
-      // Afficher le petit indicateur de rotation sur mobile portrait
       showRotateNudge();
       startSplash();
     }, 650);
@@ -2154,8 +2147,14 @@ function startFilm(){
   sceneHistory=[];
   showPlayer();
   loadScene(start.id);
-  // Plein écran sur documentElement — cache la barre système Android
-  goTrueFullscreen(document.documentElement);
+  // Plein écran sur documentElement — fonctionne sur Android/Desktop
+  if(!isIOS()){
+    try {
+      var el=document.documentElement;
+      if(el.requestFullscreen) el.requestFullscreen({navigationUI:'hide'}).catch(function(){});
+      else if(el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+    } catch(e){}
+  }
 }
 
 function previewFilm(){
@@ -2164,7 +2163,13 @@ function previewFilm(){
   sceneHistory=[];
   showPlayer();
   loadScene(start.id);
-  goTrueFullscreen(document.documentElement);
+  if(!isIOS()){
+    try {
+      var el=document.documentElement;
+      if(el.requestFullscreen) el.requestFullscreen({navigationUI:'hide'}).catch(function(){});
+      else if(el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+    } catch(e){}
+  }
 }
 
 
