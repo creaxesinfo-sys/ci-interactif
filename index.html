@@ -200,23 +200,44 @@ body{background:#1a1a1a;color:#e8e8e8;font-family:Arial,sans-serif;
 #loader::after{content:'';position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.08) 2px,rgba(0,0,0,0.08) 4px);pointer-events:none;z-index:4;}
 
 /* ===== NAV ===== */
+/* ===== BARRE DE RETOUR — sur toutes pages sauf hero ===== */
+.page-back-bar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 24px;
+  background:rgba(10,10,10,0.98);
+  border-bottom:1px solid #1a1a1a;
+  position:sticky;top:0;z-index:100;
+}
+.page-back-btn{
+  background:none;border:none;color:#555;
+  font-family:Arial,sans-serif;font-size:10px;letter-spacing:3px;
+  text-transform:uppercase;cursor:pointer;padding:6px 0;
+  transition:color 0.2s;
+}
+.page-back-btn:hover{color:#fff;}
+.page-back-title{font-size:10px;color:#333;letter-spacing:4px;text-transform:uppercase;}
+
+/* ===== MAIN-NAV — CACHÉE PARTOUT (navigation via hero-nav uniquement) ===== */
+#main-nav{ display:none !important; }
+
+/* Compenser le padding-top qui était pour la nav */
+.page.active{ padding-top:0 !important; }
+:fullscreen .page.active,
+:-webkit-full-screen .page.active,
+:-moz-full-screen .page.active { padding-top:0 !important; }
+
 .nav{
   background:rgba(10,10,10,0.97);
   border-bottom:1px solid #2e2e2e;
   display:flex;align-items:center;overflow-x:auto;
   position:fixed;top:0;left:0;right:0;width:100%;
   z-index:200;
+  /* Hauteur de base */
   height:42px;
+  /* Espace pour le notch/caméra en mode normal */
   padding-top:env(safe-area-inset-top,0px);
   height:calc(42px + env(safe-area-inset-top,0px));
   box-sizing:border-box;
-}
-
-/* NAV CACHÉE sur le hero — toujours, peu importe le mode */
-body.on-hero #main-nav{
-  display:none !important;
-  opacity:0 !important;
-  pointer-events:none !important;
 }
 
 /* EN PLEIN ÉCRAN — plus de notch, hauteur fixe */
@@ -226,26 +247,6 @@ body.on-hero #main-nav{
   padding-top:0 !important;
   height:42px !important;
 }
-
-/* FS-GATE — au-dessus de tout sauf pendant le loader */
-#fs-gate{
-  position:fixed;inset:0;background:#000;
-  z-index:98000; /* sous loader(9999) et splash(99999) — réapparaît après eux */
-  display:flex;flex-direction:column;
-  align-items:center;justify-content:center;
-  text-align:center;padding:40px;
-}
-#fs-gate.hidden{display:none !important;}
-.fsg-logo{font-size:clamp(80px,18vw,160px);font-weight:100;letter-spacing:20px;color:#fff;
-  font-family:'Raleway','Helvetica Neue',Helvetica,Arial,sans-serif;line-height:1;margin-bottom:8px;}
-.fsg-sub{font-size:10px;color:#444;letter-spacing:6px;text-transform:uppercase;margin-bottom:60px;}
-.fsg-btn{
-  background:transparent;border:1px solid rgba(255,255,255,0.3);color:#fff;
-  font-family:Arial,sans-serif;font-size:11px;letter-spacing:5px;text-transform:uppercase;
-  padding:18px 52px;cursor:pointer;transition:all 0.3s;
-}
-.fsg-btn:hover{border-color:rgba(255,255,255,0.8);}
-.fsg-hint{margin-top:24px;font-size:9px;color:#2a2a2a;letter-spacing:3px;text-transform:uppercase;}
 
 /* ===== ROTATE HINT ===== */
 #rotate-hint{display:none;position:fixed;bottom:env(safe-area-inset-bottom,20px);bottom:20px;left:50%;transform:translateX(-50%);z-index:8500;text-align:center;pointer-events:none;opacity:0;transition:opacity 0.5s ease;}
@@ -598,69 +599,6 @@ video { outline:none; }
 </style>
 </head>
 <body>
-<!-- FS-GATE : visible hors plein écran, couvre tout -->
-<div id="fs-gate">
-  <div style="position:relative;z-index:2;">
-    <div class="fsg-logo">CI</div>
-    <div class="fsg-sub">Cinéma Interactif</div>
-    <button class="fsg-btn" onclick="enterFullscreen()">⛶ &nbsp; ENTRER EN PLEIN ÉCRAN</button>
-    <div class="fsg-hint">L'expérience complète est en mode plein écran</div>
-  </div>
-</div>
-<script>
-// Cacher immédiatement le gate si iOS ou déjà en FS
-(function(){
-  var isIOSStandalone = window.navigator.standalone === true;
-  var iosDevice = /iPad|iPhone|iPod/.test(navigator.userAgent)||
-                  (navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
-  var isFS = !!(document.fullscreenElement||document.webkitFullscreenElement);
-  if(isFS||isIOSStandalone||iosDevice){
-    var g=document.getElementById('fs-gate');
-    if(g) g.style.display='none';
-  }
-})();
-
-function enterFullscreen(){
-  var el=document.documentElement;
-  try{
-    if(el.requestFullscreen) el.requestFullscreen().catch(function(){});
-    else if(el.webkitRequestFullscreen) el.webkitRequestFullscreen();
-    else if(el.mozRequestFullScreen) el.mozRequestFullScreen();
-  }catch(e){}
-}
-
-function updateFSGate(){
-  var gate=document.getElementById('fs-gate');
-  if(!gate) return;
-  var isFS=!!(document.fullscreenElement||document.webkitFullscreenElement);
-  var isIOSStandalone=window.navigator.standalone===true;
-  var iosDevice=/iPad|iPhone|iPod/.test(navigator.userAgent)||
-               (navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
-  if(isFS||isIOSStandalone||iosDevice){
-    gate.style.transition='opacity 0.4s ease';
-    gate.style.opacity='0';
-    setTimeout(function(){ gate.style.display='none'; gate.style.opacity=''; },420);
-  } else {
-    // Quand on sort du plein écran — attendre que loader/splash soient finis
-    var loader=document.getElementById('loader');
-    var splash=document.getElementById('splash');
-    var loaderDone=!loader||loader.style.display==='none';
-    var splashDone=!splash||splash.style.display==='none'||!splash.classList.contains('active');
-    if(loaderDone && splashDone){
-      gate.style.display='flex';
-      gate.style.transition='none';
-      gate.style.opacity='1';
-    } else {
-      // Réessayer dans 500ms (loader encore actif)
-      setTimeout(updateFSGate, 500);
-    }
-  }
-}
-
-document.addEventListener('fullscreenchange', updateFSGate);
-document.addEventListener('webkitfullscreenchange', updateFSGate);
-document.addEventListener('mozfullscreenchange', updateFSGate);
-</script>
 
 <!-- ===== SPLASH SCREEN ===== -->
 <style>
@@ -1525,7 +1463,10 @@ function showRotateNudge(){
     <div class="admin-title-bar">
       <div class="admin-brand">Panneau Réalisateur</div>
       <div class="admin-actions">
+        <button class="btn-home" onclick="navTo('film',null)" style="border-color:#2e2e2e;color:#666;">← RETOUR</button>
         <button class="btn-home" onclick="previewFilm()" style="border-color:#444;color:#888;">▶ Prévisualiser</button>
+        <button class="btn-home" onclick="openProfilModal()" style="border-color:#2e2e2e;color:#555;">⬤ Profil</button>
+        <button class="btn-home" onclick="signOut()" style="border-color:#2e2e2e;color:#444;">Déconnexion</button>
       </div>
     </div>
   </div>
@@ -1651,6 +1592,11 @@ function showRotateNudge(){
 
 <!-- ===== PAGE MEMBRES ===== -->
 <div id="page-membres" class="page" style="background:#111;">
+  <div class="page-back-bar">
+    <button class="page-back-btn" onclick="navTo('film',null)">← RETOUR</button>
+    <span class="page-back-title">UTILISATEURS</span>
+    <button class="page-back-btn" onclick="openProfilModal()">⬤ PROFIL</button>
+  </div>
   <div style="background:#0d0d0d;border-bottom:1px solid #1a1a1a;padding:40px 32px 20px;">
     <div style="font-size:10px;color:#444;letter-spacing:5px;text-transform:uppercase;margin-bottom:8px;">CINÉMA INTERACTIF</div>
     <div style="font-size:clamp(24px,5vw,42px);font-weight:700;color:#fff;letter-spacing:6px;text-transform:uppercase;">UTILISATEURS</div>
@@ -1686,6 +1632,11 @@ function showRotateNudge(){
 
 <!-- ===== PAGE SUBVENTION ===== -->
 <div id="page-subvention" class="page" style="background:#111;">
+  <div class="page-back-bar">
+    <button class="page-back-btn" onclick="navTo('film',null)">← RETOUR</button>
+    <span class="page-back-title">SUBVENTION CALC</span>
+    <button class="page-back-btn" onclick="openProfilModal()">⬤ PROFIL</button>
+  </div>
   <!-- Header -->
   <div style="background:#0d0d0d;border-bottom:1px solid #1a1a1a;padding:40px 32px 0;">
     <div style="font-size:10px;color:#444;letter-spacing:5px;text-transform:uppercase;margin-bottom:8px;">CI — CINÉMA INTERACTIF</div>
@@ -1907,6 +1858,11 @@ function showRotateNudge(){
 
 <!-- ===== PAGE NOS CRÉATIONS ===== -->
 <div id="page-creations" class="page">
+  <div class="page-back-bar">
+    <button class="page-back-btn" onclick="navTo('film',null)">← RETOUR</button>
+    <span class="page-back-title">NOS CRÉATIONS</span>
+    <button class="page-back-btn" onclick="openProfilModal()">⬤ PROFIL</button>
+  </div>
   <div style="position:relative;height:220px;overflow:hidden;background:#000;border-bottom:1px solid #2e2e2e;">
     <div style="position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(255,255,255,0.008) 3px,rgba(255,255,255,0.008) 4px);"></div>
     <div style="position:relative;z-index:2;display:flex;flex-direction:column;justify-content:center;align-items:center;height:220px;text-align:center;">
@@ -4858,8 +4814,15 @@ function refreshHeroNav(){
 function startHeroSequence(){
   heroSequenceReady = false;
   document.body.classList.add('on-hero');
-  // Nav cachée via CSS : body.on-hero #main-nav { display:none !important }
-  // Aucune manipulation JS de la nav ici
+  syncMainNav();
+
+  // Nav : opaque immédiatement — le hero-fade (z-index 201) la couvre
+  var nav = document.getElementById('main-nav');
+  if(nav){
+    nav.style.transition = 'none';
+    nav.style.opacity = '1';
+    requestAnimationFrame(function(){ nav.style.transition = ''; });
+  }
 
   var ci = document.getElementById('hero-ci');
   var sub = document.getElementById('hero-sub-ci');
@@ -4873,20 +4836,27 @@ function startHeroSequence(){
     setTimeout(function(){
       heroFade.style.zIndex = '6';
       heroFade.style.pointerEvents = 'none';
-    }, 4000);
+    }, 3600);
   }
 
   // Étape 1 — CI apparaît
   setTimeout(function(){ ci.classList.add('visible'); }, 1200);
+
   // Étape 2 — "Cinéma Interactif"
   setTimeout(function(){ sub.classList.add('visible'); }, 3000);
-  // Étape 3 — Bouton + hero-nav
+
+  // Étape 3 — Bouton + hero-nav avec les bons onglets
   setTimeout(function(){
     btnWrap.classList.add('visible');
     heroSequenceReady = true;
-    refreshHeroNav();
+    refreshHeroNav(); // affiche le hero-nav avec tous les onglets du bon rôle
   }, 3500);
-  // Pas d'étape 4 — CI reste toujours visible
+
+  // Étape 4 — CI + sous-titre disparaissent
+  setTimeout(function(){
+    ci.style.transition='opacity 1.2s ease'; ci.style.opacity='0';
+    sub.style.transition='opacity 1.2s ease'; sub.style.opacity='0';
+  }, 7500);
 }
 // ===== HERO VIDEO HLS =====
 (function(){
