@@ -52,6 +52,47 @@ body{background:#1a1a1a;color:#e8e8e8;font-family:Arial,sans-serif;min-height:10
 .splash-exit{animation:splashExit 0.8s ease forwards!important;}
 @keyframes splashExit{to{opacity:0;transform:scale(1.04);pointer-events:none;}}
 
+/* ===== PETIT INDICATEUR ROTATION (mobile, après CONTINUER) ===== */
+#rotate-nudge{
+  display:none;
+  position:fixed;
+  top:50%;left:8%;
+  transform:translateY(-50%);
+  z-index:999999; /* au-dessus du splash (99999) */
+  pointer-events:none;
+  opacity:0;
+  transition:opacity 0.6s ease;
+  flex-direction:column;
+  align-items:center;
+  gap:10px;
+}
+#rotate-nudge.show{opacity:1;}
+.rn-phone{
+  width:24px;height:40px;
+  border:2px solid rgba(255,255,255,0.7);
+  border-radius:6px;
+  position:relative;
+  animation:rnSpin 2.2s cubic-bezier(0.4,0,0.2,1) infinite;
+}
+.rn-phone::before{
+  content:'';position:absolute;top:5px;left:50%;transform:translateX(-50%);
+  width:6px;height:3px;border-radius:1px;background:rgba(255,255,255,0.4);
+}
+.rn-phone::after{
+  content:'';position:absolute;bottom:5px;left:50%;transform:translateX(-50%);
+  width:10px;height:2px;border-radius:1px;background:rgba(255,255,255,0.3);
+}
+.rn-label{
+  font-size:8px;color:rgba(255,255,255,0.5);
+  letter-spacing:2px;text-transform:uppercase;
+  white-space:nowrap;
+}
+@keyframes rnSpin{
+  0%,20%{transform:rotate(0deg);}
+  55%,75%{transform:rotate(-90deg);}
+  95%,100%{transform:rotate(0deg);}
+}
+
 /* ===== LOADER ===== */
 #loader{position:fixed;top:0;left:0;right:0;bottom:0;background:#000;z-index:9999;overflow:hidden;font-family:Arial,sans-serif;}
 #loader-canvas{position:absolute;top:0;left:0;width:100%;height:100%;}
@@ -95,6 +136,26 @@ body{background:#1a1a1a;color:#e8e8e8;font-family:Arial,sans-serif;min-height:10
 .ld-main-progress{width:320px;margin:20px auto 0;}
 .ld-main-track{height:1px;background:#1a1a1a;position:relative;}
 .ld-main-fill{height:1px;background:#fff;width:0%;transition:width 0.15s linear;}
+
+/* Bouton CONTINUER dans le loader */
+#loader-continue-btn{
+  margin-top:40px;
+  background:transparent;
+  border:1px solid rgba(255,255,255,0.7);
+  color:#fff;
+  font-family:Arial,sans-serif;font-size:10px;letter-spacing:6px;
+  text-transform:uppercase;padding:14px 48px;cursor:pointer;
+  transition:all 0.3s ease;pointer-events:auto;
+  animation:pulseBtn 2s ease infinite;
+}
+#loader-continue-btn:hover{
+  background:rgba(255,255,255,0.08);
+  border-color:#fff;
+}
+@keyframes pulseBtn{
+  0%,100%{box-shadow:0 0 0 0 rgba(255,255,255,0);}
+  50%{box-shadow:0 0 0 6px rgba(255,255,255,0.06);}
+}
 .ld-main-row{display:flex;justify-content:space-between;margin-top:10px;}
 .ld-status{font-size:9px;color:#333;letter-spacing:3px;text-transform:uppercase;}
 #loader-pct{font-size:9px;color:#555;letter-spacing:2px;}
@@ -103,15 +164,50 @@ body{background:#1a1a1a;color:#e8e8e8;font-family:Arial,sans-serif;min-height:10
 #loader::after{content:'';position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.08) 2px,rgba(0,0,0,0.08) 4px);pointer-events:none;z-index:4;}
 
 /* ===== NAV ===== */
-.nav{background:rgba(10,10,10,0.97);border-bottom:1px solid #2e2e2e;display:flex;align-items:center;overflow-x:auto;position:sticky;top:0;z-index:100;}
+.nav{
+  background:rgba(10,10,10,0.97);
+  border-bottom:1px solid #2e2e2e;
+  display:flex;align-items:center;overflow-x:auto;
+  position:fixed;top:0;left:0;right:0;width:100%;
+  z-index:200;
+  /* Hauteur de base */
+  height:42px;
+  /* Espace pour le notch/caméra en mode normal */
+  padding-top:env(safe-area-inset-top,0px);
+  height:calc(42px + env(safe-area-inset-top,0px));
+  box-sizing:border-box;
+}
+
+/* EN PLEIN ÉCRAN — plus de notch, hauteur fixe */
+:fullscreen .nav,
+:-webkit-full-screen .nav,
+:-moz-full-screen .nav {
+  padding-top:0 !important;
+  height:42px !important;
+}
+
+/* ===== ROTATE HINT ===== */
+#rotate-hint{display:none;position:fixed;bottom:env(safe-area-inset-bottom,20px);bottom:20px;left:50%;transform:translateX(-50%);z-index:8500;text-align:center;pointer-events:none;opacity:0;transition:opacity 0.5s ease;}
+#rotate-hint.visible{opacity:1;}
+.rotate-icon{font-size:32px;display:block;animation:rotatePhone 2s ease infinite;}
+.rotate-label{font-size:9px;color:rgba(255,255,255,0.5);letter-spacing:3px;text-transform:uppercase;display:block;margin-top:6px;}
+@keyframes rotatePhone{0%{transform:rotate(0deg);}40%{transform:rotate(-90deg);}60%{transform:rotate(-90deg);}100%{transform:rotate(0deg);}}
+@media (max-width:767px) and (orientation:portrait){#rotate-hint{display:block;}}
 .nav-brand{padding:14px 20px;font-size:20px;font-weight:700;color:#fff;letter-spacing:3px;border-right:1px solid #2e2e2e;white-space:nowrap;cursor:pointer;}
 .nav-btn{padding:14px 18px;font-size:12px;color:#888;cursor:pointer;border:none;background:transparent;white-space:nowrap;border-bottom:2px solid transparent;transition:all 0.15s;letter-spacing:1px;font-family:Arial,sans-serif;}
 .nav-btn:hover{color:#ccc;background:rgba(255,255,255,0.04);}
 .nav-btn.active{color:#fff;border-bottom:2px solid #fff;}
 
 /* ===== PAGES ===== */
+/* padding-top = hauteur réelle de la nav (42px + notch mobile) */
 .page{display:none;}
-.page.active{display:block;}
+.page.active{display:block;padding-top:calc(42px + env(safe-area-inset-top,0px));}
+/* En plein écran : nav sans notch → offset fixe */
+:fullscreen .page.active,
+:-webkit-full-screen .page.active,
+:-moz-full-screen .page.active {padding-top:42px !important;}
+/* Page film/hero — pas de padding (le hero gère sa propre hauteur) */
+#page-film.active{padding-top:0;}
 
 /* ===== HERO (Accueil) ===== */
 .hero-wrap{position:relative;height:100vh;overflow:hidden;background:#000;}
@@ -151,14 +247,52 @@ body{background:#1a1a1a;color:#e8e8e8;font-family:Arial,sans-serif;min-height:10
 .info-lbl{font-size:10px;color:#555;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;}
 .info-val{font-size:14px;color:#ddd;font-weight:500;}
 
+/* ===== NAV INTÉGRÉE PAGE MAÎTRE ===== */
+/* Fait partie du hero-wrap → toujours visible en plein écran */
+#hero-nav{
+  position:absolute;top:52px;left:0;right:0;height:42px;
+  background:linear-gradient(to bottom,rgba(0,0,0,0.6) 0%,transparent 100%);
+  display:flex;align-items:center;z-index:10;
+  opacity:0;transition:opacity 0.8s ease;pointer-events:none;
+}
+#hero-nav.visible{opacity:1;pointer-events:auto;}
+.hn-brand{font-size:18px;font-weight:700;color:#fff;letter-spacing:4px;
+  font-family:'Raleway','Helvetica Neue',Helvetica,Arial,sans-serif;
+  padding:0 20px;border-right:1px solid rgba(255,255,255,0.15);cursor:pointer;}
+.hn-btn{background:none;border:none;border-bottom:2px solid transparent;
+  color:rgba(255,255,255,0.6);font-family:Arial,sans-serif;font-size:11px;
+  letter-spacing:2px;text-transform:uppercase;padding:0 15px;cursor:pointer;
+  height:42px;white-space:nowrap;transition:color 0.2s,border-color 0.2s;}
+.hn-btn:hover{color:#fff;}
+.hn-btn.hn-active{color:#fff;border-bottom-color:rgba(255,255,255,0.6);}
+.hn-sep{flex:1;}
+.hn-profil{border-left:1px solid rgba(255,255,255,0.15);padding:0 18px;}
+
+/* En plein écran — masquer HUD + coins + hint */
+body.fs-mode .corner{ display:none; }
+body.fs-mode .hud{ display:none; }
+body.fs-mode .scroll-hint{ display:none; }
+body.fs-mode #hero-nav{ top:0; }
+
 /* ===== SECTION HEADERS ===== */
 .section-header{background:#111;border-bottom:1px solid #2e2e2e;padding:24px 32px;}
 .section-title{font-size:20px;font-weight:500;color:#fff;letter-spacing:3px;text-transform:uppercase;}
 .section-sub{font-size:11px;color:#555;margin-top:5px;letter-spacing:2px;}
 
 /* ===== LECTEUR PLEIN ÉCRAN ===== */
-.player-wrap{position:fixed;inset:0;background:#000;z-index:50;}
-.player-topbar{position:absolute;top:0;left:0;right:0;height:42px;background:rgba(0,0,0,0.6);border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:space-between;padding:0 24px;z-index:60;}
+.player-wrap{position:fixed;inset:0;top:0;left:0;right:0;bottom:0;background:#000;z-index:50;}
+.player-topbar{
+  position:absolute;top:0;left:0;right:0;height:42px;
+  background:rgba(0,0,0,0.75);
+  border-bottom:1px solid rgba(255,255,255,0.06);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 24px;z-index:60;
+  transition:opacity 0.4s ease;
+}
+/* En plein écran — topbar se cache/montre au survol via JS */
+:fullscreen .player-topbar,
+:-webkit-full-screen .player-topbar,
+:-moz-full-screen .player-topbar { top:0 !important; }
 .player-topbar-left{font-size:10px;color:#555;letter-spacing:3px;text-transform:uppercase;}
 .player-topbar-right{display:flex;align-items:center;gap:12px;}
 .progress-line{position:absolute;top:42px;left:0;right:0;height:1px;background:rgba(255,255,255,0.08);z-index:60;}
@@ -405,90 +539,246 @@ video { outline:none; }
 <body>
 
 <!-- ===== SPLASH SCREEN ===== -->
+<style>
+/* ===== SPLASH VIDÉO (caché au départ, activé après loader) ===== */
+#splash{
+  position:fixed;inset:0;background:#000;z-index:99999;
+  display:none; /* caché — activé par le loader */
+  align-items:center;justify-content:center;overflow:hidden;
+}
+#splash.active{display:flex;}
+
+/* Vidéo — plein écran au départ */
+#splash-video-wrap{
+  position:absolute;
+  top:0;bottom:0;left:0;right:0;
+  transition:left 1.6s cubic-bezier(0.4,0,0.2,1);
+  z-index:1;
+}
+/* Après 10s : vidéo se tasse légèrement à droite */
+#splash-video-wrap.shifted{
+  left:32%;
+}
+#splash-vid{width:100%;height:100%;object-fit:cover;display:block;}
+
+/* Fades via divs enfants — plus fiable */
+#splash-fade-sides{
+  position:absolute;inset:0;
+  background:linear-gradient(to right,
+    rgba(0,0,0,1) 0%,
+    rgba(0,0,0,1) 5%,
+    rgba(0,0,0,0.9) 12%,
+    rgba(0,0,0,0.4) 25%,
+    rgba(0,0,0,0) 38%,
+    rgba(0,0,0,0) 62%,
+    rgba(0,0,0,0.4) 75%,
+    rgba(0,0,0,0.9) 88%,
+    rgba(0,0,0,1) 95%,
+    rgba(0,0,0,1) 100%
+  );
+  pointer-events:none;z-index:4;
+  transition:opacity 1.4s ease;
+}
+#splash-fade-left{
+  position:absolute;inset:0;
+  background:linear-gradient(to right,
+    rgba(0,0,0,1) 0%,
+    rgba(0,0,0,1) 8%,
+    rgba(0,0,0,0.9) 18%,
+    rgba(0,0,0,0.5) 32%,
+    rgba(0,0,0,0) 48%
+  );
+  pointer-events:none;z-index:5;
+  opacity:0;
+  transition:opacity 1.4s ease;
+}
+/* Fade droit — suit la vidéo, disparaît 3s après le shift */
+#splash-fade-right{
+  position:absolute;inset:0;
+  background:linear-gradient(to left,
+    rgba(0,0,0,1) 0%,
+    rgba(0,0,0,0.95) 4%,
+    rgba(0,0,0,0.7) 12%,
+    rgba(0,0,0,0.3) 22%,
+    rgba(0,0,0,0) 35%
+  );
+  pointer-events:none;z-index:4;
+  opacity:1;
+  transition:opacity 1.6s ease;
+}
+#splash-video-wrap.shifted #splash-fade-sides{ opacity:0; }
+#splash-video-wrap.shifted #splash-fade-left{ opacity:1; }
+
+/* Panneau gauche — centré dans l'espace noir */
+#splash-panel{
+  position:absolute;left:0;top:0;bottom:0;width:32%;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;
+  padding:0 4vw;
+  opacity:0;transform:translateX(-16px);
+  transition:opacity 1s ease 0.4s,transform 1s ease 0.4s;
+  z-index:20;pointer-events:none;
+}
+#splash-panel.visible{opacity:1;transform:translateX(0);pointer-events:auto;}
+
+.sp-eyebrow{font-size:9px;color:#555;letter-spacing:6px;text-transform:uppercase;margin-bottom:20px;text-align:center;}
+.sp-ci{font-size:clamp(56px,8vw,110px);font-weight:100;color:#fff;letter-spacing:20px;line-height:1;
+  font-family:'Raleway','Helvetica Neue',Helvetica,Arial,sans-serif;margin-bottom:6px;text-align:center;}
+.sp-sub{font-size:10px;color:#555;letter-spacing:6px;text-transform:uppercase;margin-bottom:48px;text-align:center;}
+.sp-divider{width:40px;height:1px;background:rgba(255,255,255,0.15);margin:0 auto 48px auto;}
+.sp-enter-btn{
+  background:transparent;border:1px solid rgba(255,255,255,0.3);color:#fff;
+  font-family:Arial,sans-serif;font-size:10px;letter-spacing:6px;text-transform:uppercase;
+  padding:18px 48px;cursor:pointer;transition:all 0.3s;position:relative;overflow:hidden;
+}
+.sp-enter-btn::before{content:'';position:absolute;inset:0;background:rgba(255,255,255,0.05);
+  transform:scaleX(0);transform-origin:left;transition:transform 0.35s ease;}
+.sp-enter-btn:hover::before{transform:scaleX(1);}
+.sp-enter-btn:hover{border-color:rgba(255,255,255,0.7);}
+
+/* HUD coins */
+.splash-corner{position:absolute;width:20px;height:20px;z-index:30;}
+.splash-corner-tl{top:24px;left:24px;border-top:1px solid #1a1a1a;border-left:1px solid #1a1a1a;}
+.splash-corner-tr{top:24px;right:24px;border-top:1px solid #1a1a1a;border-right:1px solid #1a1a1a;}
+.splash-corner-bl{bottom:24px;left:24px;border-bottom:1px solid #1a1a1a;border-left:1px solid #1a1a1a;}
+.splash-corner-br{bottom:24px;right:24px;border-bottom:1px solid #1a1a1a;border-right:1px solid #1a1a1a;}
+.splash-hud-bl{position:absolute;bottom:28px;left:56px;font-size:9px;color:#1a1a1a;letter-spacing:3px;text-transform:uppercase;z-index:30;}
+.splash-hud-br{position:absolute;bottom:28px;right:56px;font-size:9px;color:#1a1a1a;letter-spacing:3px;text-transform:uppercase;z-index:30;text-align:right;}
+</style>
+
+<!-- SPLASH VIDÉO — activé après le loader -->
 <div id="splash">
-  <canvas id="splash-canvas"></canvas>
   <div class="splash-corner splash-corner-tl"></div>
   <div class="splash-corner splash-corner-tr"></div>
   <div class="splash-corner splash-corner-bl"></div>
   <div class="splash-corner splash-corner-br"></div>
-  <div class="splash-hud-bl">CINÉMA INTERACTIF // v1.0</div>
-  <div class="splash-hud-br" id="splash-time">--:--:--</div>
-  <div class="splash-inner">
-    <div class="splash-eyebrow">Bienvenue sur</div>
-    <div class="splash-ci">CI</div>
-    <div class="splash-sub">Cinéma Interactif</div>
-    <div class="splash-line"></div>
-    <div class="splash-btn-wrap">
-      <button class="splash-btn" onclick="enterSite()">Entrer dans CI</button>
-    </div>
+  <div class="splash-hud-bl">VOUS ÊTES CRÉATEUR // GÉNIE VOUS ÊTES</div>
+  <div id="splash-time" style="position:absolute;top:28px;left:56px;font-size:9px;color:#222;letter-spacing:3px;text-transform:uppercase;z-index:30;">--:--:--</div>
+  <button onclick="enterSite()" style="position:absolute;bottom:24px;right:56px;background:none;border:none;color:#333;font-family:Arial,sans-serif;font-size:9px;letter-spacing:4px;text-transform:uppercase;cursor:pointer;z-index:30;padding:4px 0;transition:color 0.3s;border-bottom:1px solid #222;" onmouseover="this.style.color='#888';this.style.borderBottomColor='#555'" onmouseout="this.style.color='#333';this.style.borderBottomColor='#222'">Passer ›</button>
+
+  <!-- Vidéo plein écran qui se tasse à droite -->
+  <div id="splash-video-wrap">
+    <video id="splash-vid" playsinline></video>
+    <div id="splash-fade-sides"></div>
+    <div id="splash-fade-right"></div>
+    <div id="splash-fade-left"></div>
+  </div>
+
+  <!-- Panneau gauche — apparaît après 10s -->
+  <div id="splash-panel">
+    <div class="sp-eyebrow">Bienvenue sur</div>
+    <div class="sp-ci">CI</div>
+    <div class="sp-sub">Cinéma Interactif</div>
+    <div class="sp-divider"></div>
+    <button class="sp-enter-btn" onclick="enterSite()">▶ &nbsp; Entrer dans CI</button>
   </div>
 </div>
 
 <script>
-// ===== SPLASH SCREEN =====
-(function(){
-  var cv = document.getElementById('splash-canvas');
-  var cx = cv.getContext('2d');
-  function resize(){ cv.width = window.innerWidth; cv.height = window.innerHeight; }
-  resize(); window.addEventListener('resize', resize);
-  var pts = [];
-  for(var i=0;i<50;i++) pts.push({x:Math.random(),y:Math.random(),vx:(Math.random()-0.5)*0.0002,vy:(Math.random()-0.5)*0.0002,a:Math.random()*0.06+0.01,r:Math.random()*1.2+0.3});
-  function draw(){
-    cx.clearRect(0,0,cv.width,cv.height);
-    cx.strokeStyle='rgba(255,255,255,0.018)';cx.lineWidth=0.5;
-    var gs=80;
-    for(var gx=0;gx<cv.width;gx+=gs){cx.beginPath();cx.moveTo(gx,0);cx.lineTo(gx,cv.height);cx.stroke();}
-    for(var gy=0;gy<cv.height;gy+=gs){cx.beginPath();cx.moveTo(0,gy);cx.lineTo(cv.width,gy);cx.stroke();}
-    pts.forEach(function(p){
-      p.x+=p.vx;p.y+=p.vy;
-      if(p.x<0)p.x=1;if(p.x>1)p.x=0;
-      if(p.y<0)p.y=1;if(p.y>1)p.y=0;
-      cx.beginPath();cx.arc(p.x*cv.width,p.y*cv.height,p.r,0,Math.PI*2);
-      cx.fillStyle='rgba(255,255,255,'+p.a+')';cx.fill();
-    });
-    var vg=cx.createRadialGradient(cv.width/2,cv.height/2,cv.height*0.1,cv.width/2,cv.height/2,cv.height*0.85);
-    vg.addColorStop(0,'rgba(0,0,0,0)');vg.addColorStop(1,'rgba(0,0,0,0.82)');
-    cx.fillStyle=vg;cx.fillRect(0,0,cv.width,cv.height);
-    if(document.getElementById('splash')) requestAnimationFrame(draw);
+// ===== SPLASH VIDÉO — déclenché par le loader =====
+var splashStarted = false;
+function startSplash(){
+  if(splashStarted) return;
+  splashStarted = true;
+
+  var splash = document.getElementById('splash');
+  var vid = document.getElementById('splash-vid');
+  var wrap = document.getElementById('splash-video-wrap');
+  var panel = document.getElementById('splash-panel');
+
+  // Afficher le splash
+  splash.classList.add('active');
+
+  // Unmuter — vidéo joue déjà muet depuis le preload
+  vid.muted = false;
+  vid.volume = 0.85;
+  vid.currentTime = 0;
+
+  // Après 10s — vidéo se tasse à droite, panneau bienvenue apparaît
+  var shiftDone = false;
+  function doShift(){
+    if(shiftDone) return;
+    shiftDone = true;
+    wrap.classList.add('shifted');
+    setTimeout(function(){ panel.classList.add('visible'); }, 600);
+    // Fade droit s'efface 3s après la fin de la transition (1.6s + 3s)
+    setTimeout(function(){
+      var fadeRight = document.getElementById('splash-fade-right');
+      if(fadeRight) fadeRight.style.opacity = '0';
+    }, 4600);
   }
-  draw();
-  var st=document.getElementById('splash-time');
+  setTimeout(doShift, 10000);
+
+  // (centrage retiré — panneau reste fixe à gauche)
+
+  // Surveiller la durée pour déclencher le fade avant la fin
+  vid.addEventListener('timeupdate', function onTimeUpdate(){
+    if(!vid.duration) return;
+    var remaining = vid.duration - vid.currentTime;
+    // 2 secondes avant la fin — fade du splash + extinction progressive du son
+    if(remaining <= 2){
+      vid.removeEventListener('timeupdate', onTimeUpdate);
+      // Fade out du splash
+      splash.style.transition = 'opacity 3.5s ease';
+      splash.style.opacity = '0';
+      splash.style.pointerEvents = 'none';
+      // Extinction douce du son sur 3.5s
+      var startVol = vid.volume;
+      var steps = 35;
+      var stepTime = 100;
+      var stepVol = startVol / steps;
+      var volInterval = setInterval(function(){
+        if(vid.volume > stepVol){
+          vid.volume = Math.max(0, vid.volume - stepVol);
+        } else {
+          vid.volume = 0;
+          clearInterval(volInterval);
+        }
+      }, stepTime);
+      // Après le fade — lancer la page maître
+      setTimeout(function(){
+        splash.style.display = 'none';
+        startHeroSequence();
+      }, 3600);
+    }
+  });
+
+  // Horloge HUD — coin gauche
+  var st = document.getElementById('splash-time');
   setInterval(function(){
-    var n=new Date();
-    if(st) st.textContent=String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0')+':'+String(n.getSeconds()).padStart(2,'0');
-  },1000);
-})();
+    var n = new Date();
+    if(st) st.textContent = String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0')+':'+String(n.getSeconds()).padStart(2,'0');
+  }, 1000);
+  if(st){ var n=new Date(); st.textContent=String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0')+':'+String(n.getSeconds()).padStart(2,'0'); }
+}
 
 function enterSite(){
   var splash = document.getElementById('splash');
-  // Plein écran sur tout le site
-  var el = document.documentElement;
-  var fn = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen;
-  if(fn) fn.call(el);
-  // Animation de sortie du splash
-  splash.style.transition = 'opacity 0.7s ease, transform 0.7s ease';
+  if(!splash || !splash.classList.contains('active')) return;
+  var vid = document.getElementById('splash-vid');
+  splash.classList.remove('active');
+
+  // Crossfade vers page maître
+  splash.style.display = 'flex';
+  splash.style.transition = 'opacity 1.5s ease';
   splash.style.opacity = '0';
-  splash.style.transform = 'scale(1.04)';
   splash.style.pointerEvents = 'none';
   setTimeout(function(){
     splash.style.display = 'none';
-    // Afficher le loader
-    var loader = document.getElementById('loader');
-    if(loader){
-      loader.style.display = 'block';
-      setTimeout(function(){ loader.style.transition = 'opacity 0.5s ease'; loader.style.opacity = '1'; }, 30);
-    }
-    // Cacher topbar
-    var topbar = document.getElementById('player-topbar');
-    if(topbar) topbar.style.display = 'none';
-    // Démarrer le loader (qui appellera startHeroSequence à la fin)
-    startLoader();
-  }, 750);
+    if(vid){ vid.pause(); vid.volume = 0; }
+    startHeroSequence();
+  }, 1500);
 }
 </script>
 
+<!-- ROTATE NUDGE — petit indicateur mobile, apparaît après CONTINUER -->
+<div id="rotate-nudge">
+  <div class="rn-phone"></div>
+  <span class="rn-label">Tourner</span>
+</div>
+
 <!-- LOADER -->
-<div id="loader" style="display:none;opacity:0;">
+<div id="loader" style="opacity:1;">
   <canvas id="loader-canvas"></canvas>
 
   <!-- HUD Corners -->
@@ -534,11 +824,53 @@ function enterSite(){
           <div id="loader-pct">0%</div>
         </div>
       </div>
+
+      <!-- Bouton CONTINUER — visible dès le départ, s'active à la fin -->
+      <button id="loader-continue-btn" onclick="launchFullExperience()">▶ &nbsp; CONTINUER</button>
     </div>
   </div>
 </div>
 
 <script>
+// ===== PRÉCHARGEMENT + LECTURE MUETTE IMMÉDIATE =====
+// Joue muet dès le loader — au clic CONTINUER on unmute seulement
+(function(){
+  var HLS_URL = 'https://customer-911pgg1vlhryqb16.cloudflarestream.com/3e1d23a9491a4761288ecfb1fd4b44c3/manifest/video.m3u8';
+  var vid = document.getElementById('splash-vid');
+  if(!vid) return;
+  vid.muted = true;
+  vid.preload = 'auto';
+  vid.setAttribute('playsinline','');
+  vid.setAttribute('webkit-playsinline','');
+  if(window.Hls && Hls.isSupported()){
+    var hls = new Hls({
+      startLevel: 99,
+      capLevelToPlayerSize: false,
+      maxMaxBufferLength: 120,
+      maxBufferSize: 200 * 1000 * 1000,
+      maxBufferLength: 60,
+      abrEwmaDefaultEstimate: 50000000,
+      abrBandWidthFactor: 1.0,
+      abrBandWidthUpFactor: 1.0,
+      lowLatencyMode: false,
+      progressive: true
+    });
+    hls.loadSource(HLS_URL);
+    hls.attachMedia(vid);
+    hls.on(Hls.Events.MANIFEST_PARSED, function(){
+      hls.currentLevel = hls.levels.length - 1;
+      hls.loadLevel = hls.levels.length - 1;
+      vid.play().catch(function(){});
+    });
+    vid._splashHls = hls;
+  } else if(vid.canPlayType('application/vnd.apple.mpegurl')){
+    // iOS Safari — native HLS
+    vid.src = HLS_URL;
+    vid.load();
+    vid.play().catch(function(){});
+  }
+})();
+
 function startLoader(){
   // Canvas — grille + particules
   var cv=document.getElementById('loader-canvas');
@@ -638,26 +970,138 @@ function startLoader(){
       clearInterval(iv);
       bars.forEach(function(b){b.fill.style.width='100%';b.val.textContent='100%';});
       if(statusEl)statusEl.textContent='Prêt.';
-      setTimeout(function(){
-        var loader=document.getElementById('loader');
-        loader.style.transition='opacity 1s ease';
-        loader.style.opacity='0';
-        setTimeout(function(){
-          loader.style.display='none';
-          // Fade in nav
-          var nav=document.getElementById('main-nav');
-          if(nav){ nav.style.opacity='1'; }
-          // Lancer la séquence hero
-          startHeroSequence();
-        },1000);
-      },600);
+      // Loader terminé — bouton déjà actif depuis le début
     }
   },110);
+}
+
+// Précharger le vidéo splash pendant le loader
+(function(){
+  var HLS_URL = 'https://customer-911pgg1vlhryqb16.cloudflarestream.com/3e1d23a9491a4761288ecfb1fd4b44c3/manifest/video.m3u8';
+  var vid = document.getElementById('splash-vid');
+  if(!vid) return;
+  vid.muted = true; // muet pendant preload
+  vid.preload = 'auto';
+  if(window.Hls && Hls.isSupported()){
+    var hls = new Hls({
+      startLevel: 99,               // niveau le plus haut disponible
+      capLevelToPlayerSize: false,  // ignorer la taille de l'écran
+      maxMaxBufferLength: 120,
+      maxBufferSize: 200 * 1000 * 1000,
+      maxBufferLength: 60,
+      abrEwmaDefaultEstimate: 50000000, // supposer 50Mbps — vise 4K direct
+      abrBandWidthFactor: 1.0,
+      abrBandWidthUpFactor: 1.0
+    });
+    hls.loadSource(HLS_URL);
+    hls.attachMedia(vid);
+    hls.on(Hls.Events.MANIFEST_PARSED, function(){
+      hls.currentLevel = hls.levels.length - 1; // niveau max absolu
+      hls.loadLevel = hls.levels.length - 1;
+    });
+    vid._splashHls = hls;
+  } else if(vid.canPlayType('application/vnd.apple.mpegurl')){
+    vid.src = HLS_URL;
+    vid.load();
+  }
+})();
+
+// Démarrer le loader automatiquement au chargement
+startLoader();
+
+// Déclenché par le bouton CONTINUER (clic humain)
+function isIOS(){
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
+
+function launchFullExperience(){
+  var btn = document.getElementById('loader-continue-btn');
+  if(btn) btn.style.pointerEvents = 'none';
+
+  var loader = document.getElementById('loader');
+  var vid = document.getElementById('splash-vid');
+
+  // 1. Plein écran — désactivé sur iOS (non supporté sur l'élément document)
+  if(!isIOS()){
+    try {
+      var el = document.documentElement;
+      var fn = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen;
+      if(fn) fn.call(el).catch(function(){});
+    } catch(e) {}
+  }
+
+  // 2. Unmuter — le vidéo joue déjà muet depuis le preload
+  if(vid){
+    vid.muted = false;
+    vid.volume = 0.85;
+    if(vid.paused) vid.play().catch(function(){});
+  }
+
+  // 3. Fondu rapide du loader
+  if(loader){
+    loader.style.transition = 'opacity 0.6s ease';
+    loader.style.opacity = '0';
+    setTimeout(function(){
+      loader.style.display = 'none';
+      // Afficher le petit indicateur de rotation sur mobile portrait
+      showRotateNudge();
+      startSplash();
+    }, 650);
+  }
+}
+
+// Petit indicateur de rotation — apparaît après CONTINUER, disparaît à la rotation
+function showRotateNudge(){
+  var nudge = document.getElementById('rotate-nudge');
+  if(!nudge) return;
+
+  // Détecter mobile (touch) en mode portrait
+  var isMobile = ('ontouchstart' in window || navigator.maxTouchPoints > 1);
+  var isPortrait = window.innerHeight > window.innerWidth;
+  if(!isMobile || !isPortrait) return;
+
+  // Forcer l'affichage (pas de dépendance aux media queries)
+  nudge.style.display = 'flex';
+
+  // Fade in après 400ms
+  setTimeout(function(){
+    nudge.classList.add('show');
+  }, 400);
+
+  // Fade out après 5s
+  var hideTimer = setTimeout(function(){ fadeOutNudge(nudge); }, 5000);
+
+  function fadeOutNudge(el){
+    clearTimeout(hideTimer);
+    el.style.transition = 'opacity 0.5s ease';
+    el.style.opacity = '0';
+    setTimeout(function(){ el.style.display = 'none'; el.classList.remove('show'); }, 550);
+  }
+
+  // Disparaît aussi dès la rotation en paysage
+  function onOrientationChange(){
+    setTimeout(function(){
+      if(window.innerWidth > window.innerHeight) fadeOutNudge(nudge);
+    }, 300);
+  }
+  window.addEventListener('orientationchange', onOrientationChange);
+  window.addEventListener('resize', function(){
+    if(window.innerWidth > window.innerHeight){
+      window.removeEventListener('orientationchange', onOrientationChange);
+      fadeOutNudge(nudge);
+    }
+  });
 }
 </script>
 
 <div id="transition-overlay"></div>
 <div id="toast"></div>
+<!-- ROTATE HINT — mobile portrait -->
+<div id="rotate-hint">
+  <span class="rotate-icon">📱</span>
+  <span class="rotate-label">Tournez votre écran</span>
+</div>
 
 <!-- ===== ÉCRAN AUTH ===== -->
 <!-- ===== MODAL AVATAR ÉDITEUR ===== -->
@@ -815,12 +1259,12 @@ function startLoader(){
 </div>
 
 <!-- NAV -->
-<div class="nav" id="main-nav" style="opacity:0;transition:opacity 0.8s ease;">
+<div class="nav" id="main-nav" style="opacity:0;transition:opacity 0.5s ease;">
   <div class="nav-brand" onclick="goHome()">CI</div>
   <button class="nav-btn active" id="nav-film" onclick="navTo('film',this)">Film</button>
-  <button class="nav-btn" id="nav-admin" onclick="navTo('admin',this)" style="display:none;">Réalisateur</button>
-  <button class="nav-btn" id="nav-membres" onclick="navTo('membres',this)" style="display:none;">Utilisateurs</button>
   <button class="nav-btn" id="nav-creations" onclick="navTo('creations',this)">Nos Créations</button>
+  <button class="nav-btn" id="nav-membres" onclick="navTo('membres',this)" style="display:none;">Utilisateurs</button>
+  <button class="nav-btn" id="nav-admin" onclick="navTo('admin',this)" style="display:none;">Réalisateur</button>
   <button class="nav-btn" id="nav-subvention" onclick="navTo('subvention',this)">Subvention CALC</button>
   <div style="flex:1;"></div>
   <button class="nav-btn" id="nav-profil" onclick="openProfilModal()" style="border-left:1px solid #2e2e2e;">
@@ -843,8 +1287,22 @@ function startLoader(){
         data-uid="127c9c2cd09c1715ee29e8189f2ccc20">
       </video>
       <div class="hero-overlay"></div>
-      <!-- Fade in noir -->
-      <div id="hero-fade" style="position:absolute;inset:0;background:#000;z-index:6;pointer-events:none;opacity:1;transition:opacity 3s ease;"></div>
+      <!-- Fade noir bas — transition douce vers l'info-grid -->
+      <div style="position:absolute;bottom:0;left:0;right:0;height:260px;background:linear-gradient(to bottom,transparent 0%,rgba(0,0,0,0.6) 50%,#000 100%);z-index:3;pointer-events:none;"></div>
+      <!-- Fade in noir — couvre tout y compris la nav le temps de la transition -->
+      <div id="hero-fade" style="position:fixed;inset:0;background:#000;z-index:201;pointer-events:none;opacity:1;transition:opacity 3s ease;"></div>
+
+      <!-- NAV INTÉGRÉE — visible en plein écran, apparaît avec le bouton -->
+      <div id="hero-nav">
+        <div class="hn-brand" onclick="goHome()">CI</div>
+        <button class="hn-btn hn-active" id="hnav-film" onclick="navTo('film',document.getElementById('nav-film'))">Film</button>
+        <button class="hn-btn" id="hnav-creations" onclick="navTo('creations',document.getElementById('nav-creations'))">Nos Créations</button>
+        <button class="hn-btn" id="hnav-membres" style="display:none;" onclick="navTo('membres',document.getElementById('nav-membres'))">Utilisateurs</button>
+        <button class="hn-btn" id="hnav-admin" style="display:none;" onclick="navTo('admin',document.getElementById('nav-admin'))">Réalisateur</button>
+        <button class="hn-btn" id="hnav-subvention" onclick="navTo('subvention',document.getElementById('nav-subvention'))">Subvention CALC</button>
+        <div class="hn-sep"></div>
+        <button class="hn-btn hn-profil" onclick="openProfilModal()"><span id="hnav-profil-label">⬤ Profil</span></button>
+      </div>
       <div class="corner corner-tl"></div>
       <div class="corner corner-tr"></div>
       <div class="corner corner-bl"></div>
@@ -879,7 +1337,7 @@ function startLoader(){
         <div class="player-topbar-right">
           <div id="preload-indicator" style="font-size:9px;color:#333;letter-spacing:2px;text-transform:uppercase;transition:color 0.3s;"></div>
           <button class="btn-home" id="btn-back-scene" onclick="goBackScene()" style="display:none;">← RETOUR</button>
-          <button class="btn-home" onclick="goHome()">✕ QUITTER</button>
+          <button class="btn-home" onclick="goHome()" style="letter-spacing:3px;">⌂ MENU PRINCIPAL</button>
         </div>
       </div>
       <div class="progress-line"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
@@ -917,7 +1375,6 @@ function startLoader(){
       <div class="admin-brand">Panneau Réalisateur</div>
       <div class="admin-actions">
         <button class="btn-home" onclick="previewFilm()" style="border-color:#444;color:#888;">▶ Prévisualiser</button>
-        <button class="btn-home" onclick="goHome()">← Accueil</button>
       </div>
     </div>
   </div>
@@ -926,6 +1383,7 @@ function startLoader(){
   <div style="background:#0d0d0d;border-bottom:1px solid #2e2e2e;display:flex;gap:0;">
     <button class="admin-tab" id="atab-scenes" onclick="switchAdminTab('scenes',this)" style="display:none;">Scènes</button>
     <button class="admin-tab active" id="atab-storyboard" onclick="switchAdminTab('storyboard',this)" style="display:none;">Storyboard</button>
+    <button class="admin-tab" id="atab-projets" onclick="switchAdminTab('projets',this)" style="display:none;">📁 Projets Enregistrés</button>
     <button class="admin-tab" id="atab-publish" onclick="switchAdminTab('publish',this)" style="display:none;">Publier</button>
   </div>
 
@@ -991,6 +1449,24 @@ function startLoader(){
 
     <!-- Storyboard — affiché si scènes existent -->
     <div id="storyboard-wrap" style="padding:32px;overflow-x:auto;min-height:60vh;"></div>
+  </div>
+
+  <!-- ONGLET PROJETS ENREGISTRÉS -->
+  <div id="atab-content-projets" class="admin-tab-content" style="display:none;">
+    <div class="admin-body">
+      <div class="admin-section">
+        <div class="admin-section-title">Projets enregistrés</div>
+        <div style="background:#111;border:1px solid #2e2e2e;padding:20px;margin-bottom:20px;">
+          <div style="font-size:11px;color:#555;line-height:2;margin-bottom:20px;">Enregistre ton projet en cours pour ne pas perdre tes URLs Cloudflare. Tu pourras y revenir même après déconnexion.</div>
+          <div class="field" style="margin-bottom:12px;">
+            <label style="font-size:9px;color:#555;letter-spacing:3px;text-transform:uppercase;display:block;margin-bottom:8px;">Nom du projet</label>
+            <input type="text" id="proj-name-input" placeholder="Ex: Mon Film Interactif" style="background:#1a1a1a;border:1px solid #2a2a2a;color:#e8e8e8;font-family:Arial,sans-serif;font-size:13px;padding:10px 14px;width:100%;outline:none;">
+          </div>
+          <button onclick="saveCurrentProject()" style="background:#fff;border:none;color:#000;font-family:Arial,sans-serif;font-size:10px;letter-spacing:3px;padding:12px 28px;cursor:pointer;text-transform:uppercase;font-weight:700;transition:opacity 0.2s;">💾 ENREGISTRER LE PROJET ACTUEL</button>
+        </div>
+        <div id="projets-list" style="display:grid;gap:12px;"></div>
+      </div>
+    </div>
   </div>
 
   <!-- ONGLET PUBLIER -->
@@ -1334,6 +1810,18 @@ function startLoader(){
         <input type="file" id="scene-file-input" accept="video/*" style="display:none;" onchange="handleSceneFileUpload(this)">
         <input type="hidden" id="f-uid">
 
+        <!-- Bibliothèque de vidéos enregistrées -->
+        <div id="video-library-section" style="margin-top:10px;">
+          <button onclick="toggleVideoLibrary()" style="width:100%;background:#0d0d0d;border:1px solid #2a2a2a;color:#555;font-family:Arial,sans-serif;font-size:9px;letter-spacing:3px;padding:8px;cursor:pointer;text-transform:uppercase;text-align:left;transition:all 0.15s;" onmouseover="this.style.color='#ccc'" onmouseout="this.style.color='#555'">
+            📚 Réutiliser une vidéo existante ›
+          </button>
+          <div id="video-library-panel" style="display:none;border:1px solid #2a2a2a;border-top:none;background:#080808;max-height:200px;overflow-y:auto;">
+            <div id="video-library-list" style="padding:8px;">
+              <div style="font-size:9px;color:#333;letter-spacing:2px;text-transform:uppercase;padding:8px;">Chargement...</div>
+            </div>
+          </div>
+        </div>
+
         <!-- Lecteur vidéo intégré (caché jusqu'à upload) -->
         <div id="modal-player-wrap" style="display:none;background:#000;border-radius:4px;overflow:hidden;margin-top:0;">
           <!-- Vidéo + hotspots overlay -->
@@ -1414,20 +1902,55 @@ function navTo(page, btn){
   document.getElementById('page-'+page).classList.add('active');
   if(btn) btn.classList.add('active');
   window.scrollTo(0,0);
-  if(page==='admin'){ muteAllVideos(); renderAdmin(); renderStoryboard(); showAdminTabIfAdmin(); }
+  // Gérer la classe on-hero (pour cacher la nav principale seulement sur le hero en plein écran)
+  var onHero = (page === 'film' && !isPlayerActive());
+  document.body.classList.toggle('on-hero', onHero);
+  // Scroll : bloqué seulement sur le hero en fullscreen, libre partout ailleurs
+  var isFS = !!(document.fullscreenElement || document.webkitFullscreenElement);
+  document.body.style.overflow = (isFS && onHero) ? 'hidden' : '';
+  syncMainNav();
+  if(page==='admin'){ muteAllVideos(); renderAdmin(); renderStoryboard(); showAdminTabIfAdmin(); renderProjets(); }
   else if(page==='creations'){ muteAllVideos(); renderCreations(); }
   else if(page==='membres'){ muteAllVideos(); renderMembres(); }
   else if(page==='subvention'){ muteAllVideos(); }
   else if(page==='messages'){ muteAllVideos(); }
   else if(page==='film' && isPlayerActive()){ unmutePlayerVideo(); }
+  else if(page==='film' && !isPlayerActive()){ refreshHeroNav(); }
 }
 
 function goHome(){
   clearCountdown();
   clearPreloadCache();
-  sceneHistory=[];
-  document.getElementById('hero-section').style.display='';
-  document.getElementById('player-section').style.display='none';
+  sceneHistory = [];
+
+  // 1. Quitter le plein écran du player immédiatement
+  try {
+    if(document.fullscreenElement && document.exitFullscreen) document.exitFullscreen();
+    else if(document.webkitFullscreenElement && document.webkitExitFullscreen) document.webkitExitFullscreen();
+    else if(document.mozFullScreenElement && document.mozCancelFullScreen) document.mozCancelFullScreen();
+  } catch(e){}
+
+  // 2. Forcer l'état hors-fullscreen dans le DOM sans attendre l'event async
+  document.body.classList.remove('fs-mode');
+  document.body.style.overflow = '';
+
+  // 3. Afficher hero, masquer player
+  document.getElementById('hero-section').style.display = '';
+  document.getElementById('player-section').style.display = 'none';
+  document.body.classList.add('on-hero');
+
+  // 4. Forcer la nav principale visible avec tous ses onglets — sans transition
+  var nav = document.getElementById('main-nav');
+  if(nav){
+    nav.style.transition = 'none';
+    nav.style.display = 'flex';
+    nav.style.opacity = '1';
+    nav.style.paddingTop = '';
+    nav.style.height = '';
+    // Réactiver la transition au prochain frame
+    requestAnimationFrame(function(){ nav.style.transition = ''; });
+  }
+
   navTo('film', document.getElementById('nav-film'));
   updateInfoGrid();
 }
@@ -1445,12 +1968,16 @@ function startFilm(){
   sceneHistory=[];
   showPlayer();
   loadScene(start.id);
-  // Plein écran automatique
-  setTimeout(function(){
-    var el=document.getElementById('player-wrap');
-    var fn=el.requestFullscreen||el.webkitRequestFullscreen||el.mozRequestFullScreen||el.msRequestFullscreen;
-    if(fn) fn.call(el);
-  }, 400);
+  // Plein écran automatique — désactivé sur iOS
+  if(!isIOS()){
+    setTimeout(function(){
+      try {
+        var el=document.getElementById('player-wrap');
+        var fn=el.requestFullscreen||el.webkitRequestFullscreen||el.mozRequestFullScreen||el.msRequestFullscreen;
+        if(fn) fn.call(el).catch(function(){});
+      } catch(e) {}
+    }, 400);
+  }
 }
 
 function previewFilm(){
@@ -1459,12 +1986,16 @@ function previewFilm(){
   sceneHistory=[];
   showPlayer();
   loadScene(start.id);
-  // Plein écran automatique
-  setTimeout(function(){
-    var el=document.getElementById('player-wrap');
-    var fn=el.requestFullscreen||el.webkitRequestFullscreen||el.mozRequestFullScreen||el.msRequestFullscreen;
-    if(fn) fn.call(el);
-  }, 400);
+  // Plein écran automatique — désactivé sur iOS
+  if(!isIOS()){
+    setTimeout(function(){
+      try {
+        var el=document.getElementById('player-wrap');
+        var fn=el.requestFullscreen||el.webkitRequestFullscreen||el.mozRequestFullScreen||el.msRequestFullscreen;
+        if(fn) fn.call(el).catch(function(){});
+      } catch(e) {}
+    }, 400);
+  }
 }
 
 
@@ -1585,24 +2116,39 @@ function loadScene(id){
   if(scene.uid && scene.uid.trim()){
     placeholder.style.display = 'none';
     var uid = scene.uid.trim();
-
-    // Récupérer depuis preload cache si dispo
-    var cached = preloadCache[uid];
-    var vid;
-    if(cached && cached.tagName === 'VIDEO'){
-      cached.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
-      cached.controls = false;
-      cached.muted = false;
-      if(document.body.contains(cached)) document.body.removeChild(cached);
-      delete preloadCache[uid];
-      // Relancer la lecture
-      if(cached._hls){ cached._hls.startLevel = cached._hls.levels.length - 1; }
-      cached.play().catch(function(){});
-      vid = cached;
-    } else {
-      vid = createVideoEl(uid, { autoplay: true, muted: false, controls: false });
+    // Extraire UID si URL complète
+    var pureUid = uid;
+    if(uid.startsWith('http')){
+      var m = uid.match(/\/([a-f0-9]{32})\//);
+      if(m) pureUid = m[1];
     }
-    zone.insertBefore(vid, document.getElementById('hotspots-layer'));
+
+    var vid;
+    // Sur iOS — utiliser l'iframe Cloudflare Stream directement (évite les problèmes CORS/HLS)
+    if(isIOS() && pureUid && pureUid.length === 32){
+      var iframe = document.createElement('iframe');
+      iframe.src = 'https://customer-911pgg1vlhryqb16.cloudflarestream.com/' + pureUid + '/iframe?autoplay=true&muted=false&loop=false&controls=false&preload=true';
+      iframe.allow = 'accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture';
+      iframe.setAttribute('allowfullscreen','true');
+      iframe.style.cssText = 'width:100%;height:100%;border:none;display:block;position:absolute;inset:0;';
+      zone.insertBefore(iframe, document.getElementById('hotspots-layer'));
+    } else {
+      // Desktop + Android — HLS natif
+      var cached = preloadCache[uid];
+      if(cached && cached.tagName === 'VIDEO'){
+        cached.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
+        cached.controls = false;
+        cached.muted = false;
+        if(document.body.contains(cached)) document.body.removeChild(cached);
+        delete preloadCache[uid];
+        if(cached._hls){ cached._hls.startLevel = cached._hls.levels.length - 1; }
+        cached.play().catch(function(){});
+        vid = cached;
+      } else {
+        vid = createVideoEl(uid, { autoplay: true, muted: false, controls: false });
+      }
+      zone.insertBefore(vid, document.getElementById('hotspots-layer'));
+    }
   } else {
     placeholder.style.display = 'flex';
   }
@@ -2056,6 +2602,7 @@ function toggleFullscreen(){
 
 document.addEventListener('fullscreenchange', onFSChange);
 document.addEventListener('webkitfullscreenchange', onFSChange);
+document.addEventListener('mozfullscreenchange', onFSChange);
 
 function onFSChange(){
   var isFS = !!(document.fullscreenElement || document.webkitFullscreenElement);
@@ -2065,14 +2612,39 @@ function onFSChange(){
   var overlay = document.getElementById('fs-btn-overlay');
 
   if(isFS){
-    if(nav) nav.style.display = 'none';
-    if(topbar) topbar.style.display = 'none';
+    // Nav principale : cachée en FS sur le hero uniquement
+    // (goHome() l'aura déjà réaffichée si on revient du player)
+    var onHero = document.body.classList.contains('on-hero');
+    var playerActive = isPlayerActive();
+    if(onHero && !playerActive){
+      if(nav) nav.style.display = 'none';
+    }
+    // Topbar player : visible mais se cache après 2s
+    if(topbar && playerActive){
+      topbar.style.display = '';
+      topbar.style.opacity = '1';
+      topbar.style.pointerEvents = 'auto';
+      clearTimeout(topbarHideTimer);
+      topbarHideTimer = setTimeout(function(){
+        topbar.style.opacity = '0';
+        topbar.style.pointerEvents = 'none';
+      }, 2000);
+    }
     if(btn) btn.textContent = '⛶ QUITTER PLEIN ÉCRAN';
   } else {
-    if(nav) nav.style.display = '';
-    if(topbar) topbar.style.display = '';
+    // Hors FS : nav toujours visible et opaque
+    if(nav){
+      nav.style.display = 'flex';
+      nav.style.opacity = '1';
+      nav.style.paddingTop = '';
+      nav.style.height = '';
+    }
+    if(topbar){
+      topbar.style.display = '';
+      topbar.style.opacity = '1';
+      topbar.style.pointerEvents = 'auto';
+    }
     if(btn) btn.textContent = '⛶ PLEIN ÉCRAN';
-    // Afficher le bouton plein écran quand on revient en fenêtre
     if(overlay){
       overlay.style.opacity = '1';
       overlay.style.pointerEvents = 'auto';
@@ -2081,6 +2653,8 @@ function onFSChange(){
     }
   }
 }
+
+var topbarHideTimer = null;
 
 // Auto-hide du bouton — 2s puis disparaît, réapparaît au mousemove
 var fsHideTimer = null;
@@ -2104,9 +2678,25 @@ function hideControls(){
 }
 
 function onFSMouseMove(){
+  var isFS = !!(document.fullscreenElement || document.webkitFullscreenElement);
   showControls();
+  // Montrer le topbar aussi
+  var topbar = document.getElementById('player-topbar');
+  if(topbar && isFS){
+    topbar.style.transition = 'opacity 0.3s ease';
+    topbar.style.opacity = '1';
+    topbar.style.pointerEvents = 'auto';
+  }
   if(fsHideTimer) clearTimeout(fsHideTimer);
-  fsHideTimer = setTimeout(hideControls, 2000);
+  clearTimeout(topbarHideTimer);
+  fsHideTimer = setTimeout(function(){
+    hideControls();
+    if(topbar && (document.fullscreenElement || document.webkitFullscreenElement)){
+      topbar.style.transition = 'opacity 0.5s ease';
+      topbar.style.opacity = '0';
+      topbar.style.pointerEvents = 'none';
+    }
+  }, 2500);
 }
 
 function startFSAutoHide(){ }
@@ -2261,6 +2851,7 @@ function switchAdminTab(tab, btn){
   var content = document.getElementById('atab-content-'+tab);
   if(content) content.style.display = 'block';
   if(tab === 'storyboard') renderStoryboard();
+  if(tab === 'projets') renderProjets();
   if(tab === 'users'){
     renderUsersTab().then(function(){
       // Forcer le rechargement des vidéos HLS après rendu
@@ -3092,24 +3683,32 @@ function showAdminTabIfAdmin(){
   // Cacher subvention quand connecté
   var navSub = document.getElementById('nav-subvention');
   if(navSub) navSub.style.display = 'none';
+  var hnavSub = document.getElementById('hnav-subvention');
+  if(hnavSub) hnavSub.style.display = 'none';
   // Afficher onglets réalisateur
-  ['atab-scenes','atab-storyboard','atab-publish'].forEach(function(id){
+  ['atab-scenes','atab-storyboard','atab-projets','atab-publish'].forEach(function(id){
     var t = document.getElementById(id);
     if(t) t.style.display = '';
   });
   // Onglet Utilisateurs visible pour TOUS les connectés
   var navMembres = document.getElementById('nav-membres');
   if(navMembres) navMembres.style.display = '';
+  var hnavMembres = document.getElementById('hnav-membres');
+  if(hnavMembres) hnavMembres.style.display = '';
   // Onglet Réalisateur visible pour admin seulement
   if(currentProfile && currentProfile.role === 'admin'){
     var navAdmin = document.getElementById('nav-admin');
     if(navAdmin) navAdmin.style.display = '';
+    var hnavAdmin = document.getElementById('hnav-admin');
+    if(hnavAdmin) hnavAdmin.style.display = '';
   }
   // Bouton Utilisateurs dans profil — admin seulement
   if(currentProfile && currentProfile.role === 'admin'){
     var profilBtn = document.getElementById('profil-btn-users');
     if(profilBtn) profilBtn.style.display = '';
   }
+  // Rafraîchir le hero-nav si on est sur le hero en plein écran
+  refreshHeroNav();
 }
 
 // Publications gérées via Supabase (table films)
@@ -3332,16 +3931,25 @@ var selectedPlan = 'gratuit';
 
 async function initAuth(){
   if(typeof supabaseClient === 'undefined') return;
-  const { data: { session } } = await supabaseClient.auth.getSession();
-  if(session){
-    currentUser = session.user;
-    await loadProfile();
-    updateNavProfil();
-    showAdminTabIfAdmin();
-    showMessagingIfLoggedIn();
-  }
+
+  // 1. Mémoriser l'email de la session existante (avant de déconnecter)
+  try {
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    if(session && session.user && session.user.email){
+      localStorage.setItem('ci_last_email', session.user.email);
+    }
+  } catch(e){}
+
+  // 2. Toujours ouvrir déconnecté — l'email pré-rempli facilitera la reconnexion
+  await supabaseClient.auth.signOut();
+
+  // 3. Écouter les connexions manuelles
   supabaseClient.auth.onAuthStateChange(async function(event, session){
     if(event === 'SIGNED_IN' && session){
+      // Mémoriser l'email pour la prochaine fois
+      if(session.user && session.user.email){
+        localStorage.setItem('ci_last_email', session.user.email);
+      }
       currentUser = session.user;
       await loadProfile();
       updateNavProfil();
@@ -3350,15 +3958,10 @@ async function initAuth(){
       showAdminTabIfAdmin();
       showMessagingIfLoggedIn();
       showToast('Bienvenue ' + (currentProfile?.nom || '') + ' !');
-      goToRealisateur('storyboard');
-      setTimeout(function(){
-        navTo('membres', document.getElementById('nav-membres'));
-        renderMembres();
-        // Démarrer configuration AI si pas encore fait
-        if(currentProfile && !currentProfile.ai_configured){
-          setTimeout(function(){ openAISetup(); }, 800);
-        }
-      }, 300);
+      navTo('film', document.getElementById('nav-film'));
+      if(currentProfile && !currentProfile.ai_configured){
+        setTimeout(function(){ openAISetup(); }, 800);
+      }
     } else if(event === 'SIGNED_OUT'){
       currentUser = null; currentProfile = null;
       updateNavProfil();
@@ -3368,10 +3971,17 @@ async function initAuth(){
       if(navMembres) navMembres.style.display = 'none';
       if(navAdmin) navAdmin.style.display = 'none';
       if(navSub) navSub.style.display = '';
-      ['atab-scenes','atab-storyboard','atab-publish'].forEach(function(id){
+      var hnavAdmin = document.getElementById('hnav-admin');
+      var hnavMembres = document.getElementById('hnav-membres');
+      var hnavSub = document.getElementById('hnav-subvention');
+      if(hnavAdmin) hnavAdmin.style.display = 'none';
+      if(hnavMembres) hnavMembres.style.display = 'none';
+      if(hnavSub) hnavSub.style.display = '';
+      ['atab-scenes','atab-storyboard','atab-projets','atab-publish'].forEach(function(id){
         var t = document.getElementById(id);
         if(t) t.style.display = 'none';
       });
+      refreshHeroNav();
       navTo('film', document.getElementById('nav-film'));
     }
   });
@@ -3393,6 +4003,17 @@ function closeProfilModal(){
 function showLoginView(){
   document.getElementById('profil-login-view').style.display = 'block';
   document.getElementById('profil-connected-view').style.display = 'none';
+  // Pré-remplir l'email mémorisé pour accès rapide
+  var savedEmail = localStorage.getItem('ci_last_email');
+  if(savedEmail){
+    var emailInput = document.getElementById('auth-email');
+    if(emailInput && !emailInput.value) emailInput.value = savedEmail;
+    // Placer le curseur dans le champ mot de passe directement
+    setTimeout(function(){
+      var pwdInput = document.getElementById('auth-password');
+      if(pwdInput) pwdInput.focus();
+    }, 80);
+  }
 }
 
 function showConnectedView(){
@@ -3419,6 +4040,9 @@ function updateNavProfil(){
     label.textContent = '⬤ Profil';
     label.style.color = '';
   }
+  // Sync hero-nav
+  var hnavLabel = document.getElementById('hnav-profil-label');
+  if(hnavLabel) hnavLabel.textContent = label.textContent;
 }
 
 function checkAuthAndGoAdmin(btn){
@@ -3499,11 +4123,41 @@ async function submitAuth(){
   submitBtn.textContent='...'; submitBtn.style.opacity='0.6';
   if(isSignup){
     var nom = document.getElementById('auth-name').value.trim()||email.split('@')[0];
-    const { error } = await supabaseClient.auth.signUp({ email, password, options:{ data:{ nom } } });
-    if(error){ showAuthError(error.message); resetAuthBtn(true); return; }
+    const { data, error } = await supabaseClient.auth.signUp({ email, password, options:{ data:{ nom } } });
+    if(error){
+      // Traduire les erreurs Supabase communes
+      var msg = error.message || '';
+      if(msg.includes('already registered') || msg.includes('already exists') || msg.includes('User already registered')){
+        showAuthError('Ce courriel est déjà utilisé. Essayez de vous connecter.');
+      } else if(msg.includes('invalid') || msg.includes('Invalid')){
+        showAuthError('Adresse courriel invalide. Vérifiez le format.');
+      } else if(msg.includes('rate limit') || msg.includes('too many')){
+        showAuthError('Trop de tentatives. Veuillez patienter quelques minutes.');
+      } else {
+        showAuthError(msg || 'Erreur lors de l\'inscription');
+      }
+      resetAuthBtn(true); return;
+    }
+    // Supabase retourne un utilisateur même si confirmation email requise
+    if(data && data.user && data.user.identities && data.user.identities.length === 0){
+      showAuthError('Ce courriel est déjà enregistré. Essayez de vous connecter.');
+      resetAuthBtn(true); return;
+    }
+    // Confirmation email envoyée
+    if(data && data.user && !data.session){
+      showAuthError('✉️ Vérifiez votre courriel pour confirmer votre inscription !');
+      resetAuthBtn(true); return;
+    }
   } else {
     const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
-    if(error){ showAuthError('Email ou mot de passe incorrect'); resetAuthBtn(false); return; }
+    if(error){
+      if(error.message && error.message.includes('Email not confirmed')){
+        showAuthError('Confirmez d\'abord votre courriel (vérifiez vos spams).');
+      } else {
+        showAuthError('Email ou mot de passe incorrect');
+      }
+      resetAuthBtn(false); return;
+    }
   }
 }
 
@@ -3924,24 +4578,102 @@ async function generateAIResponse(senderProfile, messageContent){
   } catch(e) { console.log('AI response error:', e); }
 }
 
-// ===== PLEIN ÉCRAN =====
+// ===== PLEIN ÉCRAN (nav btn) =====
 function toggleFullscreen(){
   if(!document.fullscreenElement && !document.webkitFullscreenElement){
     var el = document.documentElement;
-    if(el.requestFullscreen) el.requestFullscreen();
-    else if(el.webkitRequestFullscreen) el.webkitRequestFullscreen();
-    document.getElementById('btn-fullscreen').textContent = '⊠';
+    try {
+      if(el.requestFullscreen) el.requestFullscreen().catch(function(){});
+      else if(el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+    } catch(e){}
+    var btn = document.getElementById('btn-fullscreen');
+    if(btn) btn.textContent = '⊠';
   } else {
-    if(document.exitFullscreen) document.exitFullscreen();
-    else if(document.webkitExitFullscreen) document.webkitExitFullscreen();
-    document.getElementById('btn-fullscreen').textContent = '⛶';
+    try {
+      if(document.exitFullscreen) document.exitFullscreen();
+      else if(document.webkitExitFullscreen) document.webkitExitFullscreen();
+    } catch(e){}
+    var btn = document.getElementById('btn-fullscreen');
+    if(btn) btn.textContent = '⛶';
   }
 }
 
 document.addEventListener('fullscreenchange', function(){
   var btn = document.getElementById('btn-fullscreen');
-  if(btn) btn.textContent = document.fullscreenElement ? '⊠' : '⛶';
+  var heroNav = document.getElementById('hero-nav');
+  var isFS = !!(document.fullscreenElement || document.webkitFullscreenElement);
+  var playerActive = isPlayerActive();
+  var onHero = document.body.classList.contains('on-hero');
+
+  if(btn) btn.textContent = isFS ? '⊠' : '⛶';
+  document.body.classList.toggle('fs-mode', isFS);
+
+  // Scroll : bloqué seulement sur le hero en fullscreen (pas quand on revient du player)
+  document.body.style.overflow = (isFS && onHero && !playerActive) ? 'hidden' : '';
+
+  // Nav principale :
+  //   - Cachée seulement en FS sur le hero (vraie expérience cinéma)
+  //   - Toujours visible partout ailleurs (y compris au retour du player)
+  var nav = document.getElementById('main-nav');
+  if(nav){
+    if(isFS && onHero && !playerActive){
+      // Hero en plein écran sans player → cacher la nav
+      nav.style.display = 'none';
+    } else {
+      // Partout ailleurs → nav visible
+      nav.style.display = 'flex';
+      nav.style.opacity = '1';
+      nav.style.paddingTop = isFS ? '0' : '';
+      nav.style.height   = isFS ? '42px' : '';
+    }
+  }
+
+  // Prompt si sortie fullscreen sur le hero (pas si on revient du player)
+  if(!isFS){
+    var splash = document.getElementById('splash');
+    var splashActive = splash && splash.style.display !== 'none' && splash.classList.contains('active');
+    var heroSection = document.getElementById('hero-section');
+    var heroSectionActive = heroSection && heroSection.style.display !== 'none'
+                     && document.getElementById('page-film').classList.contains('active');
+    if((splashActive || heroSectionActive) && !playerActive){
+      var prompt = document.getElementById('fs-prompt');
+      if(prompt) prompt.style.display = 'flex';
+    }
+  } else {
+    var prompt = document.getElementById('fs-prompt');
+    if(prompt) prompt.style.display = 'none';
+  }
+
+  // Hero-nav — délégué à refreshHeroNav() pour cohérence avec login/logout
+  refreshHeroNav();
 });
+document.addEventListener('webkitfullscreenchange', function(){ this.dispatchEvent(new Event('fullscreenchange')); }.bind(document));
+document.addEventListener('mozfullscreenchange', function(){ this.dispatchEvent(new Event('fullscreenchange')); }.bind(document));
+
+// Synchronise la visibilité de la nav principale
+function syncMainNav(){
+  var nav = document.getElementById('main-nav');
+  if(!nav) return;
+  var isFS = !!(document.fullscreenElement || document.webkitFullscreenElement);
+  var onHero = document.body.classList.contains('on-hero');
+  var playerActive = isPlayerActive();
+
+  // Cacher la nav SEULEMENT : FS + hero + pas de player actif
+  // → jamais cachée au retour du player vers le menu
+  if(isFS && onHero && !playerActive){
+    nav.style.display = 'none';
+  } else {
+    nav.style.display = 'flex';
+    nav.style.opacity = '1';
+    if(isFS){
+      nav.style.paddingTop = '0';
+      nav.style.height = '42px';
+    } else {
+      nav.style.paddingTop = '';
+      nav.style.height = '';
+    }
+  }
+}
 
 
 
@@ -3953,7 +4685,38 @@ function showToast(msg){
 }
 
 // ===== HERO SEQUENCE =====
+// ===== HÉRO-NAV REFRESH =====
+// Drapeau : true une fois que la séquence d'intro a atteint l'étape 3 (3500ms)
+var heroSequenceReady = false;
+
+// Mettre à jour la visibilité du hero-nav et de ses onglets selon l'état actuel
+function refreshHeroNav(){
+  var heroNav = document.getElementById('hero-nav');
+  if(!heroNav) return;
+  var isFS = !!(document.fullscreenElement || document.webkitFullscreenElement);
+  var onHero = document.body.classList.contains('on-hero');
+
+  if(isFS && onHero && !isPlayerActive() && heroSequenceReady){
+    heroNav.classList.add('visible');
+  } else if(!isFS || !onHero || isPlayerActive()){
+    heroNav.classList.remove('visible');
+  }
+  // (si FS+hero+playerInactive mais pas encore ready → on ne touche pas)
+}
+
 function startHeroSequence(){
+  heroSequenceReady = false;
+  document.body.classList.add('on-hero');
+  syncMainNav();
+
+  // Nav : opaque immédiatement — le hero-fade (z-index 201) la couvre
+  var nav = document.getElementById('main-nav');
+  if(nav){
+    nav.style.transition = 'none';
+    nav.style.opacity = '1';
+    requestAnimationFrame(function(){ nav.style.transition = ''; });
+  }
+
   var ci = document.getElementById('hero-ci');
   var sub = document.getElementById('hero-sub-ci');
   var btnWrap = document.getElementById('hero-btn-wrap');
@@ -3963,6 +4726,10 @@ function startHeroSequence(){
   var heroFade = document.getElementById('hero-fade');
   if(heroFade){
     setTimeout(function(){ heroFade.style.opacity = '0'; }, 400);
+    setTimeout(function(){
+      heroFade.style.zIndex = '6';
+      heroFade.style.pointerEvents = 'none';
+    }, 3600);
   }
 
   // Étape 1 — CI apparaît
@@ -3971,15 +4738,17 @@ function startHeroSequence(){
   // Étape 2 — "Cinéma Interactif"
   setTimeout(function(){ sub.classList.add('visible'); }, 3000);
 
-  // Étape 3 — Bouton
-  setTimeout(function(){ btnWrap.classList.add('visible'); }, 5000);
-
-  // Étape 4 — CI + sous-titre disparaissent, bouton reste
+  // Étape 3 — Bouton + hero-nav avec les bons onglets
   setTimeout(function(){
-    ci.style.transition='opacity 1.2s ease';
-    ci.style.opacity='0';
-    sub.style.transition='opacity 1.2s ease';
-    sub.style.opacity='0';
+    btnWrap.classList.add('visible');
+    heroSequenceReady = true;
+    refreshHeroNav(); // affiche le hero-nav avec tous les onglets du bon rôle
+  }, 3500);
+
+  // Étape 4 — CI + sous-titre disparaissent
+  setTimeout(function(){
+    ci.style.transition='opacity 1.2s ease'; ci.style.opacity='0';
+    sub.style.transition='opacity 1.2s ease'; sub.style.opacity='0';
   }, 7500);
 }
 // ===== HERO VIDEO HLS =====
@@ -3989,6 +4758,9 @@ function startHeroSequence(){
   var uid = vid.dataset.uid;
   vid.style.opacity = '0';
   vid.style.transition = 'opacity 2.5s ease';
+  // Sur iOS, le video element avec HLS natif fonctionne correctement (muted + playsinline)
+  vid.setAttribute('playsinline','');
+  vid.setAttribute('webkit-playsinline','');
   attachHLS(vid, uid, { autoplay: true, muted: true, loop: true, controls: false });
   vid.addEventListener('playing', function(){
     setTimeout(function(){ vid.style.opacity = '1'; }, 300);
@@ -4059,7 +4831,17 @@ async function uploadSceneVideo(file){
     if(label)label.textContent='Vidéo uploadée !';
     if(status)status.textContent='UID: '+urlData.uid;
     if(zone)zone.style.borderColor='#4ade80';
-    showToast('Vidéo uploadée ✓');
+    showToast('Vidéo uploadée ✓ — UID sauvegardé dans le projet');
+    // Sauvegarder automatiquement l'UID dans la bibliothèque Supabase
+    if(currentUser){
+      supabaseClient.from('video_library').upsert({
+        user_id: currentUser.id,
+        uid: urlData.uid,
+        name: file.name || 'Vidéo sans titre',
+        hls_url: 'https://customer-911pgg1vlhryqb16.cloudflarestream.com/' + urlData.uid + '/manifest/video.m3u8',
+        created_at: new Date().toISOString()
+      }).then(function(){});
+    }
   } catch(err){
     if(icon)icon.textContent='✕';
     if(label)label.textContent='Erreur: '+err.message;
@@ -4077,6 +4859,217 @@ document.getElementById('f-uid').addEventListener('input', function(){
 document.getElementById('modal-overlay').addEventListener('click',function(e){
   if(e.target===this)closeModal();
 });
+
+// ===== BIBLIOTHÈQUE VIDÉOS (réutiliser sans re-uploader) =====
+var videoLibraryLoaded = false;
+
+function toggleVideoLibrary(){
+  var panel = document.getElementById('video-library-panel');
+  if(!panel) return;
+  var isOpen = panel.style.display !== 'none';
+  panel.style.display = isOpen ? 'none' : 'block';
+  if(!isOpen && !videoLibraryLoaded) loadVideoLibrary();
+}
+
+async function loadVideoLibrary(){
+  var list = document.getElementById('video-library-list');
+  if(!list) return;
+  videoLibraryLoaded = true;
+
+  if(!currentUser){
+    list.innerHTML = '<div style="font-size:9px;color:#444;padding:12px;letter-spacing:2px;">Connecte-toi pour voir ta bibliothèque</div>';
+    return;
+  }
+
+  const { data: videos, error } = await supabaseClient
+    .from('video_library')
+    .select('*')
+    .eq('user_id', currentUser.id)
+    .order('created_at', { ascending: false });
+
+  if(error || !videos || !videos.length){
+    list.innerHTML = '<div style="font-size:9px;color:#444;padding:12px;letter-spacing:2px;">Aucune vidéo enregistrée — uploadez-en une d\'abord</div>';
+    return;
+  }
+
+  list.innerHTML = '';
+  videos.forEach(function(v){
+    var row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:8px;border-bottom:1px solid #111;cursor:pointer;transition:background 0.15s;';
+    row.onmouseover = function(){ this.style.background = '#111'; };
+    row.onmouseout  = function(){ this.style.background = ''; };
+    var date = v.created_at ? new Date(v.created_at).toLocaleDateString('fr-CA') : '';
+    row.innerHTML =
+      '<div style="font-size:18px;flex-shrink:0;">🎬</div>' +
+      '<div style="flex:1;overflow:hidden;">' +
+        '<div style="font-size:11px;color:#ccc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (v.name || 'Vidéo') + '</div>' +
+        '<div style="font-size:9px;color:#444;letter-spacing:1px;">' + v.uid.substring(0,20) + '… · ' + date + '</div>' +
+      '</div>' +
+      '<button style="flex-shrink:0;background:#fff;border:none;color:#000;font-family:Arial,sans-serif;font-size:9px;letter-spacing:2px;padding:5px 10px;cursor:pointer;text-transform:uppercase;font-weight:700;">UTILISER</button>';
+    row.querySelector('button').onclick = function(e){
+      e.stopPropagation();
+      selectLibraryVideo(v.uid, v.name || 'Vidéo');
+    };
+    list.appendChild(row);
+  });
+}
+
+function selectLibraryVideo(uid, name){
+  var uidInput = document.getElementById('f-uid');
+  if(uidInput) uidInput.value = uid;
+  modalInitPlayer(uid);
+  // Mettre à jour l'interface upload
+  var icon = document.getElementById('scene-upload-icon');
+  var label = document.getElementById('scene-upload-label');
+  if(icon) icon.textContent = '✓';
+  if(label) label.textContent = name + ' (bibliothèque)';
+  // Fermer la bibliothèque
+  var panel = document.getElementById('video-library-panel');
+  if(panel) panel.style.display = 'none';
+  showToast('Vidéo sélectionnée depuis la bibliothèque ✓');
+}
+
+// Réinitialiser la bibliothèque quand on ouvre la modal
+var _origOpenModal = openModal;
+openModal = function(id){
+  videoLibraryLoaded = false;
+  var panel = document.getElementById('video-library-panel');
+  if(panel) panel.style.display = 'none';
+  _origOpenModal(id);
+};
+
+// ===== PROJETS ENREGISTRÉS =====
+async function saveCurrentProject(){
+  if(!currentUser){ showToast('Connecte-toi pour enregistrer un projet'); return; }
+  var nameInput = document.getElementById('proj-name-input');
+  var name = nameInput ? nameInput.value.trim() : '';
+  if(!name){ showToast('Donne un nom à ton projet'); return; }
+
+  // Collecter toutes les URLs des vidéos du projet
+  var videoURLs = scenes.filter(function(s){ return s.uid && s.uid.trim(); }).map(function(s){
+    return { sceneId: s.id, sceneTitle: s.title, uid: s.uid.trim(), hls: makeHLSUrl(s.uid.trim()) };
+  });
+
+  var projet = {
+    user_id: currentUser.id,
+    name: name,
+    scenes: scenes,
+    video_urls: videoURLs,
+    scene_count: scenes.length,
+    video_count: videoURLs.length,
+    saved_at: new Date().toISOString()
+  };
+
+  var btn = document.querySelector('[onclick="saveCurrentProject()"]');
+  if(btn){ btn.textContent = 'Enregistrement...'; btn.disabled = true; }
+
+  try {
+    const { error } = await supabaseClient.from('projets').upsert(projet, { onConflict: 'user_id,name' });
+    if(error) throw error;
+    showToast('Projet "' + name + '" enregistré ✓');
+    renderProjets();
+  } catch(err){
+    showToast('Erreur: ' + err.message);
+  }
+  if(btn){ btn.textContent = '💾 ENREGISTRER LE PROJET ACTUEL'; btn.disabled = false; }
+}
+
+async function renderProjets(){
+  var list = document.getElementById('projets-list');
+  if(!list || !currentUser) return;
+  list.innerHTML = '<div style="color:#444;font-size:10px;letter-spacing:2px;text-transform:uppercase;padding:12px 0;">Chargement...</div>';
+
+  const { data: projets, error } = await supabaseClient
+    .from('projets').select('*').eq('user_id', currentUser.id).order('saved_at', { ascending: false });
+
+  if(error || !projets || !projets.length){
+    list.innerHTML = '<div style="color:#333;font-size:10px;letter-spacing:2px;padding:12px 0;">Aucun projet enregistré</div>';
+    return;
+  }
+
+  list.innerHTML = '';
+  projets.forEach(function(proj){
+    var card = document.createElement('div');
+    card.style.cssText = 'background:#111;border:1px solid #2a2a2a;padding:20px;';
+    var date = proj.saved_at ? new Date(proj.saved_at).toLocaleString('fr-CA') : '—';
+    var videoList = (proj.video_urls || []).map(function(v){
+      return '<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid #1a1a1a;">' +
+        '<span style="font-size:9px;color:#444;min-width:80px;">Scène ' + v.sceneId + '</span>' +
+        '<span style="font-size:10px;color:#888;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + v.uid + '">' + v.uid.substring(0,28) + '…</span>' +
+        '<button onclick="navigator.clipboard.writeText(\'' + v.uid + '\').then(function(){showToast(\'UID copié !\');})" style="background:none;border:1px solid #2a2a2a;color:#555;font-size:9px;letter-spacing:1px;padding:3px 8px;cursor:pointer;flex-shrink:0;">COPIER</button>' +
+      '</div>';
+    }).join('');
+
+    card.innerHTML =
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">' +
+        '<div>' +
+          '<div style="font-size:13px;font-weight:700;color:#fff;letter-spacing:2px;">' + proj.name + '</div>' +
+          '<div style="font-size:9px;color:#333;letter-spacing:2px;margin-top:3px;">' + proj.scene_count + ' scènes · ' + proj.video_count + ' vidéos · ' + date + '</div>' +
+        '</div>' +
+        '<div style="display:flex;gap:6px;">' +
+          '<button onclick="loadProject(\'' + proj.id + '\')" style="background:none;border:1px solid #2a2a2a;color:#888;font-family:Arial,sans-serif;font-size:9px;letter-spacing:2px;padding:7px 12px;cursor:pointer;text-transform:uppercase;transition:all 0.15s;" onmouseover="this.style.borderColor=\'#fff\';this.style.color=\'#fff\'" onmouseout="this.style.borderColor=\'#2a2a2a\';this.style.color=\'#888\'">↩ CHARGER</button>' +
+          '<button onclick="deleteProject(\'' + proj.id + '\')" style="background:none;border:1px solid #2a2a2a;color:#555;font-family:Arial,sans-serif;font-size:9px;letter-spacing:2px;padding:7px 12px;cursor:pointer;text-transform:uppercase;transition:all 0.15s;" onmouseover="this.style.borderColor=\'#c44\';this.style.color=\'#c44\'" onmouseout="this.style.borderColor=\'#2a2a2a\';this.style.color=\'#555\'">✕</button>' +
+        '</div>' +
+      '</div>' +
+      (videoList ? '<div style="margin-top:8px;"><div style="font-size:9px;color:#444;letter-spacing:3px;text-transform:uppercase;margin-bottom:6px;">URLs Cloudflare</div>' + videoList + '</div>' : '');
+
+    list.appendChild(card);
+  });
+}
+
+async function loadProject(projId){
+  if(!confirm('Charger ce projet ? Tes scènes actuelles seront remplacées.')) return;
+  const { data: proj, error } = await supabaseClient.from('projets').select('*').eq('id', projId).single();
+  if(error || !proj){ showToast('Erreur lors du chargement'); return; }
+  scenes = proj.scenes || defaultScenes();
+  save();
+  renderAdmin();
+  renderStoryboard();
+  switchAdminTab('storyboard', document.getElementById('atab-storyboard'));
+  showToast('Projet "' + proj.name + '" chargé ✓');
+}
+
+async function deleteProject(projId){
+  if(!confirm('Supprimer ce projet enregistré ?')) return;
+  const { error } = await supabaseClient.from('projets').delete().eq('id', projId);
+  if(error){ showToast('Erreur: ' + error.message); return; }
+  showToast('Projet supprimé');
+  renderProjets();
+}
+
+// ===== ROTATE HINT (mobile portrait) =====
+(function(){
+  var hint = document.getElementById('rotate-hint');
+  var rotateShown = false;
+  var rotateTimer = null;
+
+  function checkOrientation(){
+    if(!hint) return;
+    var isPortrait = window.innerHeight > window.innerWidth;
+    var isMobile = window.innerWidth < 768 || navigator.maxTouchPoints > 1;
+    if(isPortrait && isMobile){
+      if(!rotateShown){
+        rotateShown = true;
+        hint.classList.add('visible');
+        // Disparaît après 4s
+        clearTimeout(rotateTimer);
+        rotateTimer = setTimeout(function(){ hint.classList.remove('visible'); }, 4000);
+      }
+    } else {
+      hint.classList.remove('visible');
+      rotateShown = false;
+    }
+  }
+
+  window.addEventListener('orientationchange', function(){
+    setTimeout(checkOrientation, 400);
+    // Réafficher brièvement après rotation
+    rotateShown = false;
+  });
+  window.addEventListener('resize', checkOrientation);
+  // Vérifier au chargement
+  setTimeout(checkOrientation, 3000);
+})();
 
 // ===== INIT =====
 updateInfoGrid();
