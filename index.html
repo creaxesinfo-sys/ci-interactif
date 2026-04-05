@@ -1169,29 +1169,18 @@ function launchFullExperience(){
   var loader = document.getElementById('loader');
   var vid = document.getElementById('splash-vid');
 
-  // Tenter le plein écran sur TOUS les appareils
-  var el = document.documentElement;
-  var fsPromise = null;
-  try {
-    if(el.requestFullscreen){
-      fsPromise = el.requestFullscreen({ navigationUI: 'hide' });
-    } else if(el.webkitRequestFullscreen){
-      el.webkitRequestFullscreen();
-    } else if(el.mozRequestFullScreen){
-      el.mozRequestFullScreen();
-    }
-    // Verrouiller en paysage
-    if(screen.orientation && screen.orientation.lock){
-      screen.orientation.lock('landscape').catch(function(){});
-    }
-  } catch(e){}
-
-  // Déverrouiller le gate SEULEMENT si pas iOS (iOS = pas de fullscreenchange)
-  if(!isIOS()){
-    _fsUnlocked = true;
+  // Plein écran SEULEMENT sur desktop — sur mobile le CSS remplit déjà tout l'écran
+  // Sur mobile, requestFullscreen déclenche un message système Android indésirable
+  var isMobileDevice = ('ontouchstart' in window || navigator.maxTouchPoints > 1);
+  if(!isMobileDevice){
+    try {
+      var el = document.documentElement;
+      if(el.requestFullscreen) el.requestFullscreen({ navigationUI:'hide' }).catch(function(){});
+      else if(el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+      else if(el.mozRequestFullScreen) el.mozRequestFullScreen();
+    } catch(e){}
+    _fsUnlocked = true; // Gate actif seulement sur desktop
   }
-  // Sur iOS : marquer comme "plein écran simulé", jamais montrer le gate
-  // _fsUnlocked reste false → checkFSGate ne s'affiche pas
 
   // Unmuter
   if(vid){
@@ -2147,8 +2136,9 @@ function startFilm(){
   sceneHistory=[];
   showPlayer();
   loadScene(start.id);
-  // Plein écran sur documentElement — fonctionne sur Android/Desktop
-  if(!isIOS()){
+  // Plein écran seulement sur desktop — évite le message système sur mobile
+  var isMobileDevice = ('ontouchstart' in window || navigator.maxTouchPoints > 1);
+  if(!isMobileDevice){
     try {
       var el=document.documentElement;
       if(el.requestFullscreen) el.requestFullscreen({navigationUI:'hide'}).catch(function(){});
@@ -2163,7 +2153,8 @@ function previewFilm(){
   sceneHistory=[];
   showPlayer();
   loadScene(start.id);
-  if(!isIOS()){
+  var isMobileDevice = ('ontouchstart' in window || navigator.maxTouchPoints > 1);
+  if(!isMobileDevice){
     try {
       var el=document.documentElement;
       if(el.requestFullscreen) el.requestFullscreen({navigationUI:'hide'}).catch(function(){});
