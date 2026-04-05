@@ -1169,17 +1169,16 @@ function launchFullExperience(){
   var loader = document.getElementById('loader');
   var vid = document.getElementById('splash-vid');
 
-  // Plein écran SEULEMENT sur desktop — sur mobile le CSS remplit déjà tout l'écran
-  // Sur mobile, requestFullscreen déclenche un message système Android indésirable
-  var isMobileDevice = ('ontouchstart' in window || navigator.maxTouchPoints > 1);
-  if(!isMobileDevice){
+  // Plein écran sur TOUS les appareils sauf iOS
+  // Sans option navigationUI = pas de message système Android, barre Android reste visible
+  if(!isIOS()){
     try {
       var el = document.documentElement;
-      if(el.requestFullscreen) el.requestFullscreen({ navigationUI:'hide' }).catch(function(){});
+      if(el.requestFullscreen)            el.requestFullscreen().catch(function(){});
       else if(el.webkitRequestFullscreen) el.webkitRequestFullscreen();
-      else if(el.mozRequestFullScreen) el.mozRequestFullScreen();
+      else if(el.mozRequestFullScreen)    el.mozRequestFullScreen();
     } catch(e){}
-    _fsUnlocked = true; // Gate actif seulement sur desktop
+    _fsUnlocked = true;
   }
 
   // Unmuter
@@ -2136,12 +2135,11 @@ function startFilm(){
   sceneHistory=[];
   showPlayer();
   loadScene(start.id);
-  // Plein écran seulement sur desktop — évite le message système sur mobile
-  var isMobileDevice = ('ontouchstart' in window || navigator.maxTouchPoints > 1);
-  if(!isMobileDevice){
+  // Plein écran sur documentElement — fonctionne sur Android/Desktop
+  if(!isIOS()){
     try {
       var el=document.documentElement;
-      if(el.requestFullscreen) el.requestFullscreen({navigationUI:'hide'}).catch(function(){});
+      if(el.requestFullscreen) el.requestFullscreen().catch(function(){});
       else if(el.webkitRequestFullscreen) el.webkitRequestFullscreen();
     } catch(e){}
   }
@@ -2153,11 +2151,10 @@ function previewFilm(){
   sceneHistory=[];
   showPlayer();
   loadScene(start.id);
-  var isMobileDevice = ('ontouchstart' in window || navigator.maxTouchPoints > 1);
-  if(!isMobileDevice){
+  if(!isIOS()){
     try {
       var el=document.documentElement;
-      if(el.requestFullscreen) el.requestFullscreen({navigationUI:'hide'}).catch(function(){});
+      if(el.requestFullscreen) el.requestFullscreen().catch(function(){});
       else if(el.webkitRequestFullscreen) el.webkitRequestFullscreen();
     } catch(e){}
   }
