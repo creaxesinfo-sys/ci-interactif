@@ -246,7 +246,7 @@ body{background:#1a1a1a;color:#e8e8e8;font-family:Arial,sans-serif;
 #page-film.active{padding-top:0;}
 
 /* ===== HERO (Accueil) ===== */
-.hero-wrap{position:relative;height:100vh;height:-webkit-fill-available;overflow:hidden;background:#000;}
+.hero-wrap{position:fixed;inset:0;overflow:hidden;background:#000;}
 .hero-overlay{position:absolute;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.55);z-index:2;}
 .corner{position:absolute;width:20px;height:20px;z-index:5;}
 .corner-tl{top:20px;left:20px;border-top:1px solid #666;border-left:1px solid #666;}
@@ -258,7 +258,7 @@ body{background:#1a1a1a;color:#e8e8e8;font-family:Arial,sans-serif;
 .hud-tr{top:24px;right:48px;}
 .hud-bl{bottom:75px;left:48px;}
 .hud-br{bottom:75px;right:48px;}
-.hero-content{position:relative;z-index:4;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:40px 24px;height:100vh;height:-webkit-fill-available;}
+.hero-content{position:relative;z-index:4;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:40px 24px;height:100%;}
 .hero-title{font-size:clamp(60px,14vw,140px);font-weight:700;letter-spacing:16px;color:#fff;margin-bottom:10px;line-height:1;}
 .hero-sub{font-size:12px;letter-spacing:6px;color:#ccc;margin-bottom:32px;text-transform:uppercase;}
 .hero-tags{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-bottom:48px;}
@@ -5102,23 +5102,21 @@ async function deleteProject(projId){
 
 // ===== GUIDE INSTALLATION iOS =====
 (function(){
-  // Seulement iPhone/iPad dans Safari (pas si déjà installé en standalone)
   var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
               (navigator.platform==='MacIntel' && navigator.maxTouchPoints > 1);
   var isStandalone = window.navigator.standalone === true;
-  var seen = localStorage.getItem('ci_ios_seen');
+  // Nouvelle clé — force l'affichage même si vu avant
+  var seen = localStorage.getItem('ci_ios_v4');
 
   if(isIOS && !isStandalone && !seen){
-    // Délai de 1.2s pour ne pas flasher au chargement
-    setTimeout(function(){
-      var g = document.getElementById('ios-guide');
-      if(g) g.classList.add('active');
-    }, 1200);
+    // Afficher immédiatement dès le chargement de la page
+    var g = document.getElementById('ios-guide');
+    if(g) g.classList.add('active');
   }
 })();
 
 function closeIOSGuide(){
-  localStorage.setItem('ci_ios_seen','1');
+  localStorage.setItem('ci_ios_v4','1');
   var g = document.getElementById('ios-guide');
   if(!g) return;
   g.style.transition = 'opacity 0.4s ease';
