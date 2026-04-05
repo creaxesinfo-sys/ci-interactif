@@ -4721,20 +4721,27 @@ function syncMainNav(){
   var onHero = document.body.classList.contains('on-hero');
   var playerActive = isPlayerActive();
 
-  // Cacher la nav SEULEMENT : FS + hero + pas de player actif
-  // → jamais cachée au retour du player vers le menu
+  // Fullscreen + hero → toujours cachée (hero-nav intégré prend le relais)
   if(isFS && onHero && !playerActive){
     nav.style.display = 'none';
+    return;
+  }
+
+  // Sur le hero en mode normal → startHeroSequence gère le timing (5s)
+  // syncMainNav ne force pas l'affichage sur le hero pour éviter le flash
+  if(onHero && !playerActive && parseFloat(nav.style.opacity || '0') < 1){
+    return; // laisser le timer de startHeroSequence s'en charger
+  }
+
+  // Partout ailleurs → visible
+  nav.style.display = 'flex';
+  nav.style.opacity = '1';
+  if(isFS){
+    nav.style.paddingTop = '0';
+    nav.style.height = '42px';
   } else {
-    nav.style.display = 'flex';
-    nav.style.opacity = '1';
-    if(isFS){
-      nav.style.paddingTop = '0';
-      nav.style.height = '42px';
-    } else {
-      nav.style.paddingTop = '';
-      nav.style.height = '';
-    }
+    nav.style.paddingTop = '';
+    nav.style.height = '';
   }
 }
 
@@ -4770,14 +4777,28 @@ function refreshHeroNav(){
 function startHeroSequence(){
   heroSequenceReady = false;
   document.body.classList.add('on-hero');
-  syncMainNav();
 
-  // Nav : opaque immédiatement — le hero-fade (z-index 201) la couvre
   var nav = document.getElementById('main-nav');
+  var isFS = !!(document.fullscreenElement || document.webkitFullscreenElement);
+
+  // Nav : toujours cachée au départ sur le hero
   if(nav){
     nav.style.transition = 'none';
-    nav.style.opacity = '1';
-    requestAnimationFrame(function(){ nav.style.transition = ''; });
+    nav.style.opacity = '0';
+    nav.style.display = 'none';
+  }
+
+  // En mode NON plein écran → la nav apparaît après 5s en fondu doux
+  // En mode plein écran → la nav reste cachée, c'est le hero-nav intégré qui prend le relais
+  if(!isFS){
+    setTimeout(function(){
+      var nav2 = document.getElementById('main-nav');
+      if(nav2){
+        nav2.style.display = 'flex';
+        nav2.style.transition = 'opacity 0.8s ease';
+        nav2.style.opacity = '1';
+      }
+    }, 5000);
   }
 
   var ci = document.getElementById('hero-ci');
