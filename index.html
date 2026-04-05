@@ -600,6 +600,113 @@ video { outline:none; }
 </head>
 <body>
 
+<!-- FS-GATE : couvre tout quand pas en plein écran -->
+<div id="fs-gate" style="display:none;position:fixed;inset:0;background:#000;z-index:2147483647;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px;">
+  <div style="font-size:clamp(70px,16vw,150px);font-weight:100;letter-spacing:16px;color:#fff;font-family:'Raleway','Helvetica Neue',Helvetica,Arial,sans-serif;line-height:1;margin-bottom:8px;">CI</div>
+  <div style="font-size:9px;color:#333;letter-spacing:6px;text-transform:uppercase;margin-bottom:56px;">Cinéma Interactif</div>
+  <button onclick="enterFullscreen()" style="background:transparent;border:1px solid rgba(255,255,255,0.25);color:#fff;font-family:Arial,sans-serif;font-size:11px;letter-spacing:5px;text-transform:uppercase;padding:18px 52px;cursor:pointer;transition:border-color 0.3s;" onmouseover="this.style.borderColor='rgba(255,255,255,0.7)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.25)'">⛶ &nbsp; ENTRER EN PLEIN ÉCRAN</button>
+  <div style="margin-top:20px;font-size:9px;color:#222;letter-spacing:3px;text-transform:uppercase;">L'expérience complète requiert le mode plein écran</div>
+</div>
+
+<script>
+// iOS = plein écran natif via "Ajouter à l'écran d'accueil" — pas de gate
+var _iosDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+                 (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+var _iosStandalone = window.navigator.standalone === true;
+
+function enterFullscreen(){
+  requestFSEverywhere(document.documentElement);
+}
+
+// Plein écran universel — fonctionne sur iOS, Android, Desktop
+function requestFSEverywhere(el){
+  if(!el) return;
+  try {
+    // Standard (Chrome, Firefox, Edge, Android)
+    if(el.requestFullscreen){
+      el.requestFullscreen({ navigationUI:'hide' }).catch(function(){});
+      return;
+    }
+    // Safari desktop + ancien Chrome
+    if(el.webkitRequestFullscreen){
+      el.webkitRequestFullscreen();
+      return;
+    }
+    // Firefox
+    if(el.mozRequestFullScreen){
+      el.mozRequestFullScreen();
+      return;
+    }
+    // IE/Edge ancien
+    if(el.msRequestFullscreen){
+      el.msRequestFullscreen();
+      return;
+    }
+    // iOS Safari — plein écran natif sur l'élément vidéo uniquement
+    // Pour le reste on simule via CSS (scroll trick)
+    if(isIOS()){
+      // Chercher un élément vidéo dans l'élément cible
+      var vid = el.querySelector('video') || el;
+      if(vid && vid.webkitEnterFullscreen){
+        vid.webkitEnterFullscreen();
+        return;
+      }
+      // Pas de vidéo → simuler plein écran via CSS immersif
+      simulateFSiOS();
+    }
+  } catch(e){}
+}
+
+// Simulation plein écran iOS — masque les barres Safari au maximum
+function simulateFSiOS(){
+  // Scroll vers le bas pour cacher la barre d'adresse Safari
+  window.scrollTo(0, 1);
+  document.documentElement.style.height = '100%';
+  document.body.style.height = '100%';
+  document.body.style.position = 'fixed';
+  document.body.style.width = '100%';
+  document.body.style.top = '0';
+  document.body.style.left = '0';
+  document.body.style.overflow = 'hidden';
+}
+
+function showFSGate(){
+  var g = document.getElementById('fs-gate');
+  if(!g) return;
+  g.style.display = 'flex';
+  g.style.opacity = '0';
+  g.style.transition = 'opacity 0.5s ease';
+  requestAnimationFrame(function(){ g.style.opacity = '1'; });
+}
+
+function hideFSGate(){
+  var g = document.getElementById('fs-gate');
+  if(!g) return;
+  g.style.transition = 'opacity 0.3s ease';
+  g.style.opacity = '0';
+  setTimeout(function(){ g.style.display = 'none'; }, 320);
+}
+
+// Gate FS — s'affiche seulement si l'utilisateur a déjà cliqué CONTINUER
+var _fsUnlocked = false;
+
+function checkFSGate(){
+  // iOS standalone (PWA installée) = déjà plein écran natif → jamais de gate
+  if(_iosStandalone) return;
+  if(!_fsUnlocked) return;
+  var isFS = !!(document.fullscreenElement || document.webkitFullscreenElement);
+  // iOS browser : pas d'API fullscreen mais simulateFSiOS() a été appelé → pas de gate
+  if(isIOS() && _fsUnlocked) return;
+  if(isFS){ hideFSGate(); } else { showFSGate(); }
+}
+
+// Écouter les changements de plein écran
+document.addEventListener('fullscreenchange', checkFSGate);
+document.addEventListener('webkitfullscreenchange', checkFSGate);
+document.addEventListener('mozfullscreenchange', checkFSGate);
+</script>
+
+
 <!-- ===== SPLASH SCREEN ===== -->
 <style>
 /* ===== SPLASH VIDÉO (caché au départ, activé après loader) ===== */
@@ -1108,32 +1215,28 @@ function launchFullExperience(){
   var btn = document.getElementById('loader-continue-btn');
   if(btn) btn.style.pointerEvents = 'none';
 
+  // Déverrouiller le gate FS
+  _fsUnlocked = true;
+
   var loader = document.getElementById('loader');
   var vid = document.getElementById('splash-vid');
 
-  // 1. Plein écran — désactivé sur iOS (non supporté sur l'élément document)
-  if(!isIOS()){
-    try {
-      var el = document.documentElement;
-      var fn = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen;
-      if(fn) fn.call(el).catch(function(){});
-    } catch(e) {}
-  }
+  // 1. Plein écran sur TOUS les appareils
+  requestFSEverywhere(document.documentElement);
 
-  // 2. Unmuter — le vidéo joue déjà muet depuis le preload
+  // 2. Unmuter
   if(vid){
     vid.muted = false;
     vid.volume = 0.85;
     if(vid.paused) vid.play().catch(function(){});
   }
 
-  // 3. Fondu rapide du loader
+  // 3. Fondu du loader
   if(loader){
     loader.style.transition = 'opacity 0.6s ease';
     loader.style.opacity = '0';
     setTimeout(function(){
       loader.style.display = 'none';
-      // Afficher le petit indicateur de rotation sur mobile portrait
       showRotateNudge();
       startSplash();
     }, 650);
@@ -2075,16 +2178,11 @@ function startFilm(){
   sceneHistory=[];
   showPlayer();
   loadScene(start.id);
-  // Plein écran automatique — désactivé sur iOS
-  if(!isIOS()){
-    setTimeout(function(){
-      try {
-        var el=document.getElementById('player-wrap');
-        var fn=el.requestFullscreen||el.webkitRequestFullscreen||el.mozRequestFullScreen||el.msRequestFullscreen;
-        if(fn) fn.call(el).catch(function(){});
-      } catch(e) {}
-    }, 400);
-  }
+  // Plein écran sur TOUS les appareils
+  setTimeout(function(){
+    var el = document.getElementById('player-wrap');
+    requestFSEverywhere(el);
+  }, 400);
 }
 
 function previewFilm(){
@@ -2093,16 +2191,11 @@ function previewFilm(){
   sceneHistory=[];
   showPlayer();
   loadScene(start.id);
-  // Plein écran automatique — désactivé sur iOS
-  if(!isIOS()){
-    setTimeout(function(){
-      try {
-        var el=document.getElementById('player-wrap');
-        var fn=el.requestFullscreen||el.webkitRequestFullscreen||el.mozRequestFullScreen||el.msRequestFullscreen;
-        if(fn) fn.call(el).catch(function(){});
-      } catch(e) {}
-    }, 400);
-  }
+  // Plein écran sur TOUS les appareils
+  setTimeout(function(){
+    var el = document.getElementById('player-wrap');
+    requestFSEverywhere(el);
+  }, 400);
 }
 
 
