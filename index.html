@@ -306,13 +306,16 @@ function closeIOSGuide(){ document.getElementById('ios-guide').classList.remove(
 function goToApp(){ window.location.href='/app.html'; }
 
 function openInChrome(){
-  var url = pageUrl.replace(/^https?:\/\//,'');
+  var appUrl = window.location.origin + '/app.html';
+  var bare   = appUrl.replace(/^https?:\/\//,'');
   if(isAndroid){
-    window.location.href='intent://'+url+'#Intent;scheme=https;package=com.android.chrome;end';
-    setTimeout(function(){ window.location.href='googlechrome://navigate?url='+encodeURIComponent(pageUrl); },800);
+    window.location.href = 'intent://' + bare + '#Intent;scheme=https;package=com.android.chrome;end';
+    setTimeout(function(){ window.location.href = appUrl; }, 1000);
   } else if(isIOS){
-    window.location.href='googlechromes://'+url;
-    setTimeout(function(){ window.location.href='googlechrome://'+url; },800);
+    window.location.href = 'googlechromes://' + bare;
+    setTimeout(function(){ window.location.href = 'googlechrome://' + bare; }, 800);
+  } else {
+    window.location.href = appUrl;
   }
 }
 

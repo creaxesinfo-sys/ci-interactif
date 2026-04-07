@@ -897,6 +897,38 @@ function enterSite(){
   <span class="rn-label">Tourner</span>
 </div>
 
+<div id="install-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#111;border-top:1px solid #2a2a2a;padding:14px 20px;z-index:99999;display:flex;align-items:center;justify-content:space-between;gap:12px;">
+  <div style="font-size:10px;color:#888;letter-spacing:2px;text-transform:uppercase;">Installer l'application CI</div>
+  <div style="display:flex;gap:8px;flex-shrink:0;">
+    <button onclick="doBannerInstall()" style="background:#fff;border:none;color:#000;font-family:Arial,sans-serif;font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:8px 16px;cursor:pointer;">⬇ INSTALLER</button>
+    <button onclick="document.getElementById('install-banner').style.display='none'" style="background:none;border:1px solid #2a2a2a;color:#555;font-family:Arial,sans-serif;font-size:9px;letter-spacing:2px;text-transform:uppercase;padding:8px 12px;cursor:pointer;">✕</button>
+  </div>
+</div>
+<script>
+// Bandeau install dans app.html (quand ouvert en mode navigateur, pas PWA)
+var _bannerPrompt = null;
+var _isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+if(!_isStandalone){
+  if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(function(){});
+  window.addEventListener('beforeinstallprompt', function(e){
+    e.preventDefault();
+    _bannerPrompt = e;
+    document.getElementById('install-banner').style.display = 'flex';
+  });
+}
+function doBannerInstall(){
+  if(!_bannerPrompt) return;
+  _bannerPrompt.prompt();
+  _bannerPrompt.userChoice.then(function(r){
+    document.getElementById('install-banner').style.display = 'none';
+    _bannerPrompt = null;
+    if(r.outcome === 'accepted'){
+      setTimeout(function(){ window.location.replace('/app.html'); }, 1000);
+    }
+  });
+}
+</script>
+
 <!-- GUIDE INSTALLATION iOS — une seule fois, seulement si pas installé -->
 <div id="ios-guide">
   <div class="ios-card">
