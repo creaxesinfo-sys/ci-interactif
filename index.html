@@ -287,31 +287,47 @@ tick(); setInterval(tick,1000);
   draw();
 })();
 
-// ── SERVICE WORKER (requis pour PWA installable) ──
+// ── SERVICE WORKER ──
 if('serviceWorker' in navigator){
   navigator.serviceWorker.register('/sw.js').catch(function(){});
 }
 
-// ── REDIRECTION SI DÉJÀ INSTALLÉ ──
 function redirectToApp(){
   window.location.replace('/app.html');
 }
 
-// Méthode 1 — mode standalone (ouvert depuis l'icône)
+function showInstallPage(){
+  document.querySelector('.wrap').style.opacity = '1';
+}
+
+// Cacher le contenu pendant les vérifications
+document.querySelector('.wrap').style.opacity = '0';
+document.querySelector('.wrap').style.transition = 'opacity 0.4s ease';
+
+// ── VÉRIFICATIONS EN CASCADE ──
+// 1. Déjà ouvert depuis l'icône PWA
 if(window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone){
   redirectToApp();
 }
 
-// Méthode 2 — getInstalledRelatedApps (Chrome Android)
-if('getInstalledRelatedApps' in navigator){
+// 2. getInstalledRelatedApps — Chrome Android
+else if('getInstalledRelatedApps' in navigator){
   navigator.getInstalledRelatedApps().then(function(apps){
-    if(apps && apps.length > 0){ redirectToApp(); }
-  }).catch(function(){});
+    if(apps && apps.length > 0){
+      redirectToApp();
+    } else {
+      showInstallPage();
+    }
+  }).catch(function(){
+    showInstallPage();
+  });
+  // Timeout de sécurité — si la réponse tarde trop
+  setTimeout(showInstallPage, 1500);
 }
 
-// Méthode 3 — localStorage (flag posé à l'installation)
-if(localStorage.getItem('ci_app_installed') === '1'){
-  redirectToApp();
+// 3. Aucune méthode disponible — afficher directement
+else {
+  showInstallPage();
 }
 
 // ── DÉTECTION ──
