@@ -264,164 +264,126 @@ body::after{
 var ht = document.getElementById('hud-time');
 function tick(){
   var n=new Date();
-  ht.textContent = [n.getHours(),n.getMinutes(),n.getSeconds()]
-    .map(function(v){return String(v).padStart(2,'0');}).join(':');
+  ht.textContent=[n.getHours(),n.getMinutes(),n.getSeconds()].map(function(v){return String(v).padStart(2,'0');}).join(':');
 }
 tick(); setInterval(tick,1000);
 
-// ── GRAIN CANVAS ──
+// ── GRAIN ──
 (function(){
   var c=document.getElementById('grain'),ctx=c.getContext('2d');
-  function resize(){ c.width=window.innerWidth; c.height=window.innerHeight; }
+  function resize(){c.width=window.innerWidth;c.height=window.innerHeight;}
   resize(); window.addEventListener('resize',resize);
   function draw(){
-    var img=ctx.createImageData(c.width,c.height);
-    var d=img.data;
-    for(var i=0;i<d.length;i+=4){
-      var v=Math.random()*255|0;
-      d[i]=d[i+1]=d[i+2]=v; d[i+3]=255;
-    }
-    ctx.putImageData(img,0,0);
-    setTimeout(draw,80);
+    var img=ctx.createImageData(c.width,c.height),d=img.data;
+    for(var i=0;i<d.length;i+=4){var v=Math.random()*255|0;d[i]=d[i+1]=d[i+2]=v;d[i+3]=255;}
+    ctx.putImageData(img,0,0); setTimeout(draw,80);
   }
   draw();
 })();
 
-// ── SERVICE WORKER ──
-if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('/sw.js').catch(function(){});
-}
-
-function redirectToApp(){
-  window.location.replace('/app.html');
-}
-
-function showInstallPage(){
-  document.querySelector('.wrap').style.opacity = '1';
-}
-
-// Cacher le contenu pendant les vérifications
-document.querySelector('.wrap').style.opacity = '0';
-document.querySelector('.wrap').style.transition = 'opacity 0.4s ease';
-
-// ── VÉRIFICATIONS EN CASCADE ──
-// 1. Déjà ouvert depuis l'icône PWA
-if(window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone){
-  redirectToApp();
-}
-
-// 2. getInstalledRelatedApps — Chrome Android
-else if('getInstalledRelatedApps' in navigator){
-  navigator.getInstalledRelatedApps().then(function(apps){
-    if(apps && apps.length > 0){
-      redirectToApp();
-    } else {
-      showInstallPage();
-    }
-  }).catch(function(){
-    showInstallPage();
-  });
-  // Timeout de sécurité — si la réponse tarde trop
-  setTimeout(showInstallPage, 1500);
-}
-
-// 3. Aucune méthode disponible — afficher directement
-else {
-  showInstallPage();
-}
-
-// ── DÉTECTION ──
-var _prompt = null;
+// ── VARS ──
 var ua = navigator.userAgent;
-var isIOS       = /iPad|iPhone|iPod/.test(ua) || (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1);
-var isAndroid   = /Android/.test(ua);
-var isStandalone= window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
-
-// Navigateurs intégrés (Messenger, Facebook, Instagram, TikTok, etc.)
-var isInApp = /FBAN|FBAV|FB_IAB|Instagram|LinkedInApp|Twitter|Snapchat|TikTok|Line|WhatsApp|Viber|Telegram/.test(ua)
-           || (isAndroid && !/Chrome\//.test(ua))
-           || (/wv/.test(ua) && isAndroid); // WebView Android
-
-var pageUrl = window.location.href;
+var isIOS        = /iPad|iPhone|iPod/.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+var isAndroid    = /Android/.test(ua);
+var isChrome     = /Chrome\//.test(ua)&&!/Edg|OPR|Samsung|SamsungBrowser/.test(ua);
+var isAndroidChrome = isAndroid && isChrome;
+var isStandalone = window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone;
+var isInApp      = /FBAN|FBAV|FB_IAB|Instagram|LinkedInApp|Snapchat|TikTok|WhatsApp|Viber|Telegram/.test(ua)||(/wv/.test(ua)&&isAndroid);
+var pageUrl      = window.location.href;
 
 var btnInstall = document.getElementById('btn-install');
-var btnOpen    = document.getElementById('btn-open');
 var btnSkip    = document.getElementById('btn-skip');
 var statusEl   = document.getElementById('status');
+var _prompt    = null;
+var _promptReceived = false;
 
-// ── SI DÉJÀ INSTALLÉ → aller directement à l'app ──
-if(isStandalone){
-  window.location.replace('/app.html');
-}
-
-// ── NAVIGATEUR INTÉGRÉ (Messenger, etc.) → forcer ouverture dans Chrome ──
-if(isInApp && !isStandalone){
-  btnInstall.textContent = '⬒ \u00a0 Ouvrir dans Chrome';
-  btnInstall.disabled = false;
-  btnInstall.onclick = openInChrome;
-  btnSkip.style.display = 'none';
-  setStatus('Ouvre ce lien dans Chrome pour installer l\'app');
-}
+// ── FONCTIONS ──
+function redirectToApp(){ window.location.replace('/app.html'); }
+function showInstallPage(){ document.querySelector('.wrap').style.opacity='1'; }
+function setStatus(msg){ if(statusEl) statusEl.textContent=msg; }
+function showIOSGuide(){ document.getElementById('ios-guide').classList.add('active'); }
+function closeIOSGuide(){ document.getElementById('ios-guide').classList.remove('active'); }
+function goToApp(){ window.location.href='/app.html'; }
 
 function openInChrome(){
+  var url = pageUrl.replace(/^https?:\/\//,'');
   if(isAndroid){
-    // Intent Android — ouvre directement Chrome
-    window.location.href = 'intent://' + pageUrl.replace(/^https?:\/\//,'') + '#Intent;scheme=https;package=com.android.chrome;end';
-    // Fallback si intent échoue
-    setTimeout(function(){
-      window.location.href = 'googlechrome://navigate?url=' + encodeURIComponent(pageUrl);
-    }, 800);
+    window.location.href='intent://'+url+'#Intent;scheme=https;package=com.android.chrome;end';
+    setTimeout(function(){ window.location.href='googlechrome://navigate?url='+encodeURIComponent(pageUrl); },800);
   } else if(isIOS){
-    window.location.href = 'googlechromes://' + pageUrl.replace(/^https?:\/\//,'');
-    setTimeout(function(){
-      window.location.href = 'googlechrome://' + pageUrl.replace(/^https?:\/\//,'');
-    }, 800);
+    window.location.href='googlechromes://'+url;
+    setTimeout(function(){ window.location.href='googlechrome://'+url; },800);
   }
-}
-
-// ── CHROME NORMAL → prompt installation ──
-if(!isInApp){
-  window.addEventListener('beforeinstallprompt', function(e){
-    e.preventDefault();
-    _prompt = e;
-    btnInstall.disabled = false;
-    setStatus('Application prête à être installée');
-  });
-
-  // iOS Safari — afficher guide
-  if(isIOS && !isStandalone){
-    btnInstall.textContent = '⬇ \u00a0 Installer sur iOS';
-    btnInstall.onclick = showIOSGuide;
-    btnInstall.disabled = false;
-  }
-
-  window.addEventListener('appinstalled', function(){
-    localStorage.setItem('ci_app_installed', '1');
-    setStatus('✓ Installation réussie — ouverture...');
-    btnInstall.style.display = 'none';
-    btnSkip.style.display = 'none';
-    setTimeout(function(){ redirectToApp(); }, 800);
-  });
 }
 
 function doInstall(){
   if(!_prompt){ setStatus('Ouvre ce lien dans Chrome pour installer'); return; }
   _prompt.prompt();
   _prompt.userChoice.then(function(r){
-    if(r.outcome === 'accepted'){
-      setStatus('✓ Installation en cours...');
-      btnInstall.disabled = true;
-    } else {
-      setStatus('Installation annulée');
-    }
-    _prompt = null;
+    if(r.outcome==='accepted'){ setStatus('✓ Installation en cours...'); btnInstall.disabled=true; }
+    else { setStatus('Installation annulée'); }
+    _prompt=null;
   });
 }
 
-function goToApp(){ window.location.href = '/app.html'; }
-function setStatus(msg){ statusEl.textContent = msg; }
-function showIOSGuide(){ document.getElementById('ios-guide').classList.add('active'); }
-function closeIOSGuide(){ document.getElementById('ios-guide').classList.remove('active'); }
+// ── SERVICE WORKER ──
+if('serviceWorker' in navigator){ navigator.serviceWorker.register('/sw.js').catch(function(){}); }
+
+// ── CACHER PENDANT DÉTECTION ──
+document.querySelector('.wrap').style.opacity='0';
+document.querySelector('.wrap').style.transition='opacity 0.5s ease';
+
+// ── DÉJÀ EN MODE STANDALONE → app directement ──
+if(isStandalone){ redirectToApp(); }
+
+// ── NAVIGATEUR INTÉGRÉ (Messenger, etc.) ──
+else if(isInApp){
+  showInstallPage();
+  btnInstall.textContent='⬒ \u00a0 Ouvrir dans Chrome';
+  btnInstall.disabled=false;
+  btnInstall.onclick=openInChrome;
+  btnSkip.style.display='none';
+  setStatus('Ouvre ce lien dans Chrome pour installer l\'app');
+}
+
+// ── CHROME ANDROID ──
+else if(isAndroidChrome){
+  // Si beforeinstallprompt ne se déclenche pas → app déjà installée → rediriger
+  window.addEventListener('beforeinstallprompt', function(e){
+    e.preventDefault();
+    _prompt=e; _promptReceived=true;
+    showInstallPage();
+    setStatus('Application prête à être installée');
+  });
+  setTimeout(function(){
+    if(!_promptReceived){ redirectToApp(); }
+  }, 2500);
+}
+
+// ── iOS ──
+else if(isIOS){
+  showInstallPage();
+  btnInstall.textContent='⬇ \u00a0 Installer sur iOS';
+  btnInstall.onclick=showIOSGuide;
+  btnInstall.disabled=false;
+}
+
+// ── DESKTOP / AUTRE ──
+else {
+  window.addEventListener('beforeinstallprompt', function(e){
+    e.preventDefault(); _prompt=e;
+    setStatus('Application prête à être installée');
+  });
+  showInstallPage();
+}
+
+// ── APRÈS INSTALLATION → ouvrir app ──
+window.addEventListener('appinstalled', function(){
+  setStatus('✓ Installation réussie — ouverture...');
+  btnInstall.style.display='none';
+  btnSkip.style.display='none';
+  setTimeout(redirectToApp, 800);
+});
 </script>
 </body>
 </html>
