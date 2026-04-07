@@ -292,6 +292,28 @@ if('serviceWorker' in navigator){
   navigator.serviceWorker.register('/sw.js').catch(function(){});
 }
 
+// ── REDIRECTION SI DÉJÀ INSTALLÉ ──
+function redirectToApp(){
+  window.location.replace('/app.html');
+}
+
+// Méthode 1 — mode standalone (ouvert depuis l'icône)
+if(window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone){
+  redirectToApp();
+}
+
+// Méthode 2 — getInstalledRelatedApps (Chrome Android)
+if('getInstalledRelatedApps' in navigator){
+  navigator.getInstalledRelatedApps().then(function(apps){
+    if(apps && apps.length > 0){ redirectToApp(); }
+  }).catch(function(){});
+}
+
+// Méthode 3 — localStorage (flag posé à l'installation)
+if(localStorage.getItem('ci_app_installed') === '1'){
+  redirectToApp();
+}
+
 // ── DÉTECTION ──
 var _prompt = null;
 var ua = navigator.userAgent;
@@ -358,12 +380,11 @@ if(!isInApp){
   }
 
   window.addEventListener('appinstalled', function(){
+    localStorage.setItem('ci_app_installed', '1');
     setStatus('✓ Installation réussie — ouverture...');
     btnInstall.style.display = 'none';
     btnSkip.style.display = 'none';
-    setTimeout(function(){
-      window.location.href = '/app.html';
-    }, 800);
+    setTimeout(function(){ redirectToApp(); }, 800);
   });
 }
 
