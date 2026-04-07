@@ -285,47 +285,79 @@ tick(); setInterval(tick,1000);
 
 // ── DÉTECTION ──
 var _prompt = null;
-var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1);
-var isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+var ua = navigator.userAgent;
+var isIOS       = /iPad|iPhone|iPod/.test(ua) || (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1);
+var isAndroid   = /Android/.test(ua);
+var isStandalone= window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+
+// Navigateurs intégrés (Messenger, Facebook, Instagram, TikTok, etc.)
+var isInApp = /FBAN|FBAV|FB_IAB|Instagram|LinkedInApp|Twitter|Snapchat|TikTok|Line|WhatsApp|Viber|Telegram/.test(ua)
+           || (isAndroid && !/Chrome\//.test(ua))
+           || (/wv/.test(ua) && isAndroid); // WebView Android
+
+var pageUrl = window.location.href;
 
 var btnInstall = document.getElementById('btn-install');
 var btnOpen    = document.getElementById('btn-open');
 var btnSkip    = document.getElementById('btn-skip');
 var statusEl   = document.getElementById('status');
 
-// Si déjà installé → bouton "Ouvrir"
+// ── SI DÉJÀ INSTALLÉ → aller directement à l'app ──
 if(isStandalone){
   window.location.replace('/app.html');
 }
 
-// Chrome/Android — attendre le prompt
-window.addEventListener('beforeinstallprompt', function(e){
-  e.preventDefault();
-  _prompt = e;
+// ── NAVIGATEUR INTÉGRÉ (Messenger, etc.) → forcer ouverture dans Chrome ──
+if(isInApp && !isStandalone){
+  btnInstall.textContent = '⬒ \u00a0 Ouvrir dans Chrome';
   btnInstall.disabled = false;
-  setStatus('Application prête à être installée');
-});
-
-// iOS — afficher le guide
-if(isIOS && !isStandalone){
-  btnInstall.textContent = '⬇ \u00a0 Installer sur iOS';
-  btnInstall.onclick = showIOSGuide;
+  btnInstall.onclick = openInChrome;
+  btnSkip.style.display = 'none';
+  setStatus('Ouvre ce lien dans Chrome pour installer l\'app');
 }
 
-// App déjà installée mais visitée depuis le navigateur
-window.addEventListener('appinstalled', function(){
-  setStatus('✓ Installation réussie — ouvre l\'icône CI');
-  btnInstall.style.display = 'none';
-  btnSkip.style.display = 'none';
-  btnOpen.style.display = 'block';
-});
+function openInChrome(){
+  if(isAndroid){
+    // Intent Android — ouvre directement Chrome
+    window.location.href = 'intent://' + pageUrl.replace(/^https?:\/\//,'') + '#Intent;scheme=https;package=com.android.chrome;end';
+    // Fallback si intent échoue
+    setTimeout(function(){
+      window.location.href = 'googlechrome://navigate?url=' + encodeURIComponent(pageUrl);
+    }, 800);
+  } else if(isIOS){
+    window.location.href = 'googlechromes://' + pageUrl.replace(/^https?:\/\//,'');
+    setTimeout(function(){
+      window.location.href = 'googlechrome://' + pageUrl.replace(/^https?:\/\//,'');
+    }, 800);
+  }
+}
+
+// ── CHROME NORMAL → prompt installation ──
+if(!isInApp){
+  window.addEventListener('beforeinstallprompt', function(e){
+    e.preventDefault();
+    _prompt = e;
+    btnInstall.disabled = false;
+    setStatus('Application prête à être installée');
+  });
+
+  // iOS Safari — afficher guide
+  if(isIOS && !isStandalone){
+    btnInstall.textContent = '⬇ \u00a0 Installer sur iOS';
+    btnInstall.onclick = showIOSGuide;
+    btnInstall.disabled = false;
+  }
+
+  window.addEventListener('appinstalled', function(){
+    setStatus('✓ Installation réussie — ouvre l\'icône CI');
+    btnInstall.style.display = 'none';
+    btnSkip.style.display = 'none';
+    btnOpen.style.display = 'block';
+  });
+}
 
 function doInstall(){
-  if(!_prompt){
-    // Chrome pas encore prêt ou pas supporté
-    setStatus('Essaie depuis Chrome sur Android');
-    return;
-  }
+  if(!_prompt){ setStatus('Ouvre ce lien dans Chrome pour installer'); return; }
   _prompt.prompt();
   _prompt.userChoice.then(function(r){
     if(r.outcome === 'accepted'){
@@ -338,21 +370,10 @@ function doInstall(){
   });
 }
 
-function goToApp(){
-  window.location.href = '/app.html';
-}
-
-function setStatus(msg){
-  statusEl.textContent = msg;
-}
-
-function showIOSGuide(){
-  document.getElementById('ios-guide').classList.add('active');
-}
-
-function closeIOSGuide(){
-  document.getElementById('ios-guide').classList.remove('active');
-}
+function goToApp(){ window.location.href = '/app.html'; }
+function setStatus(msg){ statusEl.textContent = msg; }
+function showIOSGuide(){ document.getElementById('ios-guide').classList.add('active'); }
+function closeIOSGuide(){ document.getElementById('ios-guide').classList.remove('active'); }
 </script>
 </body>
 </html>
