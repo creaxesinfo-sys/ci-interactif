@@ -312,31 +312,49 @@ body{background:#1a1a1a;color:#e8e8e8;font-family:Arial,sans-serif;
 /* ===== NAV INTÉGRÉE PAGE MAÎTRE ===== */
 /* Fait partie du hero-wrap → toujours visible en plein écran */
 #hero-nav{
-  position:absolute;top:52px;left:0;right:0;height:42px;
+  position:absolute;top:52px;left:0;right:0;height:48px;
   background:linear-gradient(to bottom,rgba(0,0,0,0.6) 0%,transparent 100%);
   display:flex;align-items:center;z-index:10;
   opacity:0;transition:opacity 0.8s ease;pointer-events:none;
+  overflow-x:auto;overflow-y:hidden;
+  -webkit-overflow-scrolling:touch;
+  scrollbar-width:none;
 }
+#hero-nav::-webkit-scrollbar{display:none;}
 #hero-nav.visible{opacity:1;pointer-events:auto;}
 .hn-brand{font-size:18px;font-weight:700;color:#fff;letter-spacing:4px;
   font-family:'Raleway','Helvetica Neue',Helvetica,Arial,sans-serif;
-  padding:0 20px;border-right:1px solid rgba(255,255,255,0.15);cursor:pointer;}
+  padding:0 20px;border-right:1px solid rgba(255,255,255,0.15);cursor:pointer;
+  flex-shrink:0;}
 .hn-btn{background:none;border:none;border-bottom:2px solid transparent;
   color:rgba(255,255,255,0.6);font-family:Arial,sans-serif;font-size:11px;
   letter-spacing:2px;text-transform:uppercase;padding:0 15px;cursor:pointer;
-  height:42px;white-space:nowrap;transition:color 0.2s,border-color 0.2s;}
+  height:48px;white-space:nowrap;transition:color 0.2s,border-color 0.2s;
+  flex-shrink:0;}
 .hn-btn:hover{color:#fff;}
 .hn-btn.hn-active{color:#fff;border-bottom-color:rgba(255,255,255,0.6);}
-.hn-sep{flex:1;}
-.hn-profil{border-left:1px solid rgba(255,255,255,0.15);padding:0 18px;}
+.hn-sep{flex:1;min-width:8px;}
+.hn-profil{border-left:1px solid rgba(255,255,255,0.15);padding:0 18px;flex-shrink:0;}
+
+/* Indicateur de scroll → sur mobile portrait */
+#hero-nav-scroll-hint{
+  position:absolute;right:0;top:52px;height:48px;
+  display:none;align-items:center;padding:0 8px;
+  background:linear-gradient(to right,transparent,rgba(0,0,0,0.7));
+  pointer-events:none;z-index:11;font-size:12px;color:rgba(255,255,255,0.4);
+}
+@media(max-width:767px) and (orientation:portrait){
+  #hero-nav{ top:60px; }
+  body.fs-mode #hero-nav{ top:8px; }
+  #hero-nav-scroll-hint{ display:flex; top:60px; }
+}
 
 /* En plein écran — masquer HUD + coins + hint */
 body.fs-mode .corner{ display:none; }
 body.fs-mode .hud{ display:none; }
 body.fs-mode .scroll-hint{ display:none; }
 body.fs-mode #hero-nav{ top:0; }
-
-/* ===== SECTION HEADERS ===== */
+body.fs-mode #hero-nav-scroll-hint{ top:0; }
 .section-header{background:#111;border-bottom:1px solid #2e2e2e;padding:24px 32px;}
 .section-title{font-size:20px;font-weight:500;color:#fff;letter-spacing:3px;text-transform:uppercase;}
 .section-sub{font-size:11px;color:#555;margin-top:5px;letter-spacing:2px;}
@@ -772,9 +790,9 @@ document.addEventListener('mozfullscreenchange', checkFSGate);
   <div class="splash-corner splash-corner-tr"></div>
   <div class="splash-corner splash-corner-bl"></div>
   <div class="splash-corner splash-corner-br"></div>
-  <div class="splash-hud-bl">VOUS ÊTES CRÉATEUR // GÉNIE VOUS ÊTES</div>
+  <div class="splash-hud-bl" style="color:rgba(255,255,255,0.08);">VOUS ÊTES CRÉATEUR</div>
   <div id="splash-time" style="position:absolute;top:28px;left:56px;font-size:9px;color:#222;letter-spacing:3px;text-transform:uppercase;z-index:30;">--:--:--</div>
-  <button onclick="enterSite()" style="position:absolute;bottom:24px;right:56px;background:none;border:none;color:#333;font-family:Arial,sans-serif;font-size:9px;letter-spacing:4px;text-transform:uppercase;cursor:pointer;z-index:30;padding:4px 0;transition:color 0.3s;border-bottom:1px solid #222;" onmouseover="this.style.color='#888';this.style.borderBottomColor='#555'" onmouseout="this.style.color='#333';this.style.borderBottomColor='#222'">Passer ›</button>
+  <button onclick="enterSite()" style="position:absolute;bottom:20px;right:20px;background:none;border:none;color:rgba(255,255,255,0.2);font-family:Arial,sans-serif;font-size:9px;letter-spacing:4px;text-transform:uppercase;cursor:pointer;z-index:30;padding:8px 12px;transition:color 0.3s;" onmouseover="this.style.color='rgba(255,255,255,0.7)'" onmouseout="this.style.color='rgba(255,255,255,0.2)'">Passer ›</button>
 
   <!-- Vidéo plein écran qui se tasse à droite -->
   <div id="splash-video-wrap">
@@ -1476,6 +1494,7 @@ function showRotateNudge(){
         <div class="hn-sep"></div>
         <button class="hn-btn hn-profil" onclick="openProfilModal()"><span id="hnav-profil-label">⬤ Profil</span></button>
       </div>
+      <div id="hero-nav-scroll-hint">›</div>
       <div class="corner corner-tl"></div>
       <div class="corner corner-tr"></div>
       <div class="corner corner-bl"></div>
