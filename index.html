@@ -1180,6 +1180,10 @@ function launchFullExperience(){
     } catch(e){}
     _fsUnlocked = true;
   }
+  // Déverrouiller la rotation (important pour Chrome PWA qui verrouille le portrait via manifest)
+  try {
+    if(screen.orientation && screen.orientation.unlock) screen.orientation.unlock();
+  } catch(e){}
 
   // Unmuter
   if(vid){
@@ -2143,6 +2147,10 @@ function startFilm(){
       else if(el.webkitRequestFullscreen) el.webkitRequestFullscreen();
     } catch(e){}
   }
+  // Déverrouiller la rotation (Chrome PWA la verrouille en portrait via manifest)
+  try {
+    if(screen.orientation && screen.orientation.unlock) screen.orientation.unlock();
+  } catch(e){}
 }
 
 function previewFilm(){
@@ -2158,6 +2166,9 @@ function previewFilm(){
       else if(el.webkitRequestFullscreen) el.webkitRequestFullscreen();
     } catch(e){}
   }
+  try {
+    if(screen.orientation && screen.orientation.unlock) screen.orientation.unlock();
+  } catch(e){}
 }
 
 
@@ -2286,31 +2297,36 @@ function loadScene(id){
     }
 
     var vid;
-    // Sur iOS — utiliser l'iframe Cloudflare Stream directement (évite les problèmes CORS/HLS)
-    if(isIOS() && pureUid && pureUid.length === 32){
-      var iframe = document.createElement('iframe');
-      iframe.src = 'https://customer-911pgg1vlhryqb16.cloudflarestream.com/' + pureUid + '/iframe?autoplay=true&muted=false&loop=false&controls=false&preload=true';
-      iframe.allow = 'accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture';
-      iframe.setAttribute('allowfullscreen','true');
-      iframe.style.cssText = 'width:100%;height:100%;border:none;display:block;position:absolute;inset:0;';
-      zone.insertBefore(iframe, document.getElementById('hotspots-layer'));
-    } else {
-      // Desktop + Android — HLS natif
-      var cached = preloadCache[uid];
-      if(cached && cached.tagName === 'VIDEO'){
-        cached.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
-        cached.controls = false;
-        cached.muted = false;
-        if(document.body.contains(cached)) document.body.removeChild(cached);
-        delete preloadCache[uid];
-        if(cached._hls){ cached._hls.startLevel = cached._hls.levels.length - 1; }
+    // iOS + Android + Desktop — toujours utiliser un élément <video> natif.
+    // Sur iOS Safari, canPlayType('application/vnd.apple.mpegurl') est vrai → HLS natif sans iframe.
+    // L'iframe Cloudflare était bloquée car muted=false + cross-origin iframe = pas d'autoplay sur iOS.
+    var cached = preloadCache[uid];
+    if(cached && cached.tagName === 'VIDEO'){
+      cached.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;position:absolute;inset:0;';
+      cached.controls = false;
+      cached.muted = false;
+      if(document.body.contains(cached)) document.body.removeChild(cached);
+      delete preloadCache[uid];
+      if(cached._hls){ cached._hls.startLevel = cached._hls.levels.length - 1; }
+      cached.play().catch(function(){
+        // Si play() échoue (policy), muter puis réessayer
+        cached.muted = true;
         cached.play().catch(function(){});
-        vid = cached;
-      } else {
-        vid = createVideoEl(uid, { autoplay: true, muted: false, controls: false });
-      }
-      zone.insertBefore(vid, document.getElementById('hotspots-layer'));
+        showUnmuteBtn();
+      });
+      vid = cached;
+    } else {
+      vid = createVideoEl(uid, { autoplay: true, muted: false, controls: false });
+      // Fallback silencieux si la policy bloque le son non-muté
+      vid.addEventListener('error', function(){});
+      vid.addEventListener('play', function(){ hideUnmuteBtn(); });
+      vid.play && vid.play().catch(function(){
+        vid.muted = true;
+        vid.play().catch(function(){});
+        showUnmuteBtn();
+      });
     }
+    zone.insertBefore(vid, document.getElementById('hotspots-layer'));
   } else {
     placeholder.style.display = 'flex';
   }
