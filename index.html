@@ -323,9 +323,14 @@ function doInstall(){
   if(!_prompt){ setStatus('Ouvre ce lien dans Chrome pour installer'); return; }
   _prompt.prompt();
   _prompt.userChoice.then(function(r){
-    if(r.outcome==='accepted'){ setStatus('✓ Installation en cours...'); btnInstall.disabled=true; }
-    else { setStatus('Installation annulée'); }
-    _prompt=null;
+    if(r.outcome==='accepted'){
+      setStatus('✓ Installation en cours...');
+      btnInstall.disabled=true;
+    } else {
+      // Refus → on garde la page visible, Chrome redemandera à la prochaine visite
+      setStatus('Installation ignorée — tu peux installer plus tard');
+      _prompt=null;
+    }
   });
 }
 
