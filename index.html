@@ -358,10 +358,12 @@ if(!isInApp){
   }
 
   window.addEventListener('appinstalled', function(){
-    setStatus('✓ Installation réussie — ouvre l\'icône CI');
+    setStatus('✓ Installation réussie — ouverture...');
     btnInstall.style.display = 'none';
     btnSkip.style.display = 'none';
-    btnOpen.style.display = 'block';
+    setTimeout(function(){
+      window.location.href = '/app.html';
+    }, 800);
   });
 }
 
