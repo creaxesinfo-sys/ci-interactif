@@ -283,6 +283,11 @@ tick(); setInterval(tick,1000);
   draw();
 })();
 
+// ── SERVICE WORKER (requis pour PWA installable) ──
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('/sw.js').catch(function(){});
+}
+
 // ── DÉTECTION ──
 var _prompt = null;
 var ua = navigator.userAgent;
