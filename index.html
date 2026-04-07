@@ -1470,6 +1470,11 @@ function showRotateNudge(){
           <div class="hero-sub-ci" id="hero-sub-ci">Cinéma Interactif</div>
           <div class="hero-btn-wrap" id="hero-btn-wrap">
             <button class="btn-start" onclick="startFilm()">▶ &nbsp; COMMENCER LE FILM</button>
+            <div id="pwa-install-wrap" style="display:none;margin-top:16px;">
+              <button id="pwa-install-btn" onclick="triggerPWAInstall()" style="background:transparent;border:1px solid rgba(255,255,255,0.18);color:rgba(255,255,255,0.6);font-family:Arial,sans-serif;font-size:9px;letter-spacing:4px;text-transform:uppercase;padding:10px 28px;cursor:pointer;transition:all 0.3s;">
+                ⬇ &nbsp; INSTALLER L'APPLICATION
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -5213,6 +5218,36 @@ async function deleteProject(projId){
   if(error){ showToast('Erreur: ' + error.message); return; }
   showToast('Projet supprimé');
   renderProjets();
+}
+
+// ===== PWA INSTALL PROMPT =====
+var _pwaInstallPrompt = null;
+
+window.addEventListener('beforeinstallprompt', function(e){
+  e.preventDefault();
+  _pwaInstallPrompt = e;
+  // Afficher le bouton d'installation
+  var wrap = document.getElementById('pwa-install-wrap');
+  if(wrap) wrap.style.display = 'block';
+});
+
+function triggerPWAInstall(){
+  if(!_pwaInstallPrompt) return;
+  _pwaInstallPrompt.prompt();
+  _pwaInstallPrompt.userChoice.then(function(result){
+    if(result.outcome === 'accepted'){
+      showToast('Application installée ✓');
+    }
+    _pwaInstallPrompt = null;
+    var wrap = document.getElementById('pwa-install-wrap');
+    if(wrap) wrap.style.display = 'none';
+  });
+}
+
+// Cacher le bouton si déjà installé (mode standalone)
+if(window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone){
+  var wrap = document.getElementById('pwa-install-wrap');
+  if(wrap) wrap.style.display = 'none';
 }
 
 // ===== GUIDE INSTALLATION iOS =====
