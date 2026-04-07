@@ -313,7 +313,7 @@ body{background:#1a1a1a;color:#e8e8e8;font-family:Arial,sans-serif;
 /* Fait partie du hero-wrap → toujours visible en plein écran */
 #hero-nav{
   position:absolute;top:52px;left:0;right:0;height:48px;
-  background:linear-gradient(to bottom,rgba(0,0,0,0.6) 0%,transparent 100%);
+  background:none;
   display:flex;align-items:center;z-index:10;
   opacity:0;transition:opacity 0.8s ease;pointer-events:none;
   overflow-x:auto;overflow-y:hidden;
@@ -322,6 +322,15 @@ body{background:#1a1a1a;color:#e8e8e8;font-family:Arial,sans-serif;
 }
 #hero-nav::-webkit-scrollbar{display:none;}
 #hero-nav.visible{opacity:1;pointer-events:auto;}
+/* Fade noir séparé — toujours collé en haut */
+#hero-nav-fade{
+  position:absolute;top:0;left:0;right:0;height:120px;
+  background:linear-gradient(to bottom,rgba(0,0,0,0.7) 0%,transparent 100%);
+  z-index:9;pointer-events:none;
+  opacity:0;transition:opacity 0.8s ease;
+}
+#hero-nav.visible ~ #hero-nav-fade,
+#hero-nav-fade.visible{opacity:1;}
 .hn-brand{font-size:18px;font-weight:700;color:#fff;letter-spacing:4px;
   font-family:'Raleway','Helvetica Neue',Helvetica,Arial,sans-serif;
   padding:0 20px;border-right:1px solid rgba(255,255,255,0.15);cursor:pointer;
@@ -336,7 +345,6 @@ body{background:#1a1a1a;color:#e8e8e8;font-family:Arial,sans-serif;
 .hn-sep{flex:1;min-width:8px;}
 .hn-profil{border-left:1px solid rgba(255,255,255,0.15);padding:0 18px;flex-shrink:0;}
 
-/* Indicateur de scroll → sur mobile portrait */
 #hero-nav-scroll-hint{
   position:absolute;right:0;top:52px;height:48px;
   display:none;align-items:center;padding:0 8px;
@@ -344,8 +352,8 @@ body{background:#1a1a1a;color:#e8e8e8;font-family:Arial,sans-serif;
   pointer-events:none;z-index:11;font-size:12px;color:rgba(255,255,255,0.4);
 }
 @media(max-width:767px) and (orientation:portrait){
-  #hero-nav{ top:64px !important; background:linear-gradient(to bottom,rgba(0,0,0,0.6) 0%,transparent 100%); background-position:top; }
-  #hero-nav-scroll-hint{ display:flex; top:64px !important; }
+  #hero-nav{ top:58px !important; }
+  #hero-nav-scroll-hint{ display:flex; top:58px !important; }
 }
 
 /* En plein écran — masquer HUD + coins + hint */
@@ -1493,6 +1501,7 @@ function showRotateNudge(){
         <div class="hn-sep"></div>
         <button class="hn-btn hn-profil" onclick="openProfilModal()"><span id="hnav-profil-label">⬤ Profil</span></button>
       </div>
+      <div id="hero-nav-fade"></div>
       <div id="hero-nav-scroll-hint">›</div>
       <div class="corner corner-tl"></div>
       <div class="corner corner-tr"></div>
@@ -4916,11 +4925,14 @@ function refreshHeroNav(){
   if(!heroNav) return;
   var isFS = !!(document.fullscreenElement || document.webkitFullscreenElement);
   var onHero = document.body.classList.contains('on-hero');
+  var fade = document.getElementById('hero-nav-fade');
 
   if(isFS && onHero && !isPlayerActive() && heroSequenceReady){
     heroNav.classList.add('visible');
+    if(fade) fade.classList.add('visible');
   } else if(!isFS || !onHero || isPlayerActive()){
     heroNav.classList.remove('visible');
+    if(fade) fade.classList.remove('visible');
   }
   // (si FS+hero+playerInactive mais pas encore ready → on ne touche pas)
 }
