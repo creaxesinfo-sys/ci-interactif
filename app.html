@@ -230,15 +230,17 @@ body{background:#1a1a1a;color:#e8e8e8;font-family:Arial,sans-serif;
   background:rgba(10,10,10,0.97);
   border-bottom:1px solid #2e2e2e;
   display:flex;align-items:center;overflow-x:auto;
+  -webkit-overflow-scrolling:touch;
+  scrollbar-width:none;
   position:fixed;top:0;left:0;right:0;width:100%;
   z-index:200;
-  /* Hauteur de base */
   height:42px;
-  /* Espace pour le notch/caméra en mode normal */
   padding-top:env(safe-area-inset-top,0px);
   height:calc(42px + env(safe-area-inset-top,0px));
   box-sizing:border-box;
 }
+.nav::-webkit-scrollbar{display:none;}
+.nav-btn{white-space:nowrap;flex-shrink:0;}
 
 /* EN PLEIN ÉCRAN — plus de notch, hauteur fixe */
 :fullscreen .nav,
@@ -246,6 +248,17 @@ body{background:#1a1a1a;color:#e8e8e8;font-family:Arial,sans-serif;
 :-moz-full-screen .nav {
   padding-top:0 !important;
   height:42px !important;
+}
+
+/* Mobile portrait — descendre légèrement sous la caméra */
+@media(max-width:767px) and (orientation:portrait){
+  .nav{
+    padding-top:calc(env(safe-area-inset-top,0px) + 6px);
+    height:calc(42px + env(safe-area-inset-top,0px) + 6px);
+  }
+  .page.active{
+    padding-top:calc(42px + env(safe-area-inset-top,0px) + 6px) !important;
+  }
 }
 
 /* ===== ROTATE HINT ===== */
