@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<title>CI — Cinéma Interactif</title>
+<link href="https://fonts.googleapis.com/css2?family=Raleway:wght@100;400;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --white:#ffffff;
+  --dim:#888;
+  --faint:#2a2a2a;
+  --faintest:#111;
+}
+html,body{height:100%;background:#000;color:#fff;font-family:'Raleway',sans-serif;overflow:hidden;}
+
+/* ── CANVAS GRAIN ── */
+#grain{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:0.04;}
+
+/* ── SCANLINES ── */
+body::after{
+  content:'';position:fixed;inset:0;z-index:1;pointer-events:none;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.07) 2px,rgba(0,0,0,0.07) 4px);
+}
+
+/* ── LAYOUT ── */
+.wrap{
+  position:relative;z-index:2;
+  height:100vh;height:100dvh;
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  padding:48px 32px;
+  text-align:center;
+}
+
+/* ── COINS HUD ── */
+.corner{position:fixed;width:22px;height:22px;z-index:3;}
+.tl{top:24px;left:24px;border-top:1px solid #1e1e1e;border-left:1px solid #1e1e1e;}
+.tr{top:24px;right:24px;border-top:1px solid #1e1e1e;border-right:1px solid #1e1e1e;}
+.bl{bottom:24px;left:24px;border-bottom:1px solid #1e1e1e;border-left:1px solid #1e1e1e;}
+.br{bottom:24px;right:24px;border-bottom:1px solid #1e1e1e;border-right:1px solid #1e1e1e;}
+
+/* HUD labels */
+.hud-tl{position:fixed;top:28px;left:52px;font-size:8px;color:#1e1e1e;letter-spacing:3px;text-transform:uppercase;z-index:3;}
+.hud-tr{position:fixed;top:28px;right:52px;font-size:8px;color:#1e1e1e;letter-spacing:3px;text-transform:uppercase;z-index:3;text-align:right;}
+.hud-br{position:fixed;bottom:28px;right:52px;font-size:8px;color:#1e1e1e;letter-spacing:3px;text-transform:uppercase;z-index:3;}
+
+/* ── LOGO CI ── */
+.logo{
+  font-size:clamp(88px,22vw,180px);
+  font-weight:100;
+  letter-spacing:clamp(16px,4vw,36px);
+  line-height:1;
+  color:#fff;
+  opacity:0;
+  transform:translateY(24px);
+  animation:fadeUp 1.2s ease 0.2s forwards;
+}
+.tagline{
+  font-size:9px;
+  font-weight:400;
+  letter-spacing:8px;
+  color:#2e2e2e;
+  text-transform:uppercase;
+  margin-top:10px;
+  margin-bottom:56px;
+  opacity:0;
+  animation:fadeUp 1s ease 0.8s forwards;
+}
+
+/* ── SÉPARATEUR ── */
+.sep{
+  width:1px;height:40px;
+  background:linear-gradient(to bottom,transparent,#2a2a2a,transparent);
+  margin:0 auto 40px;
+  opacity:0;
+  animation:fadeUp 1s ease 1.1s forwards;
+}
+
+/* ── DESCRIPTION ── */
+.desc{
+  font-size:11px;
+  color:#3a3a3a;
+  letter-spacing:3px;
+  text-transform:uppercase;
+  line-height:2;
+  max-width:280px;
+  margin:0 auto 48px;
+  opacity:0;
+  animation:fadeUp 1s ease 1.4s forwards;
+}
+
+/* ── BOUTON PRINCIPAL ── */
+#btn-install{
+  display:block;
+  width:100%;
+  max-width:280px;
+  margin:0 auto 16px;
+  background:#fff;
+  border:none;
+  color:#000;
+  font-family:'Raleway',sans-serif;
+  font-size:10px;
+  font-weight:700;
+  letter-spacing:5px;
+  text-transform:uppercase;
+  padding:18px 32px;
+  cursor:pointer;
+  transition:opacity 0.2s;
+  opacity:0;
+  animation:fadeUp 1s ease 1.8s forwards;
+}
+#btn-install:hover{opacity:0.85;}
+#btn-install:disabled{opacity:0.3;cursor:not-allowed;}
+
+/* ── BOUTON SECONDAIRE ── */
+#btn-open{
+  display:none;
+  width:100%;
+  max-width:280px;
+  margin:0 auto 16px;
+  background:#fff;
+  border:none;
+  color:#000;
+  font-family:'Raleway',sans-serif;
+  font-size:10px;
+  font-weight:700;
+  letter-spacing:5px;
+  text-transform:uppercase;
+  padding:18px 32px;
+  cursor:pointer;
+  transition:opacity 0.2s;
+  text-decoration:none;
+  text-align:center;
+  opacity:0;
+  animation:fadeUp 1s ease 1.8s forwards;
+}
+#btn-open:hover{opacity:0.85;}
+
+#btn-skip{
+  background:none;
+  border:none;
+  color:#2a2a2a;
+  font-family:'Raleway',sans-serif;
+  font-size:8px;
+  letter-spacing:3px;
+  text-transform:uppercase;
+  cursor:pointer;
+  padding:8px;
+  opacity:0;
+  animation:fadeUp 1s ease 2.1s forwards;
+  transition:color 0.2s;
+  text-decoration:underline;
+}
+#btn-skip:hover{color:#555;}
+
+/* ── STATUS ── */
+#status{
+  margin-top:24px;
+  font-size:8px;
+  color:#2a2a2a;
+  letter-spacing:3px;
+  text-transform:uppercase;
+  min-height:16px;
+  opacity:0;
+  animation:fadeUp 1s ease 2s forwards;
+}
+
+/* ── iOS GUIDE ── */
+#ios-guide{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,0.97);z-index:9999;
+  align-items:center;justify-content:center;padding:24px;
+}
+#ios-guide.active{display:flex;}
+.ios-card{
+  background:#0a0a0a;border:1px solid #1e1e1e;border-radius:16px;
+  padding:32px 24px;max-width:300px;width:100%;text-align:center;
+}
+.ios-logo{font-size:36px;font-weight:100;letter-spacing:14px;color:#fff;font-family:'Raleway',sans-serif;margin-bottom:4px;}
+.ios-sub{font-size:8px;color:#333;letter-spacing:4px;text-transform:uppercase;margin-bottom:24px;}
+.ios-title{font-size:12px;font-weight:700;color:#fff;letter-spacing:3px;text-transform:uppercase;margin-bottom:8px;}
+.ios-desc{font-size:10px;color:#444;line-height:1.8;margin-bottom:24px;}
+.ios-steps{display:flex;flex-direction:column;gap:8px;margin-bottom:28px;text-align:left;}
+.ios-step{display:flex;align-items:center;gap:12px;background:#0d0d0d;border:1px solid #1a1a1a;border-radius:10px;padding:12px;}
+.ios-n{width:24px;height:24px;border-radius:50%;background:#fff;color:#000;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.ios-t{font-size:10px;color:#888;line-height:1.5;}
+.ios-t b{color:#fff;}
+.ios-btn{width:100%;background:#fff;border:none;color:#000;font-family:'Raleway',sans-serif;font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;padding:14px;cursor:pointer;border-radius:8px;margin-bottom:12px;}
+.ios-skip{background:none;border:none;color:#2a2a2a;font-family:'Raleway',sans-serif;font-size:8px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;text-decoration:underline;}
+
+/* ── ANIMATIONS ── */
+@keyframes fadeUp{
+  from{opacity:0;transform:translateY(16px);}
+  to{opacity:1;transform:translateY(0);}
+}
+</style>
+</head>
+<body>
+
+<canvas id="grain"></canvas>
+
+<!-- HUD -->
+<div class="corner tl"></div>
+<div class="corner tr"></div>
+<div class="corner bl"></div>
+<div class="corner br"></div>
+<div class="hud-tl">Cinéma Interactif</div>
+<div class="hud-tr" id="hud-time">--:--:--</div>
+<div class="hud-br">V 1.0</div>
+
+<!-- CONTENU PRINCIPAL -->
+<div class="wrap">
+  <div class="logo">CI</div>
+  <div class="tagline">Cinéma Interactif</div>
+  <div class="sep"></div>
+  <div class="desc">Une expérience narrative interactive en plein écran</div>
+
+  <!-- Bouton install Chrome/Android -->
+  <button id="btn-install" onclick="doInstall()">⬇ &nbsp; Installer l'application</button>
+
+  <!-- Bouton si déjà installé -->
+  <a id="btn-open" href="/app.html">▶ &nbsp; Ouvrir CI</a>
+
+  <!-- Bouton passer -->
+  <button id="btn-skip" onclick="goToApp()">Continuer dans le navigateur</button>
+
+  <div id="status"></div>
+</div>
+
+<!-- GUIDE iOS -->
+<div id="ios-guide">
+  <div class="ios-card">
+    <div class="ios-logo">CI</div>
+    <div class="ios-sub">Cinéma Interactif</div>
+    <div class="ios-title">Installer l'app</div>
+    <div class="ios-desc">Pour l'expérience plein écran, installe CI sur ton écran d'accueil.</div>
+    <div class="ios-steps">
+      <div class="ios-step">
+        <div class="ios-n">1</div>
+        <div class="ios-t">Appuie sur <b>Partager</b> ↑ en bas de Safari</div>
+      </div>
+      <div class="ios-step">
+        <div class="ios-n">2</div>
+        <div class="ios-t">Choisis <b>« Sur l'écran d'accueil »</b></div>
+      </div>
+      <div class="ios-step">
+        <div class="ios-n">3</div>
+        <div class="ios-t">Appuie <b>Ajouter</b> puis ouvre l'icône CI</div>
+      </div>
+    </div>
+    <button class="ios-btn" onclick="closeIOSGuide()">✓ &nbsp; Compris !</button>
+    <button class="ios-skip" onclick="closeIOSGuide()">Continuer sans installer</button>
+  </div>
+</div>
+
+<script>
+// ── HORLOGE ──
+var ht = document.getElementById('hud-time');
+function tick(){
+  var n=new Date();
+  ht.textContent = [n.getHours(),n.getMinutes(),n.getSeconds()]
+    .map(function(v){return String(v).padStart(2,'0');}).join(':');
+}
+tick(); setInterval(tick,1000);
+
+// ── GRAIN CANVAS ──
+(function(){
+  var c=document.getElementById('grain'),ctx=c.getContext('2d');
+  function resize(){ c.width=window.innerWidth; c.height=window.innerHeight; }
+  resize(); window.addEventListener('resize',resize);
+  function draw(){
+    var img=ctx.createImageData(c.width,c.height);
+    var d=img.data;
+    for(var i=0;i<d.length;i+=4){
+      var v=Math.random()*255|0;
+      d[i]=d[i+1]=d[i+2]=v; d[i+3]=255;
+    }
+    ctx.putImageData(img,0,0);
+    setTimeout(draw,80);
+  }
+  draw();
+})();
+
+// ── DÉTECTION ──
+var _prompt = null;
+var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1);
+var isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+
+var btnInstall = document.getElementById('btn-install');
+var btnOpen    = document.getElementById('btn-open');
+var btnSkip    = document.getElementById('btn-skip');
+var statusEl   = document.getElementById('status');
+
+// Si déjà installé → bouton "Ouvrir"
+if(isStandalone){
+  window.location.replace('/app.html');
+}
+
+// Chrome/Android — attendre le prompt
+window.addEventListener('beforeinstallprompt', function(e){
+  e.preventDefault();
+  _prompt = e;
+  btnInstall.disabled = false;
+  setStatus('Application prête à être installée');
+});
+
+// iOS — afficher le guide
+if(isIOS && !isStandalone){
+  btnInstall.textContent = '⬇ \u00a0 Installer sur iOS';
+  btnInstall.onclick = showIOSGuide;
+}
+
+// App déjà installée mais visitée depuis le navigateur
+window.addEventListener('appinstalled', function(){
+  setStatus('✓ Installation réussie — ouvre l\'icône CI');
+  btnInstall.style.display = 'none';
+  btnSkip.style.display = 'none';
+  btnOpen.style.display = 'block';
+});
+
+function doInstall(){
+  if(!_prompt){
+    // Chrome pas encore prêt ou pas supporté
+    setStatus('Essaie depuis Chrome sur Android');
+    return;
+  }
+  _prompt.prompt();
+  _prompt.userChoice.then(function(r){
+    if(r.outcome === 'accepted'){
+      setStatus('✓ Installation en cours...');
+      btnInstall.disabled = true;
+    } else {
+      setStatus('Installation annulée');
+    }
+    _prompt = null;
+  });
+}
+
+function goToApp(){
+  window.location.href = '/app.html';
+}
+
+function setStatus(msg){
+  statusEl.textContent = msg;
+}
+
+function showIOSGuide(){
+  document.getElementById('ios-guide').classList.add('active');
+}
+
+function closeIOSGuide(){
+  document.getElementById('ios-guide').classList.remove('active');
+}
+</script>
+</body>
+</html>
