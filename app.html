@@ -433,10 +433,10 @@ body.fs-mode #hero-nav-scroll-hint{ top:0; }
 /* HOTSPOTS — boutons transparents sur la vidéo */
 #hotspots-layer{position:absolute;inset:0;z-index:58;pointer-events:none;}
 .hotspot{position:absolute;transform:translate(-50%,-50%);pointer-events:auto;cursor:pointer;background:transparent;border:none;padding:0;outline:none;}
-.hotspot-circle{width:64px;height:64px;border-radius:50%;border:2px solid rgba(255,255,255,0);background:rgba(255,255,255,0);transition:border-color 0.3s,background 0.3s;display:flex;align-items:center;justify-content:center;}
-.hotspot:hover .hotspot-circle{border-color:rgba(255,255,255,0.6);background:rgba(255,255,255,0.1);}
-.hotspot-label{position:absolute;top:calc(100% + 8px);left:50%;transform:translateX(-50%);font-size:10px;color:rgba(255,255,255,0);letter-spacing:2px;text-transform:uppercase;white-space:nowrap;transition:color 0.3s;pointer-events:none;text-align:center;font-family:Arial,sans-serif;}
-.hotspot:hover .hotspot-label{color:rgba(255,255,255,0.8);}
+.hotspot-circle{width:64px;height:64px;border-radius:50%;border:2px solid rgba(255,255,255,0.5);background:rgba(255,255,255,0.08);transition:border-color 0.3s,background 0.3s;display:flex;align-items:center;justify-content:center;}
+.hotspot:hover .hotspot-circle{border-color:rgba(255,255,255,0.9);background:rgba(255,255,255,0.2);}
+.hotspot-label{position:absolute;top:calc(100% + 8px);left:50%;transform:translateX(-50%);font-size:10px;color:rgba(255,255,255,0.7);letter-spacing:2px;text-transform:uppercase;white-space:nowrap;transition:color 0.3s;pointer-events:none;text-align:center;font-family:Arial,sans-serif;text-shadow:0 1px 4px rgba(0,0,0,0.8);}
+.hotspot:hover .hotspot-label{color:#fff;}
 
 /* FIN */
 .ending-overlay{position:absolute;inset:0;background:rgba(0,0,0,0.75);z-index:58;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;}
@@ -2601,14 +2601,19 @@ function renderChoices(scene){
     btn.className='hotspot';
     btn.style.left=x+'%';
     btn.style.top=y+'%';
-    btn.style.opacity='0';
-    btn.style.pointerEvents='none';
     btn.style.transition='opacity 0.5s ease';
     btn.innerHTML='<div class="hotspot-circle"></div><div class="hotspot-label">'+choice.text+'</div>';
     btn.onclick=function(){clearCountdown();loadScene(choice.targetId);};
     btn.onmouseenter=function(){preloadScene(choice.targetId);};
     layer.appendChild(btn);
-    setTimeout(function(){ btn.style.opacity='1'; btn.style.pointerEvents='auto'; }, delay*1000);
+    if(delay <= 0){
+      btn.style.opacity='1';
+      btn.style.pointerEvents='auto';
+    } else {
+      btn.style.opacity='0';
+      btn.style.pointerEvents='none';
+      setTimeout(function(){ btn.style.opacity='1'; btn.style.pointerEvents='auto'; }, delay*1000);
+    }
   });
 }
 
