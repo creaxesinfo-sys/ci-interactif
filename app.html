@@ -16,6 +16,7 @@
 <link rel="preconnect" href="https://iframe.videodelivery.net" crossorigin>
 <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.7/dist/hls.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/tus-js-client@3.1.0/dist/tus.min.js"></script>
 <script>
 // ===== CONFIGURATION SUPABASE =====
 // Remplace les deux valeurs ci-dessous par tes clés Supabase
@@ -5109,62 +5110,110 @@ function sceneUploadDrop(e){
 function handleSceneFileUpload(input){
   if(input.files[0]) uploadSceneVideo(input.files[0]);
 }
-async function uploadSceneVideo(file){
-  // Pas de limite de taille — Cloudflare Stream gère jusqu'à 30Go
-  var zone=document.getElementById('scene-upload-zone');
-  var prog=document.getElementById('scene-upload-progress');
-  var bar=document.getElementById('scene-upload-bar');
-  var status=document.getElementById('scene-upload-status');
-  var icon=document.getElementById('scene-upload-icon');
-  var label=document.getElementById('scene-upload-label');
-  if(prog)prog.style.display='block';
-  if(icon)icon.textContent='⏳';
-  if(label)label.textContent='Upload — '+file.name;
-  if(zone)zone.style.cursor='default';
-  try {
-    if(status)status.textContent='Connexion à Cloudflare...';
-    const urlRes=await fetch('/api/upload-video',{method:'POST'});
-    const urlData=await urlRes.json();
-    if(!urlData.uploadURL)throw new Error('URL invalide');
-    if(status)status.textContent='Envoi...';
-    await new Promise(function(resolve,reject){
-      var xhr=new XMLHttpRequest();
-      xhr.open('POST',urlData.uploadURL);
-      xhr.upload.onprogress=function(e){
-        if(e.lengthComputable){
-          var pct=Math.round((e.loaded/e.total)*100);
-          if(bar)bar.style.width=pct+'%';
-          if(status)status.textContent='Upload '+pct+'%...';
-        }
-      };
-      xhr.onload=function(){if(xhr.status<400)resolve();else reject(new Error('Échec'));};
-      xhr.onerror=function(){reject(new Error('Erreur réseau'));};
-      var fd=new FormData(); fd.append('file',file); xhr.send(fd);
-    });
-    var uidInput=document.getElementById('f-uid');
-    if(uidInput){uidInput.value=urlData.uid; modalInitPlayer(urlData.uid);}
-    if(bar)bar.style.width='100%';
-    if(icon)icon.textContent='✓';
-    if(label)label.textContent='Vidéo uploadée !';
-    if(status)status.textContent='UID: '+urlData.uid;
-    if(zone)zone.style.borderColor='#4ade80';
-    showToast('Vidéo uploadée ✓ — UID sauvegardé dans le projet');
-    // Sauvegarder automatiquement l'UID dans la bibliothèque Supabase
-    if(currentUser){
-      supabaseClient.from('video_library').upsert({
-        user_id: currentUser.id,
-        uid: urlData.uid,
-        name: file.name || 'Vidéo sans titre',
-        hls_url: 'https://customer-911pgg1vlhryqb16.cloudflarestream.com/' + urlData.uid + '/manifest/video.m3u8',
-        created_at: new Date().toISOString()
-      }).then(function(){});
+
+// ===== UPLOAD TUS UNIVERSEL (Cloudflare Stream, illimité en taille) =====
+// TUS = protocole d'upload resumable. Upload direct navigateur → Cloudflare, pas via Vercel.
+// Gère les vidéos 4K, 15 minutes, plusieurs GB sans problème.
+
+function tusUpload(file, callbacks){
+  // callbacks: { onProgress(pct, bytesStr), onSuccess(uid), onError(msg) }
+  var fileSizeMB = (file.size / 1024 / 1024).toFixed(1);
+  
+  return fetch('/api/upload-video', {
+    method: 'POST',
+    headers: {
+      'Upload-Length': file.size,
+      'Upload-Metadata': 'name ' + btoa(encodeURIComponent(file.name).replace(/%([0-9A-F]{2})/g, function(m,p){ return String.fromCharCode('0x'+p); }))
     }
-  } catch(err){
-    if(icon)icon.textContent='✕';
-    if(label)label.textContent='Erreur: '+err.message;
-    if(zone){zone.style.borderColor='#c44';zone.style.cursor='pointer';}
-    showToast('Erreur upload: '+err.message);
-  }
+  })
+  .then(function(res){ return res.json(); })
+  .then(function(data){
+    if(!data.tusUrl || !data.uid) throw new Error('URL TUS invalide');
+    var uid = data.uid;
+
+    var upload = new tus.Upload(file, {
+      uploadUrl: data.tusUrl,
+      retryDelays: [0, 1000, 3000, 5000],
+      chunkSize: 50 * 1024 * 1024, // chunks de 50MB
+      metadata: { name: file.name, filetype: file.type },
+      onProgress: function(uploaded, total){
+        var pct = Math.round((uploaded / total) * 100);
+        var uploadedMB = (uploaded / 1024 / 1024).toFixed(1);
+        var totalMB    = (total    / 1024 / 1024).toFixed(1);
+        if(callbacks.onProgress) callbacks.onProgress(pct, uploadedMB + ' / ' + totalMB + ' MB');
+      },
+      onSuccess: function(){
+        if(callbacks.onSuccess) callbacks.onSuccess(uid);
+      },
+      onError: function(err){
+        if(callbacks.onError) callbacks.onError(err.message || 'Erreur réseau');
+      }
+    });
+    upload.start();
+    return upload;
+  })
+  .catch(function(err){
+    if(callbacks.onError) callbacks.onError(err.message);
+  });
+}
+
+// Format taille lisible
+function formatSize(bytes){
+  if(bytes < 1024*1024) return (bytes/1024).toFixed(0) + ' KB';
+  if(bytes < 1024*1024*1024) return (bytes/1024/1024).toFixed(1) + ' MB';
+  return (bytes/1024/1024/1024).toFixed(2) + ' GB';
+}
+
+async function uploadSceneVideo(file){
+  var zone   = document.getElementById('scene-upload-zone');
+  var prog   = document.getElementById('scene-upload-progress');
+  var bar    = document.getElementById('scene-upload-bar');
+  var status = document.getElementById('scene-upload-status');
+  var icon   = document.getElementById('scene-upload-icon');
+  var label  = document.getElementById('scene-upload-label');
+
+  if(prog)  prog.style.display  = 'block';
+  if(icon)  icon.textContent    = '⏳';
+  if(label) label.textContent   = file.name + ' — ' + formatSize(file.size);
+  if(zone)  zone.style.cursor   = 'default';
+  if(status)status.textContent  = 'Connexion à Cloudflare...';
+
+  tusUpload(file, {
+    onProgress: function(pct, sizeStr){
+      if(bar)    bar.style.width      = pct + '%';
+      if(status) status.textContent   = pct + '% — ' + sizeStr;
+      if(label)  label.textContent    = 'Upload en cours... ' + pct + '%';
+    },
+    onSuccess: function(uid){
+      if(bar)    bar.style.width      = '100%';
+      if(icon)   icon.textContent     = '✓';
+      if(label)  label.textContent    = 'Vidéo uploadée !';
+      if(status) status.textContent   = 'UID: ' + uid;
+      if(zone)   zone.style.borderColor = '#4ade80';
+
+      var uidInput = document.getElementById('f-uid');
+      if(uidInput){ uidInput.value = uid; modalInitPlayer(uid); }
+      showToast('✓ Vidéo uploadée — ' + formatSize(file.size));
+
+      // Ajouter à la banque vidéos
+      var video = {
+        uid: uid,
+        name: file.name.replace(/\.[^/.]+$/,''),
+        hls: 'https://customer-911pgg1vlhryqb16.cloudflarestream.com/'+uid+'/manifest/video.m3u8',
+        date: new Date().toISOString()
+      };
+      videoBank.unshift(video);
+      saveBankToStorage();
+      saveBankToSupabase(video);
+      renderSBBank();
+    },
+    onError: function(msg){
+      if(icon)  icon.textContent    = '✕';
+      if(label) label.textContent   = 'Erreur: ' + msg;
+      if(zone){  zone.style.borderColor='#c44'; zone.style.cursor='pointer'; }
+      showToast('Erreur upload: ' + msg);
+    }
+  });
 }
 
 // Update preview when UID changes
@@ -5290,43 +5339,54 @@ async function loadBankFromSupabase(){
   }
 }
 
-// Upload depuis la banque vers Cloudflare
-async function bankUploadFiles(files){
-  for(var i=0; i<files.length; i++){
-    await bankUploadOne(files[i]);
-  }
-  renderBanque();
-  renderSBBank();
+// Upload depuis la banque vers Cloudflare via TUS
+function bankUploadFiles(files){
+  Array.from(files).forEach(function(file){ bankUploadOne(file); });
 }
 
-async function bankUploadOne(file){
-  var statusEl = document.getElementById('banque-drop-zone');
-  if(statusEl) statusEl.style.opacity = '0.5';
-  try {
-    const urlRes = await fetch('/api/upload-video', { method:'POST' });
-    const urlData = await urlRes.json();
-    if(!urlData.uploadURL) throw new Error('URL invalide');
-    await new Promise(function(resolve, reject){
-      var xhr = new XMLHttpRequest();
-      xhr.open('POST', urlData.uploadURL);
-      xhr.onload = function(){ if(xhr.status<400) resolve(); else reject(); };
-      xhr.onerror = function(){ reject(); };
-      var fd = new FormData(); fd.append('file', file); xhr.send(fd);
-    });
-    var video = {
-      uid: urlData.uid,
-      name: file.name.replace(/\.[^/.]+$/,''),
-      hls: 'https://customer-911pgg1vlhryqb16.cloudflarestream.com/'+urlData.uid+'/manifest/video.m3u8',
-      date: new Date().toISOString()
-    };
-    videoBank.unshift(video);
-    saveBankToStorage();
-    saveBankToSupabase(video);
-    showToast('✓ ' + video.name + ' ajoutée à la banque');
-  } catch(e){
-    showToast('Erreur upload: ' + e.message);
-  }
-  if(statusEl) statusEl.style.opacity = '1';
+function bankUploadOne(file){
+  var dropZone = document.getElementById('banque-drop-zone');
+  var name = file.name.replace(/\.[^/.]+$/,'');
+
+  // Créer une carte de progression dans la grille
+  var grid = document.getElementById('banque-grid');
+  var progressCard = document.createElement('div');
+  progressCard.style.cssText = 'background:#111;border:1px solid #1a1a1a;padding:12px;';
+  progressCard.innerHTML =
+    '<div style="font-size:9px;color:#888;letter-spacing:2px;margin-bottom:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">⏳ '+name+'</div>'+
+    '<div style="font-size:8px;color:#444;margin-bottom:6px;" id="pc-size-'+Date.now()+'">'+formatSize(file.size)+' — En cours...</div>'+
+    '<div style="height:2px;background:#1a1a1a;"><div class="pc-bar" style="height:2px;background:#fff;width:0%;transition:width 0.3s;"></div></div>';
+  if(grid) grid.prepend(progressCard);
+
+  var barEl  = progressCard.querySelector('.pc-bar');
+  var sizeEl = progressCard.querySelector('[id^="pc-size"]');
+
+  tusUpload(file, {
+    onProgress: function(pct, sizeStr){
+      if(barEl)  barEl.style.width    = pct + '%';
+      if(sizeEl) sizeEl.textContent   = sizeStr + ' — ' + pct + '%';
+    },
+    onSuccess: function(uid){
+      var video = {
+        uid: uid,
+        name: name,
+        hls: 'https://customer-911pgg1vlhryqb16.cloudflarestream.com/'+uid+'/manifest/video.m3u8',
+        date: new Date().toISOString()
+      };
+      videoBank.unshift(video);
+      saveBankToStorage();
+      saveBankToSupabase(video);
+      showToast('✓ ' + name + ' ajoutée à la banque');
+      if(progressCard.parentNode) progressCard.parentNode.removeChild(progressCard);
+      renderBanque();
+      renderSBBank();
+    },
+    onError: function(msg){
+      if(sizeEl) sizeEl.textContent = '✕ Erreur: ' + msg;
+      if(barEl)  barEl.style.background = '#c44';
+      showToast('Erreur: ' + msg);
+    }
+  });
 }
 
 function banqueDrop(e){
