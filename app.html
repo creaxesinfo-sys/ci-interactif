@@ -10,10 +10,26 @@
 <meta name="theme-color" content="#000000">
 <link rel="manifest" href="/manifest.json">
 <title>CI — CINÉMA INTERACTIF</title>
-<link href="https://fonts.googleapis.com/css2?family=Raleway:wght@100&display=swap" rel="stylesheet">
-<link rel="dns-prefetch" href="//iframe.videodelivery.net">
+
+<!-- ===== PERFORMANCE : DNS + PRECONNECT ===== -->
+<!-- Cloudflare Stream CDN — connexion établie avant toute requête vidéo -->
+<link rel="preconnect" href="https://customer-911pgg1vlhryqb16.cloudflarestream.com" crossorigin>
+<link rel="dns-prefetch" href="//customer-911pgg1vlhryqb16.cloudflarestream.com">
+<link rel="preconnect" href="https://videodelivery.net" crossorigin>
 <link rel="dns-prefetch" href="//videodelivery.net">
 <link rel="preconnect" href="https://iframe.videodelivery.net" crossorigin>
+<link rel="dns-prefetch" href="//iframe.videodelivery.net">
+<!-- Supabase -->
+<link rel="preconnect" href="https://zrkikyubfqlerehsovii.supabase.co" crossorigin>
+<link rel="dns-prefetch" href="//zrkikyubfqlerehsovii.supabase.co">
+<!-- Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+<!-- ===== FONTS ===== -->
+<link href="https://fonts.googleapis.com/css2?family=Raleway:wght@100&display=swap" rel="stylesheet">
+
+<!-- ===== SCRIPTS (defer non-critique, sync critique) ===== -->
 <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.7/dist/hls.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/tus-js-client@3.1.0/dist/tus.min.js"></script>
@@ -639,12 +655,11 @@ video { outline:none; }
 </head>
 <body>
 
-<!-- FS-GATE : couvre tout quand pas en plein écran -->
-<div id="fs-gate" style="display:none;position:fixed;inset:0;background:#000;z-index:2147483647;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px;">
-  <div style="font-size:clamp(70px,16vw,150px);font-weight:100;letter-spacing:16px;color:#fff;font-family:'Raleway','Helvetica Neue',Helvetica,Arial,sans-serif;line-height:1;margin-bottom:8px;">CI</div>
-  <div style="font-size:9px;color:#333;letter-spacing:6px;text-transform:uppercase;margin-bottom:56px;">Cinéma Interactif</div>
-  <button onclick="enterFullscreen()" style="background:transparent;border:1px solid rgba(255,255,255,0.25);color:#fff;font-family:Arial,sans-serif;font-size:11px;letter-spacing:5px;text-transform:uppercase;padding:18px 52px;cursor:pointer;transition:border-color 0.3s;" onmouseover="this.style.borderColor='rgba(255,255,255,0.7)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.25)'">⛶ &nbsp; ENTRER EN PLEIN ÉCRAN</button>
-  <div style="margin-top:20px;font-size:9px;color:#222;letter-spacing:3px;text-transform:uppercase;">L'expérience complète requiert le mode plein écran</div>
+<!-- BOUTON RETOUR PLEIN ÉCRAN — flottant, discret, coin bas-droite -->
+<div id="fs-gate" style="display:none;position:fixed;bottom:24px;right:24px;z-index:2147483647;">
+  <button onclick="enterFullscreen()" style="background:rgba(0,0,0,0.75);border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.8);font-family:Arial,sans-serif;font-size:11px;letter-spacing:3px;text-transform:uppercase;padding:12px 20px;cursor:pointer;backdrop-filter:blur(8px);transition:all 0.2s;border-radius:4px;display:flex;align-items:center;gap:10px;" onmouseover="this.style.background='rgba(255,255,255,0.15)';this.style.borderColor='rgba(255,255,255,0.6)'" onmouseout="this.style.background='rgba(0,0,0,0.75)';this.style.borderColor='rgba(255,255,255,0.2)'">
+    <span style="font-size:16px;">⛶</span> Plein écran
+  </button>
 </div>
 
 <script>
@@ -665,7 +680,7 @@ function enterFullscreen(){
 function showFSGate(){
   var g = document.getElementById('fs-gate');
   if(!g) return;
-  g.style.display = 'flex';
+  g.style.display = 'block';
   g.style.opacity = '0';
   g.style.transition = 'opacity 0.5s ease';
   requestAnimationFrame(function(){ g.style.opacity = '1'; });
@@ -1575,11 +1590,9 @@ function showRotateNudge(){
           <div class="countdown-number" id="countdown-num">10</div>
           <div class="countdown-bar-wrap"><div class="countdown-bar" id="countdown-bar"></div></div>
         </div>
-        <!-- Bouton plein écran flottant — apparaît au mousemove -->
-        <div id="fs-btn-overlay" style="position:absolute;bottom:24px;right:24px;z-index:70;opacity:0;transition:opacity 0.3s;pointer-events:none;">
-          <button id="fs-toggle-btn" onclick="toggleFullscreen()" style="background:rgba(0,0,0,0.7);border:1px solid rgba(255,255,255,0.25);color:#fff;font-family:Arial,sans-serif;font-size:11px;letter-spacing:3px;padding:10px 18px;cursor:pointer;text-transform:uppercase;backdrop-filter:blur(4px);transition:all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.15)'" onmouseout="this.style.background='rgba(0,0,0,0.7)'">
-            ⛶ QUITTER PLEIN ÉCRAN
-          </button>
+        <!-- Bouton plein écran flottant — retiré, géré par fs-gate externe -->
+        <div id="fs-btn-overlay" style="display:none;">
+          <button id="fs-toggle-btn"></button>
         </div>
       </div>
     </div>
@@ -1644,16 +1657,14 @@ function showRotateNudge(){
 
   <!-- ONGLET STORYBOARD -->
   <div id="atab-content-storyboard" class="admin-tab-content" style="display:block;">
-    <!-- Layout splitté : banque à gauche, storyboard à droite -->
     <div style="display:flex;height:calc(100vh - 91px);">
 
-      <!-- PANNEAU BANQUE VIDÉOS (latéral) -->
+      <!-- BANQUE VIDÉOS LATÉRALE -->
       <div id="sb-bank-panel" style="width:220px;flex-shrink:0;border-right:1px solid #1a1a1a;background:#080808;display:flex;flex-direction:column;overflow:hidden;">
         <div style="padding:12px 14px;border-bottom:1px solid #1a1a1a;font-size:8px;color:#444;letter-spacing:3px;text-transform:uppercase;display:flex;align-items:center;justify-content:space-between;">
-          <span>Banque Vidéos</span>
+          <span>Ma Banque Vidéos</span>
           <span id="sb-bank-count" style="color:#333;">0</span>
         </div>
-        <!-- Zone drop rapide -->
         <div id="sb-bank-drop" style="margin:10px;border:1px dashed #1e1e1e;padding:10px;text-align:center;cursor:pointer;transition:all 0.2s;font-size:8px;color:#333;letter-spacing:2px;text-transform:uppercase;"
           ondragover="event.preventDefault();this.style.borderColor='#555';this.style.color='#888';"
           ondragleave="this.style.borderColor='#1e1e1e';this.style.color='#333';"
@@ -1662,31 +1673,57 @@ function showRotateNudge(){
           ⬆ Déposer vidéos
         </div>
         <input type="file" id="bank-file-input" accept="video/*" multiple style="display:none" onchange="bankUploadFiles(this.files)">
-        <!-- Liste des vidéos -->
         <div id="sb-bank-list" style="flex:1;overflow-y:auto;padding:0 8px 8px;"></div>
       </div>
 
-      <!-- STORYBOARD (droite) -->
-      <div style="flex:1;overflow:auto;display:flex;flex-direction:column;">
-        <!-- Écran vierge -->
-        <div id="sb-empty-screen" style="display:none;min-height:80vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px;">
-          <div style="font-size:clamp(28px,5vw,52px);font-weight:700;color:#fff;letter-spacing:6px;text-transform:uppercase;margin-bottom:8px;">NOUVEAU FILM</div>
-          <div style="font-size:12px;color:#444;letter-spacing:2px;margin-bottom:60px;">Glisse ton lien HLS pour commencer</div>
+      <!-- ZONE PRINCIPALE -->
+      <div style="flex:1;overflow:auto;display:flex;flex-direction:column;position:relative;">
+
+        <!-- BARRE PROJET (visible quand projet ouvert) -->
+        <div id="sb-project-bar" style="display:none;background:#0d0d0d;border-bottom:1px solid #1a1a1a;padding:10px 20px;align-items:center;justify-content:space-between;gap:12px;flex-shrink:0;">
+          <div style="display:flex;align-items:center;gap:12px;min-width:0;">
+            <span style="font-size:8px;color:#333;letter-spacing:3px;text-transform:uppercase;flex-shrink:0;">Projet ouvert</span>
+            <span id="sb-current-proj-name" style="font-size:12px;color:#fff;font-weight:700;letter-spacing:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></span>
+            <span id="sb-save-status" style="font-size:8px;color:#555;letter-spacing:2px;text-transform:uppercase;flex-shrink:0;"></span>
+          </div>
+          <div style="display:flex;gap:8px;flex-shrink:0;">
+            <button id="sb-save-btn" onclick="sbSaveProject()" style="background:#fff;border:none;color:#000;font-family:Arial,sans-serif;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;padding:8px 18px;cursor:pointer;transition:opacity 0.15s;">💾 ENREGISTRER</button>
+            <button onclick="sbCloseProject()" style="background:none;border:1px solid #2a2a2a;color:#444;font-family:Arial,sans-serif;font-size:9px;letter-spacing:2px;text-transform:uppercase;padding:8px 12px;cursor:pointer;transition:all 0.15s;" onmouseover="this.style.color='#fff';this.style.borderColor='#fff'" onmouseout="this.style.color='#444';this.style.borderColor='#2a2a2a'">✕ FERMER</button>
+          </div>
+        </div>
+
+        <!-- PAGE D'ACCUEIL STORYBOARD (aucun projet ouvert) -->
+        <div id="sb-home-screen" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px;gap:36px;text-align:center;">
+          <div>
+            <div style="font-size:clamp(32px,6vw,56px);font-weight:700;color:#fff;letter-spacing:8px;text-transform:uppercase;margin-bottom:10px;">STORYBOARD</div>
+            <div style="font-size:10px;color:#333;letter-spacing:4px;text-transform:uppercase;">Ouvre un projet existant ou crée-en un nouveau</div>
+          </div>
+          <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;">
+            <button onclick="sbNewProject()" style="background:#fff;border:none;color:#000;font-family:Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:5px;text-transform:uppercase;padding:18px 36px;cursor:pointer;transition:opacity 0.2s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">+ NOUVEAU PROJET</button>
+            <button onclick="switchAdminTab('projets',document.getElementById('atab-projets'))" style="background:none;border:1px solid #2a2a2a;color:#666;font-family:Arial,sans-serif;font-size:10px;letter-spacing:5px;text-transform:uppercase;padding:18px 36px;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.borderColor='#fff';this.style.color='#fff'" onmouseout="this.style.borderColor='#2a2a2a';this.style.color='#666'">📁 MES PROJETS</button>
+          </div>
+        </div>
+
+        <!-- NOUVEAU PROJET — première scène -->
+        <div id="sb-empty-screen" style="display:none;flex:1;flex-direction:column;align-items:center;justify-content:center;padding:40px;">
+          <div style="font-size:clamp(24px,4vw,40px);font-weight:700;color:#fff;letter-spacing:6px;text-transform:uppercase;margin-bottom:8px;" id="sb-new-proj-title">NOUVEAU PROJET</div>
+          <div style="font-size:11px;color:#444;letter-spacing:2px;margin-bottom:40px;">Glisse une vidéo de la banque ou colle un lien HLS</div>
           <div id="sb-drop-zone"
-            style="width:100%;max-width:560px;aspect-ratio:16/9;border:1px dashed #2a2a2a;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;cursor:pointer;transition:all 0.2s;position:relative;background:#0d0d0d;"
+            style="width:100%;max-width:520px;aspect-ratio:16/9;border:1px dashed #2a2a2a;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;cursor:pointer;transition:all 0.2s;background:#0d0d0d;"
             ondragover="sbDragOver(event)" ondragleave="sbDragLeave(event)" ondrop="sbDrop(event)"
             onclick="document.getElementById('sb-url-input').focus()">
             <div id="sb-drop-icon" style="font-size:36px;opacity:0.2;">🎬</div>
-            <div style="font-size:10px;color:#333;letter-spacing:3px;text-transform:uppercase;">Glisse ton URL HLS ici</div>
-            <div style="font-size:9px;color:#222;letter-spacing:2px;">— ou —</div>
+            <div style="font-size:9px;color:#333;letter-spacing:3px;text-transform:uppercase;">Glisse une vidéo de la banque</div>
+            <div style="font-size:9px;color:#222;letter-spacing:2px;">— ou colle un lien HLS —</div>
             <input id="sb-url-input" type="text" placeholder="https://customer-xxx.cloudflarestream.com/.../manifest/video.m3u8"
               style="background:#111;border:1px solid #2a2a2a;color:#888;font-family:Arial,sans-serif;font-size:11px;padding:10px 14px;width:80%;outline:none;text-align:center;"
               onkeydown="if(event.key==='Enter') sbCreateFirstScene()">
             <button onclick="sbCreateFirstScene()" style="background:#fff;border:none;color:#000;font-family:Arial,sans-serif;font-size:10px;letter-spacing:3px;padding:12px 28px;cursor:pointer;text-transform:uppercase;font-weight:700;">CRÉER LA PREMIÈRE SCÈNE</button>
           </div>
         </div>
-        <!-- Storyboard -->
-        <div id="storyboard-wrap" style="padding:32px;overflow-x:auto;min-height:60vh;"></div>
+
+        <!-- ARBRE STORYBOARD -->
+        <div id="storyboard-wrap" style="padding:32px;overflow-x:auto;min-height:60vh;display:none;"></div>
       </div>
     </div>
   </div>
@@ -1713,21 +1750,14 @@ function showRotateNudge(){
     </div>
   </div>
 
-  <!-- ONGLET PROJETS ENREGISTRÉS -->
+  <!-- ONGLET PROJETS -->
   <div id="atab-content-projets" class="admin-tab-content" style="display:none;">
     <div class="admin-body">
-      <div class="admin-section">
-        <div class="admin-section-title">Projets enregistrés</div>
-        <div style="background:#111;border:1px solid #2e2e2e;padding:20px;margin-bottom:20px;">
-          <div style="font-size:11px;color:#555;line-height:2;margin-bottom:20px;">Enregistre ton projet en cours pour ne pas perdre tes URLs Cloudflare. Tu pourras y revenir même après déconnexion.</div>
-          <div class="field" style="margin-bottom:12px;">
-            <label style="font-size:9px;color:#555;letter-spacing:3px;text-transform:uppercase;display:block;margin-bottom:8px;">Nom du projet</label>
-            <input type="text" id="proj-name-input" placeholder="Ex: Mon Film Interactif" style="background:#1a1a1a;border:1px solid #2a2a2a;color:#e8e8e8;font-family:Arial,sans-serif;font-size:13px;padding:10px 14px;width:100%;outline:none;">
-          </div>
-          <button onclick="saveCurrentProject()" style="background:#fff;border:none;color:#000;font-family:Arial,sans-serif;font-size:10px;letter-spacing:3px;padding:12px 28px;cursor:pointer;text-transform:uppercase;font-weight:700;transition:opacity 0.2s;">💾 ENREGISTRER LE PROJET ACTUEL</button>
-        </div>
-        <div id="projets-list" style="display:grid;gap:12px;"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+        <div class="admin-section-title" style="margin-bottom:0;">Mes Projets</div>
+        <button onclick="switchAdminTab('storyboard',document.getElementById('atab-storyboard'));sbNewProject();" style="background:#fff;border:none;color:#000;font-family:Arial,sans-serif;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;padding:10px 20px;cursor:pointer;">+ NOUVEAU PROJET</button>
       </div>
+      <div id="projets-list" style="display:grid;gap:12px;"></div>
     </div>
   </div>
 
@@ -2150,6 +2180,11 @@ var countdownInterval = null;
 var sceneHistory = [];
 var choiceRows = [];
 
+// Projet courant en cours d'édition dans le storyboard
+var currentProjectId   = null;   // ID Supabase du projet ouvert
+var currentProjectName = '';      // Nom du projet
+var sbHasUnsavedChanges = false;  // Modifications non enregistrées
+
 function defaultScenes(){
   return [
     {id:1,title:"Scène 1",description:"",uid:"",type:"start",timer:0,choices:[]}
@@ -2200,23 +2235,35 @@ function goHome(){
   clearPreloadCache();
   sceneHistory = [];
 
-  // 1. Quitter le plein écran du player immédiatement
+  // 1. Stopper et détruire toutes les vidéos du player
+  var zone = document.getElementById('video-zone');
+  if(zone){
+    zone.querySelectorAll('video').forEach(function(v){
+      v.pause();
+      v.src = '';
+      if(v._hls){ v._hls.destroy(); v._hls = null; }
+    });
+    zone.querySelectorAll('iframe').forEach(function(f){ f.src = ''; });
+  }
+  muteAllVideos();
+
+  // 2. Quitter le plein écran
   try {
     if(document.fullscreenElement && document.exitFullscreen) document.exitFullscreen();
     else if(document.webkitFullscreenElement && document.webkitExitFullscreen) document.webkitExitFullscreen();
     else if(document.mozFullScreenElement && document.mozCancelFullScreen) document.mozCancelFullScreen();
   } catch(e){}
 
-  // 2. Forcer l'état hors-fullscreen dans le DOM sans attendre l'event async
+  // 3. Forcer hors-fullscreen
   document.body.classList.remove('fs-mode');
   document.body.style.overflow = '';
 
-  // 3. Afficher hero, masquer player
+  // 4. Masquer player
   document.getElementById('hero-section').style.display = '';
   document.getElementById('player-section').style.display = 'none';
-  document.body.classList.add('on-hero');
+  document.body.classList.remove('on-hero');
 
-  // 4. Forcer la nav principale visible avec tous ses onglets — sans transition
+  // 5. Nav visible
   var nav = document.getElementById('main-nav');
   if(nav){
     nav.style.transition = 'none';
@@ -2224,12 +2271,20 @@ function goHome(){
     nav.style.opacity = '1';
     nav.style.paddingTop = '';
     nav.style.height = '';
-    // Réactiver la transition au prochain frame
     requestAnimationFrame(function(){ nav.style.transition = ''; });
   }
 
-  navTo('film', document.getElementById('nav-film'));
-  updateInfoGrid();
+  // 6. Retourner au panneau réalisateur (admin) si connecté, sinon hero
+  if(currentUser && currentProfile){
+    navTo('admin', document.getElementById('nav-admin'));
+    // Ouvrir directement l'onglet storyboard
+    setTimeout(function(){
+      switchAdminTab('storyboard', document.getElementById('atab-storyboard'));
+    }, 50);
+  } else {
+    navTo('film', document.getElementById('nav-film'));
+    updateInfoGrid();
+  }
 }
 
 function showPlayer(){
@@ -2245,7 +2300,8 @@ function startFilm(){
   sceneHistory=[];
   showPlayer();
   loadScene(start.id);
-  // Plein écran sur documentElement — fonctionne sur Android/Desktop
+  // Précharger toutes les scènes en arrière-plan dès le début
+  setTimeout(preloadAllScenes, 2000);
   if(!isIOS()){
     try {
       var el=document.documentElement;
@@ -2253,7 +2309,6 @@ function startFilm(){
       else if(el.webkitRequestFullscreen) el.webkitRequestFullscreen();
     } catch(e){}
   }
-  // Déverrouiller la rotation (Chrome PWA la verrouille en portrait via manifest)
   try {
     if(screen.orientation && screen.orientation.unlock) screen.orientation.unlock();
   } catch(e){}
@@ -2265,6 +2320,7 @@ function previewFilm(){
   sceneHistory=[];
   showPlayer();
   loadScene(start.id);
+  setTimeout(preloadAllScenes, 2000);
   if(!isIOS()){
     try {
       var el=document.documentElement;
@@ -2294,24 +2350,69 @@ function makeHLSUrl(uid){
 function attachHLS(vid, uid, opts){
   opts = opts || {};
   var src = makeHLSUrl(uid);
+  var isLow = !!opts.lowQuality;
+
   if(window.Hls && Hls.isSupported()){
     var hls = new Hls({
-      maxMaxBufferLength: 60,
-      capLevelToPlayerSize: false,
-      startLevel: opts.lowQuality ? 0 : -1,
-      maxBufferSize: 60 * 1000 * 1000
+      // Qualite
+      startLevel:                isLow ? 0 : -1,
+      capLevelToPlayerSize:      false,
+      maxAutoLevel:              -1,
+      // Buffer agressif
+      maxBufferLength:           isLow ? 10  : 60,
+      maxMaxBufferLength:        isLow ? 20  : 180,
+      maxBufferSize:             isLow ? 20*1024*1024 : 400*1024*1024,
+      highBufferWatchdogPeriod:  2,
+      // Estimation bande passante — supposer 100Mbps, viser 4K direct
+      abrEwmaDefaultEstimate:    isLow ? 1000000 : 100000000,
+      abrEwmaFastLive:           3,
+      abrEwmaSlowLive:           9,
+      abrBandWidthFactor:        0.95,
+      abrBandWidthUpFactor:      0.95,
+      // Fetch
+      progressive:               true,
+      lowLatencyMode:            false,
+      testBandwidth:             true,
+      fragLoadingTimeOut:        20000,
+      manifestLoadingTimeOut:    10000,
+      levelLoadingTimeOut:       10000,
+      fragLoadingMaxRetry:       6,
+      manifestLoadingMaxRetry:   4,
+      levelLoadingMaxRetry:      4,
+      fragLoadingRetryDelay:     500,
     });
     hls.loadSource(src);
     hls.attachMedia(vid);
     hls.on(Hls.Events.MANIFEST_PARSED, function(){
-      if(!opts.lowQuality) hls.currentLevel = hls.levels.length - 1;
+      if(!isLow){
+        var maxLevel = hls.levels.length - 1;
+        hls.currentLevel = maxLevel;
+        hls.loadLevel    = maxLevel;
+        hls.nextLevel    = maxLevel;
+      }
       if(opts.autoplay !== false) vid.play().catch(function(){});
+    });
+    hls.on(Hls.Events.FRAG_BUFFERED, function(){
+      if(vid.paused && opts.autoplay !== false && vid.readyState >= 2){
+        vid.play().catch(function(){});
+      }
+    });
+    hls.on(Hls.Events.LEVEL_SWITCHED, function(e, data){
+      if(!isLow && data.level < hls.levels.length - 1){
+        setTimeout(function(){
+          if(hls.currentLevel < hls.levels.length - 1){
+            hls.currentLevel = hls.levels.length - 1;
+          }
+        }, 3000);
+      }
     });
     vid._hls = hls;
   } else if(vid.canPlayType('application/vnd.apple.mpegurl')){
     vid.src = src;
+    vid.preload = 'auto';
     if(opts.autoplay !== false){
-      vid.addEventListener('loadedmetadata', function(){ vid.play().catch(function(){}); });
+      vid.addEventListener('loadedmetadata', function(){ vid.play().catch(function(){}); }, {once:true});
+      vid.addEventListener('canplaythrough',  function(){ vid.play().catch(function(){}); }, {once:true});
     }
   }
 }
@@ -2337,28 +2438,36 @@ function preloadScene(id){
   var uid = scene.uid.trim();
   if(preloadCache[uid]) return;
 
-  // Preload via video element silencieux
   var vid = document.createElement('video');
-  vid.muted = true;
+  vid.muted   = true;
   vid.preload = 'auto';
-  vid.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;';
+  vid.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;pointer-events:none;';
+  // Précharger en haute qualité — on veut une lecture instantanée
   attachHLS(vid, uid, { autoplay: false, muted: true, lowQuality: false, controls: false });
   document.body.appendChild(vid);
   preloadCache[uid] = vid;
+}
 
-  var ind = document.getElementById('preload-indicator');
-  if(ind){ ind.textContent = '⬇ CHARGEMENT ANTICIPÉ'; ind.style.color = '#333'; }
-  setTimeout(function(){ if(ind) ind.style.color = '#1a1a1a'; }, 3000);
+// Précharger TOUTES les scènes du projet en arrière-plan
+function preloadAllScenes(){
+  if(!scenes || !scenes.length) return;
+  // Étaler le préchargement pour ne pas saturer la bande passante
+  scenes.forEach(function(scene, i){
+    if(scene.uid && scene.uid.trim()){
+      setTimeout(function(){ preloadScene(scene.id); }, i * 800);
+    }
+  });
 }
 
 function preloadNextScenes(scene){
   if(!scene || !scene.choices) return;
+  // Précharger les scènes suivantes immédiatement
   scene.choices.forEach(function(choice){
     preloadScene(choice.targetId);
     var next = scenes.find(function(s){ return s.id === choice.targetId; });
     if(next && next.choices){
       next.choices.forEach(function(c2){
-        setTimeout(function(){ preloadScene(c2.targetId); }, 2000);
+        setTimeout(function(){ preloadScene(c2.targetId); }, 500);
       });
     }
   });
@@ -3155,19 +3264,38 @@ function switchAdminTab(tab, btn){
 
 // ===== STORYBOARD =====
 function renderStoryboard(){
-  var wrap = document.getElementById('storyboard-wrap');
+  var homeScreen  = document.getElementById('sb-home-screen');
   var emptyScreen = document.getElementById('sb-empty-screen');
-  if(!wrap || !emptyScreen) return;
+  var wrap        = document.getElementById('storyboard-wrap');
+  var projectBar  = document.getElementById('sb-project-bar');
+  if(!wrap) return;
 
-  if(!scenes.length){
-    // Écran vierge
+  // Aucun projet ouvert → page d'accueil
+  if(!currentProjectId && !currentProjectName){
+    if(homeScreen)  homeScreen.style.display  = 'flex';
+    if(emptyScreen) emptyScreen.style.display = 'none';
     wrap.style.display = 'none';
-    emptyScreen.style.display = 'flex';
+    if(projectBar) projectBar.style.display = 'none';
     return;
   }
 
-  // Storyboard arbre
-  emptyScreen.style.display = 'none';
+  // Projet ouvert → afficher la barre projet
+  if(projectBar){
+    projectBar.style.display = 'flex';
+    var nameEl = document.getElementById('sb-current-proj-name');
+    if(nameEl) nameEl.textContent = currentProjectName;
+  }
+  if(homeScreen) homeScreen.style.display = 'none';
+
+  // Pas encore de scènes → écran vierge (première scène)
+  if(!scenes.length || (scenes.length === 1 && !scenes[0].uid)){
+    emptyScreen.style.display = 'flex';
+    wrap.style.display = 'none';
+    return;
+  }
+
+  // Scènes présentes → arbre storyboard
+  if(emptyScreen) emptyScreen.style.display = 'none';
   wrap.style.display = 'block';
   wrap.innerHTML = '';
 
@@ -3195,7 +3323,6 @@ function renderStoryboard(){
     if(nextLevel.length) queue.push(nextLevel);
   }
 
-  // Scènes non connectées
   var unvisited = scenes.filter(function(s){ return !visited[s.id]; });
   if(unvisited.length) levels.push(unvisited);
 
@@ -4061,8 +4188,8 @@ async function publishFilm(){
   if(error){ showToast('Erreur : ' + error.message); return; }
 
   document.getElementById('pub-result').style.display = 'block';
-  document.getElementById('pub-link').textContent = 'Film sauvegardé — en attente de mise en ligne par l\'admin';
-  showToast('Film sauvegardé dans vos créations ✓');
+  document.getElementById('pub-link').textContent = 'Film soumis ✓ — en attente de validation par l\'administrateur avant publication dans Nos Créations';
+  showToast('Film soumis — en attente de validation admin ✓');
   renderCreations();
 }
 
@@ -4272,6 +4399,8 @@ async function initAuth(){
       showAdminTabIfAdmin();
       showMessagingIfLoggedIn();
       loadBankFromSupabase();
+      startAutosave();
+      setTimeout(checkProjectRestore, 800);
       showToast('Bienvenue ' + (currentProfile?.nom || '') + ' !');
       navTo('film', document.getElementById('nav-film'));
       if(currentProfile && !currentProfile.ai_configured){
@@ -4279,6 +4408,9 @@ async function initAuth(){
       }
     } else if(event === 'SIGNED_OUT'){
       currentUser = null; currentProfile = null;
+      stopAutosave();
+      currentProjectId = null; currentProjectName = ''; sbHasUnsavedChanges = false;
+      localStorage.removeItem('ci_current_project');
       updateNavProfil();
       var navMembres = document.getElementById('nav-membres');
       var navAdmin = document.getElementById('nav-admin');
@@ -5513,103 +5645,228 @@ function bankApplyToScene(uid, name){
 }
 
 // ===== PROJETS ENREGISTRÉS =====
-async function saveCurrentProject(){
-  if(!currentUser){ showToast('Connecte-toi pour enregistrer un projet'); return; }
-  var nameInput = document.getElementById('proj-name-input');
-  var name = nameInput ? nameInput.value.trim() : '';
-  if(!name){ showToast('Donne un nom à ton projet'); return; }
+// ===== GESTION PROJETS =====
 
-  // Collecter toutes les URLs des vidéos du projet
+// Ouvrir un nouveau projet vierge dans le storyboard
+function sbNewProject(){
+  var name = prompt('Nom du nouveau projet :');
+  if(!name || !name.trim()) return;
+  currentProjectId   = null;
+  currentProjectName = name.trim();
+  sbHasUnsavedChanges = true;
+  scenes = defaultScenes();
+  save();
+  switchAdminTab('storyboard', document.getElementById('atab-storyboard'));
+  renderStoryboard();
+  startAutosave();
+  showToast('Nouveau projet "' + currentProjectName + '" créé');
+}
+
+// Fermer le projet ouvert sans sauvegarder
+function sbCloseProject(){
+  if(sbHasUnsavedChanges){
+    if(!confirm('Fermer sans enregistrer ? Les modifications seront perdues.')) return;
+  }
+  currentProjectId    = null;
+  currentProjectName  = '';
+  sbHasUnsavedChanges = false;
+  scenes = defaultScenes();
+  _origSave();
+  localStorage.removeItem('ci_current_project');
+  stopAutosave();
+  renderStoryboard();
+}
+
+// Enregistrer le projet depuis le storyboard
+async function sbSaveProject(){
+  if(!currentUser){ showToast('Connecte-toi pour enregistrer'); return; }
+  if(!currentProjectName){ showToast('Projet sans nom'); return; }
+
+  var btn      = document.getElementById('sb-save-btn');
+  var statusEl = document.getElementById('sb-save-status');
+  if(btn){ btn.textContent = '...'; btn.disabled = true; }
+  if(statusEl) statusEl.textContent = 'Enregistrement...';
+
   var videoURLs = scenes.filter(function(s){ return s.uid && s.uid.trim(); }).map(function(s){
     return { sceneId: s.id, sceneTitle: s.title, uid: s.uid.trim(), hls: makeHLSUrl(s.uid.trim()) };
   });
 
   var projet = {
-    user_id: currentUser.id,
-    name: name,
-    scenes: scenes,
-    video_urls: videoURLs,
+    user_id:     currentUser.id,
+    name:        currentProjectName,
+    scenes:      scenes,
+    video_urls:  videoURLs,
     scene_count: scenes.length,
     video_count: videoURLs.length,
-    saved_at: new Date().toISOString()
+    saved_at:    new Date().toISOString(),
+    published:   false
   };
 
-  var btn = document.querySelector('[onclick="saveCurrentProject()"]');
-  if(btn){ btn.textContent = 'Enregistrement...'; btn.disabled = true; }
+  // Si projet existant → mettre à jour par ID
+  if(currentProjectId){
+    projet.id = currentProjectId;
+  }
 
   try {
-    const { error } = await supabaseClient.from('projets').upsert(projet, { onConflict: 'user_id,name' });
+    const { data, error } = await supabaseClient
+      .from('projets')
+      .upsert(projet, { onConflict: currentProjectId ? 'id' : 'user_id,name' })
+      .select().single();
     if(error) throw error;
-    showToast('Projet "' + name + '" enregistré ✓');
-    renderProjets();
+    if(data) currentProjectId = data.id;
+    sbHasUnsavedChanges = false;
+
+    // Sauvegarder l'état du projet courant en localStorage (récupération)
+    localStorage.setItem('ci_current_project', JSON.stringify({
+      id: currentProjectId, name: currentProjectName
+    }));
+
+    if(statusEl){ statusEl.textContent = 'Enregistré ✓'; statusEl.style.color='#4ade80'; }
+    setTimeout(function(){ if(statusEl){ statusEl.textContent=''; statusEl.style.color=''; } }, 3000);
+    showToast('✓ Projet "' + currentProjectName + '" enregistré');
   } catch(err){
     showToast('Erreur: ' + err.message);
+    if(statusEl){ statusEl.textContent = '✕ Erreur'; statusEl.style.color='#c44'; }
+    setTimeout(function(){ if(statusEl){ statusEl.textContent=''; statusEl.style.color=''; } }, 3000);
   }
-  if(btn){ btn.textContent = '💾 ENREGISTRER LE PROJET ACTUEL'; btn.disabled = false; }
+  if(btn){ btn.textContent = '💾 ENREGISTRER'; btn.disabled = false; }
 }
 
+// ── AUTOSAVE toutes les 60s si projet ouvert et modifié ──
+var _autosaveTimer = null;
+function startAutosave(){
+  stopAutosave();
+  _autosaveTimer = setInterval(function(){
+    if(currentProjectId && sbHasUnsavedChanges && currentUser){
+      var statusEl = document.getElementById('sb-save-status');
+      if(statusEl) statusEl.textContent = '⟳ Sauvegarde auto...';
+      sbSaveProject();
+    }
+  }, 60000); // 60 secondes
+}
+function stopAutosave(){ if(_autosaveTimer){ clearInterval(_autosaveTimer); _autosaveTimer = null; } }
+
+// ── PROTECTION QUITTER PAGE ──
+window.addEventListener('beforeunload', function(e){
+  if(sbHasUnsavedChanges && currentProjectName){
+    e.preventDefault();
+    e.returnValue = 'Tu as des modifications non enregistrées dans "' + currentProjectName + '". Quitter quand même ?';
+    return e.returnValue;
+  }
+});
+
+// ── RÉCUPÉRATION AU RECHARGEMENT ──
+// Si l'utilisateur recharge la page avec un projet ouvert, proposer de le rouvrir
+(function(){
+  var saved = localStorage.getItem('ci_current_project');
+  if(!saved) return;
+  try {
+    var proj = JSON.parse(saved);
+    if(proj && proj.id && proj.name){
+      // Mémoriser pour proposer après le login
+      window._pendingProjectRestore = proj;
+    }
+  } catch(e){}
+})();
+
+// Appelé après le login — proposer de restaurer le projet
+function checkProjectRestore(){
+  if(!window._pendingProjectRestore || !currentUser) return;
+  var proj = window._pendingProjectRestore;
+  window._pendingProjectRestore = null;
+  // Charger automatiquement sans demander (le user venait de travailler dessus)
+  loadProject(proj.id);
+}
+
+// ── HOOK SUR save() — marquer non-sauvegardé sans double-wrapping ──
+var _origSave = save;
+save = function(){
+  _origSave();
+  if(currentProjectName){
+    sbHasUnsavedChanges = true;
+    var statusEl = document.getElementById('sb-save-status');
+    if(statusEl){ statusEl.textContent = '● non enregistré'; statusEl.style.color = '#888'; }
+  }
+};
+
+// Charger un projet depuis l'onglet Projets → ouvre dans Storyboard
+async function loadProject(projId){
+  const { data: proj, error } = await supabaseClient.from('projets').select('*').eq('id', projId).single();
+  if(error || !proj){ showToast('Erreur lors du chargement'); return; }
+
+  currentProjectId    = proj.id;
+  currentProjectName  = proj.name;
+  sbHasUnsavedChanges = false;
+  scenes = proj.scenes || defaultScenes();
+  _origSave(); // sauvegarder en localStorage sans déclencher le hook
+
+  // Sauvegarder référence pour récupération au rechargement
+  localStorage.setItem('ci_current_project', JSON.stringify({ id: proj.id, name: proj.name }));
+
+  switchAdminTab('storyboard', document.getElementById('atab-storyboard'));
+  renderStoryboard();
+  startAutosave();
+  showToast('Projet "' + proj.name + '" chargé ✓');
+}
+
+// Supprimer un projet
+async function deleteProject(projId){
+  if(!confirm('Supprimer ce projet définitivement ?')) return;
+  const { error } = await supabaseClient.from('projets').delete().eq('id', projId);
+  if(error){ showToast('Erreur: ' + error.message); return; }
+  if(currentProjectId === projId){
+    currentProjectId = null; currentProjectName = ''; sbHasUnsavedChanges = false;
+    scenes = defaultScenes(); _origSave();
+    localStorage.removeItem('ci_current_project');
+    stopAutosave();
+    renderStoryboard();
+  }
+  showToast('Projet supprimé');
+  renderProjets();
+}
+
+// Afficher la liste des projets — privée par user_id
 async function renderProjets(){
   var list = document.getElementById('projets-list');
   if(!list || !currentUser) return;
-  list.innerHTML = '<div style="color:#444;font-size:10px;letter-spacing:2px;text-transform:uppercase;padding:12px 0;">Chargement...</div>';
+  list.innerHTML = '<div style="color:#444;font-size:10px;letter-spacing:2px;text-transform:uppercase;padding:20px;">Chargement...</div>';
 
   const { data: projets, error } = await supabaseClient
     .from('projets').select('*').eq('user_id', currentUser.id).order('saved_at', { ascending: false });
 
   if(error || !projets || !projets.length){
-    list.innerHTML = '<div style="color:#333;font-size:10px;letter-spacing:2px;padding:12px 0;">Aucun projet enregistré</div>';
+    list.innerHTML = '<div style="color:#333;font-size:10px;letter-spacing:3px;text-transform:uppercase;text-align:center;padding:60px;">Aucun projet enregistré — crée-en un depuis le Storyboard</div>';
     return;
   }
 
   list.innerHTML = '';
   projets.forEach(function(proj){
     var card = document.createElement('div');
-    card.style.cssText = 'background:#111;border:1px solid #2a2a2a;padding:20px;';
-    var date = proj.saved_at ? new Date(proj.saved_at).toLocaleString('fr-CA') : '—';
-    var videoList = (proj.video_urls || []).map(function(v){
-      return '<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid #1a1a1a;">' +
-        '<span style="font-size:9px;color:#444;min-width:80px;">Scène ' + v.sceneId + '</span>' +
-        '<span style="font-size:10px;color:#888;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + v.uid + '">' + v.uid.substring(0,28) + '…</span>' +
-        '<button onclick="navigator.clipboard.writeText(\'' + v.uid + '\').then(function(){showToast(\'UID copié !\');})" style="background:none;border:1px solid #2a2a2a;color:#555;font-size:9px;letter-spacing:1px;padding:3px 8px;cursor:pointer;flex-shrink:0;">COPIER</button>' +
-      '</div>';
-    }).join('');
+    card.style.cssText = 'background:#111;border:1px solid #1a1a1a;padding:20px;display:flex;align-items:center;justify-content:space-between;gap:16px;';
+    var date = proj.saved_at ? new Date(proj.saved_at).toLocaleDateString('fr-CA') : '—';
+    var isPublished = proj.published;
+    var isCurrent   = proj.id === currentProjectId;
 
     card.innerHTML =
-      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">' +
-        '<div>' +
-          '<div style="font-size:13px;font-weight:700;color:#fff;letter-spacing:2px;">' + proj.name + '</div>' +
-          '<div style="font-size:9px;color:#333;letter-spacing:2px;margin-top:3px;">' + proj.scene_count + ' scènes · ' + proj.video_count + ' vidéos · ' + date + '</div>' +
+      '<div style="min-width:0;">' +
+        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">' +
+          '<div style="font-size:13px;font-weight:700;color:#fff;letter-spacing:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + proj.name + '</div>' +
+          (isCurrent ? '<span style="font-size:7px;background:#fff;color:#000;padding:2px 6px;letter-spacing:1px;flex-shrink:0;">OUVERT</span>' : '') +
+          (isPublished ? '<span style="font-size:7px;background:#4ade80;color:#000;padding:2px 6px;letter-spacing:1px;flex-shrink:0;">PUBLIÉ</span>' : '') +
         '</div>' +
-        '<div style="display:flex;gap:6px;">' +
-          '<button onclick="loadProject(\'' + proj.id + '\')" style="background:none;border:1px solid #2a2a2a;color:#888;font-family:Arial,sans-serif;font-size:9px;letter-spacing:2px;padding:7px 12px;cursor:pointer;text-transform:uppercase;transition:all 0.15s;" onmouseover="this.style.borderColor=\'#fff\';this.style.color=\'#fff\'" onmouseout="this.style.borderColor=\'#2a2a2a\';this.style.color=\'#888\'">↩ CHARGER</button>' +
-          '<button onclick="deleteProject(\'' + proj.id + '\')" style="background:none;border:1px solid #2a2a2a;color:#555;font-family:Arial,sans-serif;font-size:9px;letter-spacing:2px;padding:7px 12px;cursor:pointer;text-transform:uppercase;transition:all 0.15s;" onmouseover="this.style.borderColor=\'#c44\';this.style.color=\'#c44\'" onmouseout="this.style.borderColor=\'#2a2a2a\';this.style.color=\'#555\'">✕</button>' +
-        '</div>' +
+        '<div style="font-size:9px;color:#333;letter-spacing:2px;">' + proj.scene_count + ' scènes · ' + proj.video_count + ' vidéos · ' + date + '</div>' +
       '</div>' +
-      (videoList ? '<div style="margin-top:8px;"><div style="font-size:9px;color:#444;letter-spacing:3px;text-transform:uppercase;margin-bottom:6px;">URLs Cloudflare</div>' + videoList + '</div>' : '');
+      '<div style="display:flex;gap:6px;flex-shrink:0;">' +
+        '<button onclick="loadProject(\'' + proj.id + '\')" style="background:#fff;border:none;color:#000;font-family:Arial,sans-serif;font-size:9px;font-weight:700;letter-spacing:2px;padding:8px 14px;cursor:pointer;text-transform:uppercase;">↩ OUVRIR</button>' +
+        '<button onclick="deleteProject(\'' + proj.id + '\')" style="background:none;border:1px solid #2a2a2a;color:#444;font-family:Arial,sans-serif;font-size:10px;padding:8px 10px;cursor:pointer;transition:color 0.15s;" onmouseover="this.style.color=\'#c44\';this.style.borderColor=\'#c44\'" onmouseout="this.style.color=\'#444\';this.style.borderColor=\'#2a2a2a\'">✕</button>' +
+      '</div>';
 
     list.appendChild(card);
   });
 }
 
-async function loadProject(projId){
-  if(!confirm('Charger ce projet ? Tes scènes actuelles seront remplacées.')) return;
-  const { data: proj, error } = await supabaseClient.from('projets').select('*').eq('id', projId).single();
-  if(error || !proj){ showToast('Erreur lors du chargement'); return; }
-  scenes = proj.scenes || defaultScenes();
-  save();
-  renderAdmin();
-  renderStoryboard();
-  switchAdminTab('storyboard', document.getElementById('atab-storyboard'));
-  showToast('Projet "' + proj.name + '" chargé ✓');
-}
-
-async function deleteProject(projId){
-  if(!confirm('Supprimer ce projet enregistré ?')) return;
-  const { error } = await supabaseClient.from('projets').delete().eq('id', projId);
-  if(error){ showToast('Erreur: ' + error.message); return; }
-  showToast('Projet supprimé');
-  renderProjets();
-}
+// Ancien saveCurrentProject — remplacé par sbSaveProject
+async function saveCurrentProject(){ sbSaveProject(); }
 
 // ===== PWA INSTALL PROMPT =====
 var _pwaInstallPrompt = null;
@@ -5722,6 +5979,94 @@ function closeIOSGuide(){
 
 // ===== INIT =====
 updateInfoGrid();
+
+// ===== SERVICE WORKER + AUTO-UPDATE =====
+(function(){
+  if(!('serviceWorker' in navigator)) return;
+
+  var updateBanner = null;
+
+  // Créer la bannière de mise à jour (invisible au départ)
+  function createUpdateBanner(){
+    var banner = document.createElement('div');
+    banner.id = 'ci-update-banner';
+    banner.style.cssText = [
+      'position:fixed;bottom:0;left:0;right:0;z-index:999999;',
+      'background:#111;border-top:1px solid #2a2a2a;',
+      'padding:12px 20px;display:flex;align-items:center;',
+      'justify-content:space-between;gap:12px;',
+      'transform:translateY(100%);transition:transform 0.4s ease;',
+      'font-family:Arial,sans-serif;'
+    ].join('');
+    banner.innerHTML =
+      '<div style="display:flex;align-items:center;gap:10px;">' +
+        '<span style="font-size:14px;">✨</span>' +
+        '<div>' +
+          '<div style="font-size:10px;color:#fff;font-weight:700;letter-spacing:3px;text-transform:uppercase;">Mise à jour disponible</div>' +
+          '<div style="font-size:9px;color:#555;letter-spacing:2px;margin-top:2px;">Une nouvelle version de CI est prête</div>' +
+        '</div>' +
+      '</div>' +
+      '<div style="display:flex;gap:8px;flex-shrink:0;">' +
+        '<button onclick="ciApplyUpdate()" style="background:#fff;border:none;color:#000;font-family:Arial,sans-serif;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;padding:8px 16px;cursor:pointer;">↻ METTRE À JOUR</button>' +
+        '<button onclick="ciDismissUpdate()" style="background:none;border:1px solid #2a2a2a;color:#444;font-family:Arial,sans-serif;font-size:9px;letter-spacing:2px;text-transform:uppercase;padding:8px 10px;cursor:pointer;">Plus tard</button>' +
+      '</div>';
+    document.body.appendChild(banner);
+    // Afficher avec animation
+    setTimeout(function(){ banner.style.transform = 'translateY(0)'; }, 100);
+    return banner;
+  }
+
+  window.ciApplyUpdate = function(){
+    // Recharger pour appliquer la mise à jour
+    window.location.reload();
+  };
+  window.ciDismissUpdate = function(){
+    var b = document.getElementById('ci-update-banner');
+    if(b){ b.style.transform = 'translateY(100%)'; setTimeout(function(){ b.remove(); }, 400); }
+  };
+
+  // Écouter les messages du SW (nouvelle version activée)
+  navigator.serviceWorker.addEventListener('message', function(e){
+    if(e.data && e.data.type === 'CI_UPDATE_READY'){
+      if(!document.getElementById('ci-update-banner')){
+        createUpdateBanner();
+      }
+    }
+  });
+
+  // Recharger automatiquement quand le SW change de contrôleur
+  navigator.serviceWorker.addEventListener('controllerchange', function(){
+    // Seulement si pas de modifications non sauvegardées
+    if(!sbHasUnsavedChanges){
+      window.location.reload();
+    } else {
+      // Afficher la bannière plutôt que forcer le rechargement
+      if(!document.getElementById('ci-update-banner')){
+        createUpdateBanner();
+      }
+    }
+  });
+
+  // Enregistrer le SW
+  navigator.serviceWorker.register('/sw.js').then(function(reg){
+    // Vérifier les mises à jour toutes les 5 minutes
+    setInterval(function(){ reg.update(); }, 5 * 60 * 1000);
+
+    reg.addEventListener('updatefound', function(){
+      var newWorker = reg.installing;
+      if(!newWorker) return;
+      newWorker.addEventListener('statechange', function(){
+        if(newWorker.state === 'installed' && navigator.serviceWorker.controller){
+          // Nouvelle version installée, ancienne encore active
+          // Activer immédiatement
+          newWorker.postMessage({ type: 'SKIP_WAITING' });
+        }
+      });
+    });
+  }).catch(function(err){
+    console.warn('SW:', err);
+  });
+})();
 </script>
 </body>
 </html>
