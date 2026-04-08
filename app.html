@@ -2158,9 +2158,24 @@ function showRotateNudge(){
 
       <!-- Minuterie -->
       <div class="field">
-        <label>Minuterie auto (secondes, 0 = désactivée)</label>
-        <input type="number" id="f-timer" placeholder="0" min="0" max="120">
+        <label>Changement de scène automatique</label>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+          <input type="number" id="f-timer-min" placeholder="0" min="0" max="60" style="width:70px;background:#1a1a1a;border:1px solid #2a2a2a;color:#e8e8e8;font-family:Arial,sans-serif;font-size:13px;padding:10px 8px;outline:none;text-align:center;">
+          <span style="font-size:10px;color:#555;letter-spacing:2px;">MIN</span>
+          <input type="number" id="f-timer-sec" placeholder="0" min="0" max="59" style="width:70px;background:#1a1a1a;border:1px solid #2a2a2a;color:#e8e8e8;font-family:Arial,sans-serif;font-size:13px;padding:10px 8px;outline:none;text-align:center;">
+          <span style="font-size:10px;color:#555;letter-spacing:2px;">SEC</span>
+          <span style="font-size:9px;color:#333;margin-left:4px;">(0:00 = désactivé)</span>
+        </div>
         <div class="field-hint">Si le spectateur ne choisit pas, le premier bouton s'active automatiquement.</div>
+      </div>
+
+      <!-- Boucle vidéo -->
+      <div class="field">
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+          <input type="checkbox" id="f-loop" style="width:16px;height:16px;cursor:pointer;accent-color:#fff;">
+          <span>Lire la vidéo en boucle</span>
+        </label>
+        <div class="field-hint">Si activé, la vidéo recommence automatiquement sans passer à la scène suivante.</div>
       </div>
 
     </div>
@@ -2512,27 +2527,23 @@ function loadScene(id){
     }
 
     var vid;
-    // iOS + Android + Desktop — toujours utiliser un élément <video> natif.
-    // Sur iOS Safari, canPlayType('application/vnd.apple.mpegurl') est vrai → HLS natif sans iframe.
-    // L'iframe Cloudflare était bloquée car muted=false + cross-origin iframe = pas d'autoplay sur iOS.
     var cached = preloadCache[uid];
     if(cached && cached.tagName === 'VIDEO'){
       cached.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;position:absolute;inset:0;';
       cached.controls = false;
       cached.muted = false;
+      cached.loop = !!scene.loop;
       if(document.body.contains(cached)) document.body.removeChild(cached);
       delete preloadCache[uid];
       if(cached._hls){ cached._hls.startLevel = cached._hls.levels.length - 1; }
       cached.play().catch(function(){
-        // Si play() échoue (policy), muter puis réessayer
         cached.muted = true;
         cached.play().catch(function(){});
         showUnmuteBtn();
       });
       vid = cached;
     } else {
-      vid = createVideoEl(uid, { autoplay: true, muted: false, controls: false });
-      // Fallback silencieux si la policy bloque le son non-muté
+      vid = createVideoEl(uid, { autoplay: true, muted: false, controls: false, loop: !!scene.loop });
       vid.addEventListener('error', function(){});
       vid.addEventListener('play', function(){ hideUnmuteBtn(); });
       vid.play && vid.play().catch(function(){
@@ -2717,7 +2728,11 @@ function openModal(id){
     document.getElementById('f-title').value=s.title;
     document.getElementById('f-uid').value=s.uid||'';
     document.getElementById('f-type').value=s.type||'normal';
-    document.getElementById('f-timer').value=s.timer||0;
+    // Timer en min + sec
+    var totalSec = s.timer || 0;
+    document.getElementById('f-timer-min').value = Math.floor(totalSec / 60) || 0;
+    document.getElementById('f-timer-sec').value = totalSec % 60 || 0;
+    document.getElementById('f-loop').checked = !!s.loop;
     choiceRows=s.choices.map(function(c){return{text:c.text||'',targetId:c.targetId,x:c.x,y:c.y,delay:c.delay||0};});
     // Si vidéo existante → afficher lecteur
     if(s.uid && s.uid.trim()){
@@ -2727,7 +2742,9 @@ function openModal(id){
     document.getElementById('f-title').value='';
     document.getElementById('f-uid').value='';
     document.getElementById('f-type').value='normal';
-    document.getElementById('f-timer').value=0;
+    document.getElementById('f-timer-min').value=0;
+    document.getElementById('f-timer-sec').value=0;
+    document.getElementById('f-loop').checked=false;
   }
   renderChoiceEditor();
   document.getElementById('modal-overlay').classList.add('active');
@@ -2924,8 +2941,20 @@ function endDrag(){
 }
 
 function testScene(sceneId){
-  navTo('film', document.getElementById('nav-film'));
-  setTimeout(function(){ loadScene(sceneId); }, 100);
+  // Même comportement que prévisualiser — player + plein écran
+  sceneHistory = [];
+  showPlayer();
+  loadScene(sceneId);
+  if(!isIOS()){
+    try {
+      var el = document.documentElement;
+      if(el.requestFullscreen) el.requestFullscreen().catch(function(){});
+      else if(el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+    } catch(e){}
+  }
+  try {
+    if(screen.orientation && screen.orientation.unlock) screen.orientation.unlock();
+  } catch(e){}
 }
 
 function addChoiceRow(){choiceRows.push({text:'Option '+(choiceRows.length+1),targetId:null,x:20+choiceRows.length*30,y:75,delay:0});renderChoiceEditor();}
@@ -2934,13 +2963,17 @@ function removeChoiceRow(i){choiceRows.splice(i,1);renderChoiceEditor();}
 function saveScene(){
   var title=document.getElementById('f-title').value.trim();
   if(!title)return showToast('Le titre est requis');
+  var min = parseInt(document.getElementById('f-timer-min').value)||0;
+  var sec = parseInt(document.getElementById('f-timer-sec').value)||0;
+  var totalTimer = (min * 60) + sec;
   var data={
     title:title,
     description:document.getElementById('f-desc').value.trim(),
     uid:document.getElementById('f-uid').value.trim(),
     type:document.getElementById('f-type').value,
     backBtn:document.getElementById('f-back').value,
-    timer:parseInt(document.getElementById('f-timer').value)||0,
+    timer:totalTimer,
+    loop:document.getElementById('f-loop').checked,
     choices:choiceRows.filter(function(c){return c.text&&c.targetId;})
   };
   if(editingSceneId){
@@ -4219,8 +4252,7 @@ async function publishFilm(){
     hero_hls: heroHLS,
     scene_count: scenes.length,
     ending_count: scenes.filter(function(s){ return s.type==='end'; }).length,
-    published: false,
-    published_at: new Date().toISOString()
+    published: false
   };
 
   var btn = document.querySelector('[onclick="publishFilm()"]');
