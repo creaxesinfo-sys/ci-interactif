@@ -3464,52 +3464,45 @@ function sbPreviewUrl(url){
   var zone = document.getElementById('sb-drop-zone');
   if(!url || !url.includes('.m3u8')) return;
 
-  // Cacher l'icône et les textes
-  var icon = document.getElementById('sb-drop-icon');
-  if(icon) icon.style.display = 'none';
-  zone.querySelectorAll('div,span').forEach(function(el){
-    if(el.id !== 'sb-drop-zone') el.style.opacity = '0';
-  });
-
   // Supprimer ancienne preview
-  var existing = zone.querySelector('video');
-  if(existing){ if(existing._hls) existing._hls.destroy(); existing.remove(); }
+  var existingThumb = document.getElementById('sb-preview-thumb');
+  if(existingThumb){ 
+    var oldVid = existingThumb.querySelector('video');
+    if(oldVid && oldVid._hls) oldVid._hls.destroy();
+    existingThumb.remove(); 
+  }
 
-  // Créer la vidéo preview
+  // Créer un petit thumbnail AU-DESSUS de la zone — pas dedans
+  var thumb = document.createElement('div');
+  thumb.id = 'sb-preview-thumb';
+  thumb.style.cssText = 'width:100%;max-width:520px;aspect-ratio:16/9;background:#111;border:1px solid #2a2a2a;overflow:hidden;position:relative;margin-bottom:16px;';
+
   var vid = document.createElement('video');
   vid.muted = true; vid.autoplay = true; vid.loop = true; vid.playsInline = true;
-  vid.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity 0.6s ease;pointer-events:none;border-radius:inherit;';
+  vid.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;opacity:0;transition:opacity 0.5s ease;';
+
+  var label = document.createElement('div');
+  label.style.cssText = 'position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,0.6);padding:6px 10px;font-size:8px;color:#aaa;letter-spacing:2px;text-transform:uppercase;';
+  label.textContent = '▶ Aperçu — cliquer CRÉER pour confirmer';
 
   if(window.Hls && Hls.isSupported()){
     var hls = new Hls({ startLevel: 0, maxBufferLength: 10 });
     hls.loadSource(url);
     hls.attachMedia(vid);
-    hls.on(Hls.Events.MANIFEST_PARSED, function(){
-      vid.play().catch(function(){});
-    });
-    hls.on(Hls.Events.FRAG_BUFFERED, function(){
-      // Fade in dès que la première image est prête
-      vid.style.opacity = '0.85';
-    });
+    hls.on(Hls.Events.MANIFEST_PARSED, function(){ vid.play().catch(function(){}); });
+    hls.on(Hls.Events.FRAG_BUFFERED, function(){ vid.style.opacity = '1'; });
     vid._hls = hls;
   } else if(vid.canPlayType('application/vnd.apple.mpegurl')){
     vid.src = url;
-    vid.addEventListener('canplay', function(){ vid.style.opacity = '0.85'; }, {once:true});
+    vid.addEventListener('canplay', function(){ vid.style.opacity = '1'; }, {once:true});
     vid.play().catch(function(){});
   }
 
-  zone.insertBefore(vid, zone.firstChild);
+  thumb.appendChild(vid);
+  thumb.appendChild(label);
 
-  // Modifier le bouton pour refléter l'état
-  var btn = zone.querySelector('button');
-  if(btn){
-    btn.style.position = 'relative';
-    btn.style.zIndex = '10';
-    btn.style.background = '#fff';
-    btn.style.opacity = '1';
-  }
-  var inputs = zone.querySelectorAll('input');
-  inputs.forEach(function(inp){ inp.style.opacity = '1'; inp.style.position = 'relative'; inp.style.zIndex = '10'; });
+  // Insérer AVANT la zone de drop
+  zone.parentNode.insertBefore(thumb, zone);
 }
 
 document.addEventListener('input', function(e){
@@ -3525,13 +3518,26 @@ function sbCreateFirstScene(){
   if(!url){ showToast('Colle ton URL HLS Cloudflare'); return; }
   if(!url.includes('.m3u8')){ showToast('URL HLS invalide — doit finir en .m3u8'); return; }
 
-  // Créer la scène de départ
-  var newId = 1;
+  // Extraire l'UID pur si c'est une URL complète
+  var uid = url;
+  var m = url.match(/\/([a-f0-9]{32})\//);
+  if(m) uid = m[1];
+
+  // Nettoyer la preview
+  var existingThumb = document.getElementById('sb-preview-thumb');
+  if(existingThumb){
+    var oldVid = existingThumb.querySelector('video');
+    if(oldVid && oldVid._hls) oldVid._hls.destroy();
+    existingThumb.remove();
+  }
+
+  // Créer la scène de départ avec l'UID correct
+  scenes = []; // reset propre
   scenes.push({
-    id: newId,
+    id: 1,
     title: 'Scène 1',
     description: '',
-    uid: url,
+    uid: uid,
     type: 'start',
     timer: 0,
     choices: []
