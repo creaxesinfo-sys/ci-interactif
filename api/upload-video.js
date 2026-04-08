@@ -1,32 +1,58 @@
-export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).end();
+// api/upload-video.js — Cloudflare Stream TUS upload (fichiers jusqu'à 30GB)
+// Retourne une URL TUS pour upload direct navigateur → Cloudflare (sans passer par Vercel)
 
-  const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
-  const token = process.env.CLOUDFLARE_STREAM_TOKEN;
+export const config = { api: { bodyParser: false } };
+
+export default async function handler(req, res) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Tus-Resumable, Upload-Length, Upload-Metadata');
+
+  if (req.method === 'OPTIONS') return res.status(200).end();
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  const CF_ACCOUNT = process.env.CF_ACCOUNT_ID;
+  const CF_TOKEN   = process.env.CF_STREAM_TOKEN;
+
+  if (!CF_ACCOUNT || !CF_TOKEN) {
+    return res.status(500).json({ error: 'Variables CF_ACCOUNT_ID ou CF_STREAM_TOKEN manquantes' });
+  }
 
   try {
-    const response = await fetch(
-      `https://api.cloudflare.com/client/v4/accounts/${accountId}/stream/direct_upload`,
+    // Lire le Content-Length de la vidéo envoyé par le client
+    const uploadLength = req.headers['upload-length'] || req.headers['content-length'] || '0';
+    const uploadMetadata = req.headers['upload-metadata'] || '';
+
+    // Créer une session TUS sur Cloudflare Stream
+    const cfRes = await fetch(
+      `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT}/stream?direct_user=true`,
       {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          maxDurationSeconds: 60,
-          requireSignedURLs: false,
-          allowedOrigins: ['ci-interactif.vercel.app']
-        })
+          'Authorization': `Bearer ${CF_TOKEN}`,
+          'Tus-Resumable': '1.0.0',
+          'Upload-Length': uploadLength,
+          'Upload-Metadata': uploadMetadata || `name ${Buffer.from('video').toString('base64')}`,
+        }
       }
     );
 
-    const data = await response.json();
-    res.status(200).json({
-      uploadURL: data.result.uploadURL,
-      uid: data.result.uid
-    });
+    if (!cfRes.ok) {
+      const errText = await cfRes.text();
+      return res.status(500).json({ error: 'Cloudflare error: ' + errText });
+    }
+
+    // Cloudflare retourne l'URL TUS dans le header Location et l'UID dans stream-media-id
+    const tusUrl = cfRes.headers.get('location');
+    const uid    = cfRes.headers.get('stream-media-id');
+
+    if (!tusUrl || !uid) {
+      return res.status(500).json({ error: 'Cloudflare n\'a pas retourné d\'URL TUS' });
+    }
+
+    return res.status(200).json({ tusUrl, uid });
+
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: err.message });
   }
 }
