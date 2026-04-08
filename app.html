@@ -216,6 +216,28 @@ body{background:#1a1a1a;color:#e8e8e8;font-family:Arial,sans-serif;
 /* Scanlines */
 #loader::after{content:'';position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.08) 2px,rgba(0,0,0,0.08) 4px);pointer-events:none;z-index:4;}
 
+/* ===== FILM LOADER (chargement film publié) ===== */
+#film-loader{
+  display:none;position:fixed;inset:0;background:#000;z-index:99990;
+  flex-direction:column;align-items:center;justify-content:center;
+  font-family:Arial,sans-serif;
+}
+#film-loader.active{ display:flex; }
+#film-loader::after{content:'';position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.08) 2px,rgba(0,0,0,0.08) 4px);pointer-events:none;}
+.fl-corner{position:absolute;width:20px;height:20px;}
+.fl-tl{top:24px;left:24px;border-top:1px solid #222;border-left:1px solid #222;}
+.fl-tr{top:24px;right:24px;border-top:1px solid #222;border-right:1px solid #222;}
+.fl-bl{bottom:24px;left:24px;border-bottom:1px solid #222;border-left:1px solid #222;}
+.fl-br{bottom:24px;right:24px;border-bottom:1px solid #222;border-right:1px solid #222;}
+.fl-inner{position:relative;z-index:2;text-align:center;width:340px;}
+.fl-label{font-size:8px;color:#333;letter-spacing:5px;text-transform:uppercase;margin-bottom:32px;}
+.fl-title{font-size:clamp(22px,4vw,36px);font-weight:700;color:#fff;letter-spacing:4px;text-transform:uppercase;margin-bottom:6px;line-height:1.2;}
+.fl-scenes{font-size:9px;color:#333;letter-spacing:3px;text-transform:uppercase;margin-bottom:40px;}
+.fl-bar-wrap{width:100%;height:1px;background:#1a1a1a;margin-bottom:10px;}
+.fl-bar{height:1px;background:#fff;width:0%;transition:width 0.2s linear;}
+.fl-status{font-size:8px;color:#333;letter-spacing:3px;text-transform:uppercase;min-height:14px;}
+.fl-pct{font-size:8px;color:#444;letter-spacing:2px;float:right;}
+
 /* ===== NAV ===== */
 /* ===== BARRE DE RETOUR — sur toutes pages sauf hero ===== */
 .page-back-bar{
@@ -998,6 +1020,26 @@ function enterSite(){
   </div>
 </div>
 
+<!-- FILM LOADER — chargement film publié -->
+<div id="film-loader">
+  <div class="fl-corner fl-tl"></div>
+  <div class="fl-corner fl-tr"></div>
+  <div class="fl-corner fl-bl"></div>
+  <div class="fl-corner fl-br"></div>
+  <div class="fl-inner">
+    <div class="fl-label">Cinéma Interactif</div>
+    <div class="fl-title" id="fl-title">Chargement</div>
+    <div class="fl-scenes" id="fl-scenes">Préparation des scènes...</div>
+    <div class="fl-bar-wrap">
+      <div class="fl-bar" id="fl-bar"></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;">
+      <div class="fl-status" id="fl-status">Initialisation</div>
+      <div class="fl-pct" id="fl-pct">0%</div>
+    </div>
+  </div>
+</div>
+
 <!-- LOADER -->
 <div id="loader" style="opacity:1;">
   <canvas id="loader-canvas"></canvas>
@@ -1620,7 +1662,6 @@ function showRotateNudge(){
     <button class="admin-tab active" id="atab-storyboard" onclick="switchAdminTab('storyboard',this)" style="display:none;">Storyboard</button>
     <button class="admin-tab" id="atab-banque" onclick="switchAdminTab('banque',this)" style="display:none;">🎬 Banque Vidéos</button>
     <button class="admin-tab" id="atab-projets" onclick="switchAdminTab('projets',this)" style="display:none;">📁 Projets</button>
-    <button class="admin-tab" id="atab-publish" onclick="switchAdminTab('publish',this)" style="display:none;">Publier</button>
   </div>
 
   <!-- ONGLET SCÈNES -->
@@ -1687,6 +1728,8 @@ function showRotateNudge(){
             <span id="sb-save-status" style="font-size:8px;color:#555;letter-spacing:2px;text-transform:uppercase;flex-shrink:0;"></span>
           </div>
           <div style="display:flex;gap:8px;flex-shrink:0;">
+            <button onclick="previewFilm()" style="background:none;border:1px solid #444;color:#888;font-family:Arial,sans-serif;font-size:9px;letter-spacing:2px;text-transform:uppercase;padding:8px 14px;cursor:pointer;transition:all 0.15s;" onmouseover="this.style.color='#fff';this.style.borderColor='#fff'" onmouseout="this.style.color='#888';this.style.borderColor='#444'">▶ PRÉVISUALISER</button>
+            <button onclick="openSubmitModal()" style="background:none;border:1px solid #4ade80;color:#4ade80;font-family:Arial,sans-serif;font-size:9px;letter-spacing:2px;text-transform:uppercase;padding:8px 14px;cursor:pointer;transition:all 0.15s;" onmouseover="this.style.background='rgba(74,222,128,0.1)'" onmouseout="this.style.background='none'">⬆ SOUMETTRE</button>
             <button id="sb-save-btn" onclick="sbSaveProject()" style="background:#fff;border:none;color:#000;font-family:Arial,sans-serif;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;padding:8px 18px;cursor:pointer;transition:opacity 0.15s;">💾 ENREGISTRER</button>
             <button onclick="sbCloseProject()" style="background:none;border:1px solid #2a2a2a;color:#444;font-family:Arial,sans-serif;font-size:9px;letter-spacing:2px;text-transform:uppercase;padding:8px 12px;cursor:pointer;transition:all 0.15s;" onmouseover="this.style.color='#fff';this.style.borderColor='#fff'" onmouseout="this.style.color='#444';this.style.borderColor='#2a2a2a'">✕ FERMER</button>
           </div>
@@ -1806,6 +1849,31 @@ function showRotateNudge(){
 </div>
 
 <!-- ===== MODAL CHAT ===== -->
+<!-- ===== MODAL SOUMETTRE PROJET ===== -->
+<div id="submit-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:9500;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:#111;border:1px solid #2a2a2a;width:100%;max-width:520px;border-radius:4px;">
+    <div style="padding:20px 24px;border-bottom:1px solid #1a1a1a;display:flex;justify-content:space-between;align-items:center;">
+      <div style="font-size:13px;font-weight:700;color:#fff;letter-spacing:3px;text-transform:uppercase;">Soumettre pour publication</div>
+      <button onclick="closeSubmitModal()" style="background:none;border:none;color:#555;font-size:18px;cursor:pointer;padding:0;">✕</button>
+    </div>
+    <div style="padding:24px;">
+      <div style="font-size:10px;color:#444;letter-spacing:2px;line-height:2;margin-bottom:20px;">
+        Ton projet sera envoyé à l'administrateur pour validation. Une fois approuvé, il apparaîtra dans <strong style="color:#888">Nos Créations</strong> avec tous ses liens interactifs fonctionnels.
+      </div>
+      <div style="margin-bottom:14px;">
+        <label style="font-size:9px;color:#555;letter-spacing:3px;text-transform:uppercase;display:block;margin-bottom:8px;">Titre du film</label>
+        <input type="text" id="submit-title" placeholder="Ex: La Nuit de Tempête" style="width:100%;background:#1a1a1a;border:1px solid #2a2a2a;color:#e8e8e8;font-family:Arial,sans-serif;font-size:13px;padding:10px 14px;outline:none;">
+      </div>
+      <div style="margin-bottom:20px;">
+        <label style="font-size:9px;color:#555;letter-spacing:3px;text-transform:uppercase;display:block;margin-bottom:8px;">Description (optionnel)</label>
+        <textarea id="submit-desc" placeholder="Un thriller interactif en 7 scènes..." style="width:100%;background:#1a1a1a;border:1px solid #2a2a2a;color:#e8e8e8;font-family:Arial,sans-serif;font-size:13px;padding:10px 14px;outline:none;resize:vertical;min-height:80px;"></textarea>
+      </div>
+      <button onclick="submitForPublish()" style="width:100%;background:#4ade80;border:none;color:#000;font-family:Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:4px;text-transform:uppercase;padding:14px;cursor:pointer;transition:opacity 0.2s;" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">⬆ ENVOYER LA DEMANDE</button>
+      <div id="submit-result" style="display:none;margin-top:14px;padding:12px;background:#0d0d0d;border:1px solid #2a2a2a;font-size:10px;color:#4ade80;letter-spacing:2px;text-align:center;"></div>
+    </div>
+  </div>
+</div>
+
 <div id="chat-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:9000;align-items:flex-end;justify-content:flex-end;padding:0;">
   <div style="background:#f2f4f7;border-radius:24px 24px 0 0;width:100%;max-width:420px;height:72vh;display:flex;flex-direction:column;box-shadow:0 -8px 40px rgba(0,0,0,0.12);">
     <div style="padding:14px 20px;border-bottom:1px solid #e8e8e8;display:flex;align-items:center;justify-content:space-between;background:#fff;border-radius:24px 24px 0 0;">
@@ -2335,14 +2403,9 @@ function previewFilm(){
   sceneHistory=[];
   showPlayer();
   loadScene(start.id);
-  setTimeout(preloadAllScenes, 2000);
-  if(!isIOS()){
-    try {
-      var el=document.documentElement;
-      if(el.requestFullscreen) el.requestFullscreen().catch(function(){});
-      else if(el.webkitRequestFullscreen) el.webkitRequestFullscreen();
-    } catch(e){}
-  }
+  // Précharger toutes les scènes immédiatement pour zéro lag
+  setTimeout(preloadAllScenes, 500);
+  // PAS de plein écran forcé en prévisualisation — le bouton FS reste disponible
   try {
     if(screen.orientation && screen.orientation.unlock) screen.orientation.unlock();
   } catch(e){}
@@ -4211,7 +4274,7 @@ function showAdminTabIfAdmin(){
   var hnavSub = document.getElementById('hnav-subvention');
   if(hnavSub) hnavSub.style.display = 'none';
   // Afficher onglets réalisateur
-  ['atab-scenes','atab-storyboard','atab-projets','atab-publish','atab-banque'].forEach(function(id){
+  ['atab-scenes','atab-storyboard','atab-projets','atab-banque'].forEach(function(id){
     var t = document.getElementById(id);
     if(t) t.style.display = '';
   });
@@ -4237,47 +4300,112 @@ function showAdminTabIfAdmin(){
 
 // Publications gérées via Supabase (table films)
 
-async function publishFilm(){
-  var title = document.getElementById('pub-title').value.trim();
-  var desc = document.getElementById('pub-desc').value.trim();
-  if(!title) return showToast('Ajoute un titre au film');
-  if(!scenes.length) return showToast('Aucune scène configurée');
-  if(!currentUser) return showToast('Tu dois être connecté pour publier');
+function openSubmitModal(){
+  if(!currentUser){ showToast('Connecte-toi pour soumettre'); return; }
+  if(!scenes.length || (scenes.length===1 && !scenes[0].uid)){ showToast('Aucune scène vidéo configurée'); return; }
+  if(!currentProjectName){ showToast('Enregistre ton projet d\'abord'); return; }
+  // Pré-remplir avec le nom du projet
+  var titleEl = document.getElementById('submit-title');
+  if(titleEl && !titleEl.value) titleEl.value = currentProjectName;
+  document.getElementById('submit-result').style.display = 'none';
+  var m = document.getElementById('submit-modal');
+  if(m) m.style.display = 'flex';
+}
+
+function closeSubmitModal(){
+  var m = document.getElementById('submit-modal');
+  if(m) m.style.display = 'none';
+}
+
+async function submitForPublish(){
+  var title = (document.getElementById('submit-title').value || '').trim();
+  var desc  = (document.getElementById('submit-desc').value  || '').trim();
+  if(!title){ showToast('Ajoute un titre'); return; }
+
+  var btn = document.querySelector('#submit-modal button[onclick="submitForPublish()"]');
+  if(btn){ btn.textContent = 'Envoi...'; btn.disabled = true; }
 
   var startScene = scenes.find(function(s){ return s.type==='start'; }) || scenes[0];
-  var heroUid = startScene ? startScene.uid : '';
-  var heroHLS = heroUid.startsWith('http') ? heroUid : (heroUid ? CF_HLS + heroUid + '/manifest/video.m3u8' : '');
+  var heroUid = startScene ? (startScene.uid || '') : '';
+  // Extraire UID pur si URL complète
+  var m2 = heroUid.match(/\/([a-f0-9]{32})\//);
+  if(m2) heroUid = m2[1];
+  var heroHLS = heroUid ? makeHLSUrl(heroUid) : '';
+
+  // Sauvegarder d'abord le projet
+  if(sbHasUnsavedChanges) await sbSaveProject();
 
   var film = {
-    user_id: currentUser.id,
-    titre: title,
-    description: desc || '',
-    scenes: scenes,
-    hero_uid: heroUid,
-    hero_hls: heroHLS,
-    scene_count: scenes.length,
+    user_id:      currentUser.id,
+    titre:        title,
+    description:  desc,
+    scenes:       scenes,
+    hero_uid:     heroUid,
+    hero_hls:     heroHLS,
+    scene_count:  scenes.length,
     ending_count: scenes.filter(function(s){ return s.type==='end'; }).length,
-    published: false
+    published:    false,
+    projet_id:    currentProjectId || null,
+    published_at: new Date().toISOString()
   };
-
-  var btn = document.querySelector('[onclick="publishFilm()"]');
-  if(btn){ btn.textContent = 'Publication...'; btn.disabled = true; }
 
   const { data, error } = await supabaseClient.from('films').insert(film).select().single();
 
-  if(btn){ btn.textContent = '⬆ PUBLIER LE FILM'; btn.disabled = false; }
+  if(btn){ btn.textContent = '⬆ ENVOYER LA DEMANDE'; btn.disabled = false; }
 
   if(error){ showToast('Erreur : ' + error.message); return; }
 
-  document.getElementById('pub-result').style.display = 'block';
-  document.getElementById('pub-link').textContent = 'Film soumis ✓ — en attente de validation par l\'administrateur avant publication dans Nos Créations';
-  showToast('Film soumis — en attente de validation admin ✓');
-  renderCreations();
+  var res = document.getElementById('submit-result');
+  if(res){ res.style.display='block'; res.textContent='✓ Demande envoyée — en attente de validation par l\'administrateur'; }
+  showToast('Demande envoyée ✓');
 }
 
-function copyPubLink(){
-  var link = document.getElementById('pub-link').textContent;
-  navigator.clipboard.writeText(link).then(function(){ showToast('Lien copié !'); });
+async function publishFilm(){ openSubmitModal(); }
+
+async function playCreationDB(filmId){
+  const { data: film, error } = await supabaseClient.from('films').select('*').eq('id', filmId).single();
+  if(error || !film){ showToast('Film introuvable'); return; }
+
+  // Charger les scènes du film publié
+  scenes = JSON.parse(JSON.stringify(film.scenes));
+  sceneHistory = [];
+
+  showScreen('player-section');
+  navTo('film', document.getElementById('nav-film'));
+
+  var start = scenes.find(function(s){ return s.type==='start'; }) || scenes[0];
+  if(!start) return;
+
+  // Précharger TOUTES les scènes immédiatement avant de lancer
+  // → zéro lag lors des transitions
+  var uids = scenes.filter(function(s){ return s.uid && s.uid.trim(); });
+  uids.forEach(function(scene, i){
+    setTimeout(function(){
+      var uid = scene.uid.trim();
+      var m = uid.match(/\/([a-f0-9]{32})\//);
+      if(m) uid = m[1];
+      if(!preloadCache[uid]){
+        var vid = document.createElement('video');
+        vid.muted = true; vid.preload = 'auto';
+        vid.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;';
+        attachHLS(vid, uid, { autoplay:false, muted:true, lowQuality:false });
+        document.body.appendChild(vid);
+        preloadCache[uid] = vid;
+      }
+    }, i * 300); // étaler pour ne pas saturer
+  });
+
+  // Lancer la première scène
+  loadScene(start.id);
+
+  // Plein écran automatique pour la lecture publiée
+  if(!isIOS()){
+    try {
+      var el = document.documentElement;
+      if(el.requestFullscreen) el.requestFullscreen().catch(function(){});
+      else if(el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+    } catch(e){}
+  }
 }
 
 function showScreen(sectionId){
@@ -4373,7 +4501,7 @@ async function renderCreations(){
         : 'background:rgba(74,222,128,0.1);border-color:#4ade80;color:#4ade80;';
       adminBtns =
         '<button class="btn-copy-link" style="'+toggleStyle+'" onclick="toggleFilmPublished(\''+film.id+'\','+film.published+')">'+toggleLabel+'</button>'+
-        '<button class="btn-delete-film" onclick="deleteCreationDB(\''+film.id+'\')">✕ supprimer</button>';
+        '<button onclick="deleteCreationDB(\''+film.id+'\')" style="background:rgba(196,68,68,0.1);border:1px solid #c44;color:#c44;font-family:Arial,sans-serif;font-size:9px;letter-spacing:2px;padding:8px 14px;cursor:pointer;text-transform:uppercase;transition:all 0.15s;white-space:nowrap;" onmouseover="this.style.background=\'rgba(196,68,68,0.25)\'" onmouseout="this.style.background=\'rgba(196,68,68,0.1)\'">✕ SUPPRIMER</button>';
     }
 
     actions.innerHTML = playBtn + adminBtns;
@@ -4406,12 +4534,111 @@ async function deleteCreationDB(filmId){
 async function playCreationDB(filmId){
   const { data: film, error } = await supabaseClient.from('films').select('*').eq('id', filmId).single();
   if(error || !film){ showToast('Film introuvable'); return; }
+
   scenes = JSON.parse(JSON.stringify(film.scenes));
   sceneHistory = [];
+
+  // Scènes avec vidéo
+  var videoScenes = scenes.filter(function(s){ return s.uid && s.uid.trim(); });
+  var total = videoScenes.length;
+
+  // Afficher le film loader
+  var loader    = document.getElementById('film-loader');
+  var titleEl   = document.getElementById('fl-title');
+  var scenesEl  = document.getElementById('fl-scenes');
+  var barEl     = document.getElementById('fl-bar');
+  var statusEl  = document.getElementById('fl-status');
+  var pctEl     = document.getElementById('fl-pct');
+
+  if(titleEl)  titleEl.textContent  = film.titre || 'Chargement';
+  if(scenesEl) scenesEl.textContent = total + ' scène' + (total>1?'s':'') + ' · ' + film.ending_count + ' fin' + (film.ending_count>1?'s':'');
+  if(barEl)    barEl.style.width    = '0%';
+  if(statusEl) statusEl.textContent = 'Connexion à Cloudflare...';
+  if(pctEl)    pctEl.textContent    = '0%';
+  if(loader)   loader.classList.add('active');
+
+  // Précharger chaque scène et suivre la progression
+  var loaded = 0;
+  var loadPromises = videoScenes.map(function(scene, i){
+    return new Promise(function(resolve){
+      var uid = scene.uid.trim();
+      var m = uid.match(/\/([a-f0-9]{32})\//);
+      if(m) uid = m[1];
+
+      if(preloadCache[uid]){
+        // Déjà en cache — compter comme chargé
+        loaded++;
+        var pct = Math.round((loaded/total)*100);
+        if(barEl)    barEl.style.width = pct+'%';
+        if(pctEl)    pctEl.textContent = pct+'%';
+        if(statusEl) statusEl.textContent = 'Scène '+(i+1)+' prête';
+        resolve();
+        return;
+      }
+
+      var vid = document.createElement('video');
+      vid.muted = true; vid.preload = 'auto';
+      vid.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;';
+
+      function onReady(){
+        loaded++;
+        var pct = Math.round((loaded/total)*100);
+        if(barEl)    barEl.style.width = pct+'%';
+        if(pctEl)    pctEl.textContent = pct+'%';
+        if(statusEl) statusEl.textContent = 'Scène '+(i+1)+' / '+total+' chargée';
+        resolve();
+      }
+
+      if(window.Hls && Hls.isSupported()){
+        var hls = new Hls({ startLevel:-1, maxBufferLength:30, abrEwmaDefaultEstimate:50000000 });
+        hls.loadSource(makeHLSUrl(uid));
+        hls.attachMedia(vid);
+        hls.on(Hls.Events.FRAG_LOADED, onReady);
+        hls.on(Hls.Events.ERROR, function(){ onReady(); }); // continuer même en cas d'erreur
+        vid._hls = hls;
+      } else {
+        vid.src = makeHLSUrl(uid);
+        vid.addEventListener('canplay', onReady, {once:true});
+        vid.addEventListener('error', onReady, {once:true});
+      }
+
+      document.body.appendChild(vid);
+      preloadCache[uid] = vid;
+
+      // Timeout de sécurité — ne pas bloquer si une scène tarde
+      setTimeout(onReady, 8000);
+    });
+  });
+
+  // Attendre que toutes les scènes soient prêtes (ou timeout)
+  if(total > 0){
+    await Promise.race([
+      Promise.all(loadPromises),
+      new Promise(function(res){ setTimeout(res, 12000); }) // max 12s d'attente
+    ]);
+  }
+
+  // Fermer le loader avec fondu
+  if(loader){
+    loader.style.transition = 'opacity 0.5s ease';
+    loader.style.opacity = '0';
+    setTimeout(function(){ loader.classList.remove('active'); loader.style.opacity=''; loader.style.transition=''; }, 520);
+  }
+
+  // Lancer le film
   showScreen('player-section');
   navTo('film', document.getElementById('nav-film'));
   var start = scenes.find(function(s){ return s.type==='start'; }) || scenes[0];
   if(start) loadScene(start.id);
+
+  // Plein écran
+  if(!isIOS()){
+    try {
+      var el = document.documentElement;
+      if(el.requestFullscreen) el.requestFullscreen().catch(function(){});
+      else if(el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+    } catch(e){}
+  }
 }
 
 // Charger un film depuis l'URL si ?film=id
@@ -4506,7 +4733,7 @@ async function initAuth(){
       if(hnavAdmin) hnavAdmin.style.display = 'none';
       if(hnavMembres) hnavMembres.style.display = 'none';
       if(hnavSub) hnavSub.style.display = '';
-      ['atab-scenes','atab-storyboard','atab-projets','atab-publish','atab-banque'].forEach(function(id){
+      ['atab-scenes','atab-storyboard','atab-projets','atab-banque'].forEach(function(id){
         var t = document.getElementById(id);
         if(t) t.style.display = 'none';
       });
@@ -5940,6 +6167,7 @@ async function renderProjets(){
       '</div>' +
       '<div style="display:flex;gap:6px;flex-shrink:0;">' +
         '<button onclick="loadProject(\'' + proj.id + '\')" style="background:#fff;border:none;color:#000;font-family:Arial,sans-serif;font-size:9px;font-weight:700;letter-spacing:2px;padding:8px 14px;cursor:pointer;text-transform:uppercase;">↩ OUVRIR</button>' +
+        '<button onclick="loadProjectAndSubmit(\'' + proj.id + '\')" style="background:none;border:1px solid #4ade80;color:#4ade80;font-family:Arial,sans-serif;font-size:9px;letter-spacing:2px;padding:8px 12px;cursor:pointer;text-transform:uppercase;" title="Soumettre pour publication">⬆</button>' +
         '<button onclick="deleteProject(\'' + proj.id + '\')" style="background:none;border:1px solid #2a2a2a;color:#444;font-family:Arial,sans-serif;font-size:10px;padding:8px 10px;cursor:pointer;transition:color 0.15s;" onmouseover="this.style.color=\'#c44\';this.style.borderColor=\'#c44\'" onmouseout="this.style.color=\'#444\';this.style.borderColor=\'#2a2a2a\'">✕</button>' +
       '</div>';
 
@@ -5949,6 +6177,12 @@ async function renderProjets(){
 
 // Ancien saveCurrentProject — remplacé par sbSaveProject
 async function saveCurrentProject(){ sbSaveProject(); }
+
+// Charger un projet puis ouvrir la modal de soumission
+async function loadProjectAndSubmit(projId){
+  await loadProject(projId);
+  setTimeout(function(){ openSubmitModal(); }, 300);
+}
 
 // ===== PWA INSTALL PROMPT =====
 var _pwaInstallPrompt = null;
