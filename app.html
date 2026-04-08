@@ -1601,10 +1601,11 @@ function showRotateNudge(){
   </div>
 
   <!-- Sous-onglets admin -->
-  <div style="background:#0d0d0d;border-bottom:1px solid #2e2e2e;display:flex;gap:0;">
+  <div style="background:#0d0d0d;border-bottom:1px solid #2e2e2e;display:flex;gap:0;overflow-x:auto;scrollbar-width:none;">
     <button class="admin-tab" id="atab-scenes" onclick="switchAdminTab('scenes',this)" style="display:none;">Scènes</button>
     <button class="admin-tab active" id="atab-storyboard" onclick="switchAdminTab('storyboard',this)" style="display:none;">Storyboard</button>
-    <button class="admin-tab" id="atab-projets" onclick="switchAdminTab('projets',this)" style="display:none;">📁 Projets Enregistrés</button>
+    <button class="admin-tab" id="atab-banque" onclick="switchAdminTab('banque',this)" style="display:none;">🎬 Banque Vidéos</button>
+    <button class="admin-tab" id="atab-projets" onclick="switchAdminTab('projets',this)" style="display:none;">📁 Projets</button>
     <button class="admin-tab" id="atab-publish" onclick="switchAdminTab('publish',this)" style="display:none;">Publier</button>
   </div>
 
@@ -1642,34 +1643,73 @@ function showRotateNudge(){
 
   <!-- ONGLET STORYBOARD -->
   <div id="atab-content-storyboard" class="admin-tab-content" style="display:block;">
-    <!-- Écran vierge — affiché si aucune scène -->
-    <div id="sb-empty-screen" style="display:none;min-height:80vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px;">
-      <div style="font-size:clamp(28px,5vw,52px);font-weight:700;color:#fff;letter-spacing:6px;text-transform:uppercase;margin-bottom:8px;">NOUVEAU FILM</div>
-      <div style="font-size:12px;color:#444;letter-spacing:2px;margin-bottom:60px;">Glisse ton lien HLS pour commencer</div>
+    <!-- Layout splitté : banque à gauche, storyboard à droite -->
+    <div style="display:flex;height:calc(100vh - 91px);">
 
-      <!-- Zone de drop -->
-      <div id="sb-drop-zone"
-        style="width:100%;max-width:560px;aspect-ratio:16/9;border:1px dashed #2a2a2a;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;cursor:pointer;transition:all 0.2s;position:relative;background:#0d0d0d;"
-        ondragover="sbDragOver(event)"
-        ondragleave="sbDragLeave(event)"
-        ondrop="sbDrop(event)"
-        onclick="document.getElementById('sb-url-input').focus()">
-        <div id="sb-drop-icon" style="font-size:36px;opacity:0.2;">🎬</div>
-        <div style="font-size:10px;color:#333;letter-spacing:3px;text-transform:uppercase;">Glisse ton URL HLS ici</div>
-        <div style="font-size:9px;color:#222;letter-spacing:2px;">— ou —</div>
-        <input id="sb-url-input" type="text" placeholder="https://customer-xxx.cloudflarestream.com/.../manifest/video.m3u8"
-          style="background:#111;border:1px solid #2a2a2a;color:#888;font-family:Arial,sans-serif;font-size:11px;padding:10px 14px;width:80%;outline:none;text-align:center;"
-          onkeydown="if(event.key==='Enter') sbCreateFirstScene()">
-        <button onclick="sbCreateFirstScene()" style="background:#fff;border:none;color:#000;font-family:Arial,sans-serif;font-size:10px;letter-spacing:3px;padding:12px 28px;cursor:pointer;text-transform:uppercase;font-weight:700;transition:opacity 0.2s;">CRÉER LA PREMIÈRE SCÈNE</button>
+      <!-- PANNEAU BANQUE VIDÉOS (latéral) -->
+      <div id="sb-bank-panel" style="width:220px;flex-shrink:0;border-right:1px solid #1a1a1a;background:#080808;display:flex;flex-direction:column;overflow:hidden;">
+        <div style="padding:12px 14px;border-bottom:1px solid #1a1a1a;font-size:8px;color:#444;letter-spacing:3px;text-transform:uppercase;display:flex;align-items:center;justify-content:space-between;">
+          <span>Banque Vidéos</span>
+          <span id="sb-bank-count" style="color:#333;">0</span>
+        </div>
+        <!-- Zone drop rapide -->
+        <div id="sb-bank-drop" style="margin:10px;border:1px dashed #1e1e1e;padding:10px;text-align:center;cursor:pointer;transition:all 0.2s;font-size:8px;color:#333;letter-spacing:2px;text-transform:uppercase;"
+          ondragover="event.preventDefault();this.style.borderColor='#555';this.style.color='#888';"
+          ondragleave="this.style.borderColor='#1e1e1e';this.style.color='#333';"
+          ondrop="bankDropFile(event)"
+          onclick="document.getElementById('bank-file-input').click()">
+          ⬆ Déposer vidéos
+        </div>
+        <input type="file" id="bank-file-input" accept="video/*" multiple style="display:none" onchange="bankUploadFiles(this.files)">
+        <!-- Liste des vidéos -->
+        <div id="sb-bank-list" style="flex:1;overflow-y:auto;padding:0 8px 8px;"></div>
       </div>
 
-      <div style="margin-top:24px;font-size:9px;color:#222;letter-spacing:3px;text-transform:uppercase;">
-        Cloudflare Stream · HLS Manifest URL
+      <!-- STORYBOARD (droite) -->
+      <div style="flex:1;overflow:auto;display:flex;flex-direction:column;">
+        <!-- Écran vierge -->
+        <div id="sb-empty-screen" style="display:none;min-height:80vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px;">
+          <div style="font-size:clamp(28px,5vw,52px);font-weight:700;color:#fff;letter-spacing:6px;text-transform:uppercase;margin-bottom:8px;">NOUVEAU FILM</div>
+          <div style="font-size:12px;color:#444;letter-spacing:2px;margin-bottom:60px;">Glisse ton lien HLS pour commencer</div>
+          <div id="sb-drop-zone"
+            style="width:100%;max-width:560px;aspect-ratio:16/9;border:1px dashed #2a2a2a;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;cursor:pointer;transition:all 0.2s;position:relative;background:#0d0d0d;"
+            ondragover="sbDragOver(event)" ondragleave="sbDragLeave(event)" ondrop="sbDrop(event)"
+            onclick="document.getElementById('sb-url-input').focus()">
+            <div id="sb-drop-icon" style="font-size:36px;opacity:0.2;">🎬</div>
+            <div style="font-size:10px;color:#333;letter-spacing:3px;text-transform:uppercase;">Glisse ton URL HLS ici</div>
+            <div style="font-size:9px;color:#222;letter-spacing:2px;">— ou —</div>
+            <input id="sb-url-input" type="text" placeholder="https://customer-xxx.cloudflarestream.com/.../manifest/video.m3u8"
+              style="background:#111;border:1px solid #2a2a2a;color:#888;font-family:Arial,sans-serif;font-size:11px;padding:10px 14px;width:80%;outline:none;text-align:center;"
+              onkeydown="if(event.key==='Enter') sbCreateFirstScene()">
+            <button onclick="sbCreateFirstScene()" style="background:#fff;border:none;color:#000;font-family:Arial,sans-serif;font-size:10px;letter-spacing:3px;padding:12px 28px;cursor:pointer;text-transform:uppercase;font-weight:700;">CRÉER LA PREMIÈRE SCÈNE</button>
+          </div>
+        </div>
+        <!-- Storyboard -->
+        <div id="storyboard-wrap" style="padding:32px;overflow-x:auto;min-height:60vh;"></div>
       </div>
     </div>
+  </div>
 
-    <!-- Storyboard — affiché si scènes existent -->
-    <div id="storyboard-wrap" style="padding:32px;overflow-x:auto;min-height:60vh;"></div>
+  <!-- ONGLET BANQUE VIDÉOS (plein écran) -->
+  <div id="atab-content-banque" class="admin-tab-content" style="display:none;">
+    <div class="admin-body">
+      <div class="admin-section-title" style="margin-bottom:20px;">Banque de Vidéos</div>
+
+      <!-- Zone de drop principale -->
+      <div id="banque-drop-zone" style="border:2px dashed #2a2a2a;background:#0a0a0a;padding:48px 24px;text-align:center;cursor:pointer;transition:all 0.2s;margin-bottom:24px;"
+        ondragover="event.preventDefault();this.style.borderColor='#fff';this.style.background='#111';"
+        ondragleave="this.style.borderColor='#2a2a2a';this.style.background='#0a0a0a';"
+        ondrop="banqueDrop(event)"
+        onclick="document.getElementById('banque-file-input').click()">
+        <div style="font-size:40px;margin-bottom:16px;opacity:0.3;">🎬</div>
+        <div style="font-size:12px;color:#555;letter-spacing:4px;text-transform:uppercase;margin-bottom:8px;">Glisser des vidéos ici</div>
+        <div style="font-size:10px;color:#333;letter-spacing:2px;">ou cliquer pour parcourir</div>
+        <input type="file" id="banque-file-input" accept="video/*" multiple style="display:none" onchange="banqueUploadFiles(this.files)">
+      </div>
+
+      <!-- Grille vidéos -->
+      <div id="banque-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;"></div>
+    </div>
   </div>
 
   <!-- ONGLET PROJETS ENREGISTRÉS -->
@@ -3093,8 +3133,9 @@ function switchAdminTab(tab, btn){
   if(btn) btn.classList.add('active');
   var content = document.getElementById('atab-content-'+tab);
   if(content) content.style.display = 'block';
-  if(tab === 'storyboard') renderStoryboard();
+  if(tab === 'storyboard'){ renderStoryboard(); renderSBBank(); }
   if(tab === 'projets') renderProjets();
+  if(tab === 'banque') renderBanque();
   if(tab === 'users'){
     renderUsersTab().then(function(){
       // Forcer le rechargement des vidéos HLS après rendu
@@ -3190,6 +3231,7 @@ function renderStoryboard(){
 function makeSBCard(scene){
   var card = document.createElement('div');
   card.className = 'sb-card'+(scene.type==='start'?' is-start':'')+(scene.type==='end'?' is-end':'');
+  card.id = 'sb-card-'+scene.id;
 
   if(scene.type==='start'||scene.type==='end'){
     var badge = document.createElement('div');
@@ -3200,6 +3242,35 @@ function makeSBCard(scene){
 
   var thumb = document.createElement('div');
   thumb.className = 'sb-card-thumb';
+  thumb.style.transition = 'outline 0.15s';
+
+  // Rendre la carte droppable depuis la banque
+  card.addEventListener('dragover', function(e){
+    if(e.dataTransfer.types.indexOf ? e.dataTransfer.types.indexOf('bank-video') >= 0 : e.dataTransfer.types.includes('bank-video')){
+      e.preventDefault();
+      thumb.style.outline = '2px solid #fff';
+    }
+  });
+  card.addEventListener('dragleave', function(){
+    thumb.style.outline = 'none';
+  });
+  card.addEventListener('drop', function(e){
+    thumb.style.outline = 'none';
+    try {
+      var data = JSON.parse(e.dataTransfer.getData('text/plain'));
+      if(data && data.uid){
+        e.preventDefault();
+        var s = scenes.find(function(x){ return x.id === scene.id; });
+        if(s){
+          s.uid = data.uid;
+          save();
+          renderStoryboard();
+          showToast('✓ "'+data.name+'" assignée à '+scene.title);
+        }
+      }
+    } catch(ex){}
+  });
+
   if(scene.uid && scene.uid.trim()){
     var vid = document.createElement('video');
     vid.muted=true; vid.loop=true; vid.playsInline=true;
@@ -3207,7 +3278,7 @@ function makeSBCard(scene){
     attachHLS(vid, scene.uid.trim(), {autoplay:true,muted:true,lowQuality:true,controls:false});
     thumb.appendChild(vid);
   } else {
-    thumb.innerHTML='<div class="sb-card-thumb-empty">🎬</div>';
+    thumb.innerHTML='<div class="sb-card-thumb-empty" style="flex-direction:column;gap:6px;"><div>🎬</div><div style="font-size:7px;color:#2a2a2a;letter-spacing:2px;text-transform:uppercase;">Glisser une vidéo ici</div></div>';
   }
   card.appendChild(thumb);
 
@@ -3929,11 +4000,10 @@ function showAdminTabIfAdmin(){
   var hnavSub = document.getElementById('hnav-subvention');
   if(hnavSub) hnavSub.style.display = 'none';
   // Afficher onglets réalisateur
-  ['atab-scenes','atab-storyboard','atab-projets','atab-publish'].forEach(function(id){
+  ['atab-scenes','atab-storyboard','atab-projets','atab-publish','atab-banque'].forEach(function(id){
     var t = document.getElementById(id);
     if(t) t.style.display = '';
   });
-  // Onglet Utilisateurs visible pour TOUS les connectés
   var navMembres = document.getElementById('nav-membres');
   if(navMembres) navMembres.style.display = '';
   var hnavMembres = document.getElementById('hnav-membres');
@@ -4200,6 +4270,7 @@ async function initAuth(){
       checkAdminTab();
       showAdminTabIfAdmin();
       showMessagingIfLoggedIn();
+      loadBankFromSupabase();
       showToast('Bienvenue ' + (currentProfile?.nom || '') + ' !');
       navTo('film', document.getElementById('nav-film'));
       if(currentProfile && !currentProfile.ai_configured){
@@ -4220,7 +4291,7 @@ async function initAuth(){
       if(hnavAdmin) hnavAdmin.style.display = 'none';
       if(hnavMembres) hnavMembres.style.display = 'none';
       if(hnavSub) hnavSub.style.display = '';
-      ['atab-scenes','atab-storyboard','atab-projets','atab-publish'].forEach(function(id){
+      ['atab-scenes','atab-storyboard','atab-projets','atab-publish','atab-banque'].forEach(function(id){
         var t = document.getElementById(id);
         if(t) t.style.display = 'none';
       });
@@ -5183,6 +5254,203 @@ openModal = function(id){
   if(panel) panel.style.display = 'none';
   _origOpenModal(id);
 };
+
+// ===== BANQUE VIDÉOS =====
+var videoBank = JSON.parse(localStorage.getItem('ci_video_bank') || '[]');
+
+function saveBankToStorage(){
+  localStorage.setItem('ci_video_bank', JSON.stringify(videoBank));
+}
+
+// Sauvegarder aussi dans Supabase si connecté
+async function saveBankToSupabase(video){
+  if(!currentUser) return;
+  await supabaseClient.from('video_library').upsert({
+    user_id: currentUser.id,
+    uid: video.uid,
+    name: video.name,
+    hls_url: video.hls,
+    created_at: video.date
+  }).catch(function(){});
+}
+
+// Charger la banque depuis Supabase + localStorage
+async function loadBankFromSupabase(){
+  if(!currentUser) return;
+  const { data } = await supabaseClient.from('video_library')
+    .select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false });
+  if(data && data.length){
+    data.forEach(function(v){
+      var exists = videoBank.find(function(b){ return b.uid === v.uid; });
+      if(!exists){
+        videoBank.push({ uid: v.uid, name: v.name || 'Vidéo', hls: v.hls_url, date: v.created_at });
+      }
+    });
+    saveBankToStorage();
+  }
+}
+
+// Upload depuis la banque vers Cloudflare
+async function bankUploadFiles(files){
+  for(var i=0; i<files.length; i++){
+    await bankUploadOne(files[i]);
+  }
+  renderBanque();
+  renderSBBank();
+}
+
+async function bankUploadOne(file){
+  var statusEl = document.getElementById('banque-drop-zone');
+  if(statusEl) statusEl.style.opacity = '0.5';
+  try {
+    const urlRes = await fetch('/api/upload-video', { method:'POST' });
+    const urlData = await urlRes.json();
+    if(!urlData.uploadURL) throw new Error('URL invalide');
+    await new Promise(function(resolve, reject){
+      var xhr = new XMLHttpRequest();
+      xhr.open('POST', urlData.uploadURL);
+      xhr.onload = function(){ if(xhr.status<400) resolve(); else reject(); };
+      xhr.onerror = function(){ reject(); };
+      var fd = new FormData(); fd.append('file', file); xhr.send(fd);
+    });
+    var video = {
+      uid: urlData.uid,
+      name: file.name.replace(/\.[^/.]+$/,''),
+      hls: 'https://customer-911pgg1vlhryqb16.cloudflarestream.com/'+urlData.uid+'/manifest/video.m3u8',
+      date: new Date().toISOString()
+    };
+    videoBank.unshift(video);
+    saveBankToStorage();
+    saveBankToSupabase(video);
+    showToast('✓ ' + video.name + ' ajoutée à la banque');
+  } catch(e){
+    showToast('Erreur upload: ' + e.message);
+  }
+  if(statusEl) statusEl.style.opacity = '1';
+}
+
+function banqueDrop(e){
+  e.preventDefault();
+  e.currentTarget.style.borderColor='#2a2a2a';
+  e.currentTarget.style.background='#0a0a0a';
+  var files = e.dataTransfer.files;
+  if(files.length) bankUploadFiles(files);
+}
+function banqueUploadFiles(files){ bankUploadFiles(files); }
+
+function bankDropFile(e){
+  e.preventDefault();
+  var files = e.dataTransfer.files;
+  if(files.length) bankUploadFiles(files);
+}
+
+function bankDeleteVideo(uid){
+  if(!confirm('Retirer cette vidéo de la banque ?')) return;
+  videoBank = videoBank.filter(function(v){ return v.uid !== uid; });
+  saveBankToStorage();
+  if(currentUser){
+    supabaseClient.from('video_library').delete().eq('uid', uid).eq('user_id', currentUser.id).catch(function(){});
+  }
+  renderBanque();
+  renderSBBank();
+  showToast('Vidéo retirée de la banque');
+}
+
+// Rendu onglet banque (plein écran)
+function renderBanque(){
+  var grid = document.getElementById('banque-grid');
+  if(!grid) return;
+  grid.innerHTML = '';
+  if(!videoBank.length){
+    grid.innerHTML = '<div style="color:#333;font-size:10px;letter-spacing:3px;text-transform:uppercase;text-align:center;padding:40px;grid-column:1/-1;">Aucune vidéo dans la banque — uploadez-en une ci-dessus</div>';
+    return;
+  }
+  videoBank.forEach(function(video){
+    var card = document.createElement('div');
+    card.style.cssText = 'background:#111;border:1px solid #1a1a1a;position:relative;overflow:hidden;cursor:grab;';
+    card.draggable = true;
+    card.addEventListener('dragstart', function(e){
+      e.dataTransfer.setData('text/plain', JSON.stringify(video));
+      e.dataTransfer.setData('bank-video', '1');
+    });
+    var thumb = document.createElement('div');
+    thumb.style.cssText = 'width:100%;aspect-ratio:16/9;background:#0d0d0d;overflow:hidden;position:relative;';
+    var vid = document.createElement('video');
+    vid.muted = true; vid.loop = true; vid.playsInline = true;
+    vid.style.cssText = 'width:100%;height:100%;object-fit:cover;';
+    attachHLS(vid, video.uid, { autoplay:true, muted:true, loop:true, lowQuality:true });
+    thumb.appendChild(vid);
+    var info = document.createElement('div');
+    info.style.cssText = 'padding:8px 10px;';
+    info.innerHTML =
+      '<div style="font-size:10px;color:#ccc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:6px;">'+video.name+'</div>'+
+      '<div style="display:flex;gap:6px;">'+
+        '<button onclick="bankApplyToScene(\''+video.uid+'\',\''+video.name+'\')" style="flex:1;background:#fff;border:none;color:#000;font-family:Arial,sans-serif;font-size:8px;font-weight:700;letter-spacing:2px;padding:5px;cursor:pointer;text-transform:uppercase;">UTILISER</button>'+
+        '<button onclick="bankDeleteVideo(\''+video.uid+'\')" style="background:none;border:1px solid #2a2a2a;color:#444;font-family:Arial,sans-serif;font-size:10px;padding:5px 8px;cursor:pointer;transition:color 0.15s;" onmouseover="this.style.color=\'#c44\'" onmouseout="this.style.color=\'#444\'">✕</button>'+
+      '</div>';
+    card.appendChild(thumb);
+    card.appendChild(info);
+    grid.appendChild(card);
+  });
+}
+
+// Rendu panneau latéral banque dans storyboard
+function renderSBBank(){
+  var list = document.getElementById('sb-bank-list');
+  var count = document.getElementById('sb-bank-count');
+  if(!list) return;
+  if(count) count.textContent = videoBank.length;
+  list.innerHTML = '';
+  if(!videoBank.length){
+    list.innerHTML = '<div style="font-size:8px;color:#2a2a2a;letter-spacing:2px;text-transform:uppercase;text-align:center;padding:20px 8px;">Banque vide</div>';
+    return;
+  }
+  videoBank.forEach(function(video){
+    var item = document.createElement('div');
+    item.style.cssText = 'background:#111;border:1px solid #1a1a1a;margin-bottom:6px;cursor:grab;transition:border-color 0.15s;';
+    item.draggable = true;
+    item.title = 'Glisser vers une scène';
+    item.addEventListener('dragstart', function(e){
+      e.dataTransfer.setData('text/plain', JSON.stringify(video));
+      e.dataTransfer.setData('bank-video', '1');
+      item.style.opacity = '0.5';
+    });
+    item.addEventListener('dragend', function(){
+      item.style.opacity = '1';
+    });
+    item.addEventListener('mouseover', function(){ item.style.borderColor='#444'; });
+    item.addEventListener('mouseout', function(){ item.style.borderColor='#1a1a1a'; });
+
+    var thumb = document.createElement('div');
+    thumb.style.cssText = 'width:100%;aspect-ratio:16/9;background:#0d0d0d;overflow:hidden;';
+    var vid = document.createElement('video');
+    vid.muted=true; vid.loop=true; vid.playsInline=true;
+    vid.style.cssText='width:100%;height:100%;object-fit:cover;pointer-events:none;';
+    attachHLS(vid, video.uid, { autoplay:true, muted:true, loop:true, lowQuality:true });
+    thumb.appendChild(vid);
+
+    var label = document.createElement('div');
+    label.style.cssText='padding:5px 7px;font-size:8px;color:#666;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:1px;';
+    label.textContent = video.name;
+
+    item.appendChild(thumb);
+    item.appendChild(label);
+    list.appendChild(item);
+  });
+}
+
+// Appliquer une vidéo de la banque à une scène existante
+function bankApplyToScene(uid, name){
+  if(!scenes.length){ showToast('Crée d\'abord une scène'); return; }
+  // Ouvrir la modal de la première scène sans vidéo, ou laisser choisir
+  var target = scenes.find(function(s){ return !s.uid || !s.uid.trim(); }) || scenes[0];
+  openModal(target.id);
+  setTimeout(function(){
+    var uidInput = document.getElementById('f-uid');
+    if(uidInput){ uidInput.value = uid; modalInitPlayer(uid); }
+    showToast('Vidéo "'+name+'" assignée — sauvegarde pour confirmer');
+  }, 200);
+}
 
 // ===== PROJETS ENREGISTRÉS =====
 async function saveCurrentProject(){
