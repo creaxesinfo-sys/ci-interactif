@@ -1774,22 +1774,48 @@ function showRotateNudge(){
   <!-- ONGLET BANQUE VIDÉOS (plein écran) -->
   <div id="atab-content-banque" class="admin-tab-content" style="display:none;">
     <div class="admin-body">
-      <div class="admin-section-title" style="margin-bottom:20px;">Banque de Vidéos</div>
 
-      <!-- Zone de drop principale -->
-      <div id="banque-drop-zone" style="border:2px dashed #2a2a2a;background:#0a0a0a;padding:48px 24px;text-align:center;cursor:pointer;transition:all 0.2s;margin-bottom:24px;"
-        ondragover="event.preventDefault();this.style.borderColor='#fff';this.style.background='#111';"
-        ondragleave="this.style.borderColor='#2a2a2a';this.style.background='#0a0a0a';"
-        ondrop="banqueDrop(event)"
-        onclick="document.getElementById('banque-file-input').click()">
-        <div style="font-size:40px;margin-bottom:16px;opacity:0.3;">🎬</div>
-        <div style="font-size:12px;color:#555;letter-spacing:4px;text-transform:uppercase;margin-bottom:8px;">Glisser des vidéos ici</div>
-        <div style="font-size:10px;color:#333;letter-spacing:2px;">ou cliquer pour parcourir</div>
-        <input type="file" id="banque-file-input" accept="video/*" multiple style="display:none" onchange="banqueUploadFiles(this.files)">
+      <!-- Tabs internes : Ma Banque / ☁ Cloudflare -->
+      <div style="display:flex;gap:0;border-bottom:1px solid #1a1a1a;margin-bottom:24px;">
+        <button id="bank-tab-local" onclick="switchBankTab('local')" style="background:none;border:none;border-bottom:2px solid #fff;color:#fff;font-family:Arial,sans-serif;font-size:10px;letter-spacing:3px;text-transform:uppercase;padding:12px 20px;cursor:pointer;">📁 Ma Banque</button>
+        <button id="bank-tab-cloud" onclick="switchBankTab('cloud')" style="background:none;border:none;border-bottom:2px solid transparent;color:#444;font-family:Arial,sans-serif;font-size:10px;letter-spacing:3px;text-transform:uppercase;padding:12px 20px;cursor:pointer;">☁ Cloudflare</button>
       </div>
 
-      <!-- Grille vidéos -->
-      <div id="banque-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;"></div>
+      <!-- ===== ONGLET MA BANQUE ===== -->
+      <div id="bank-panel-local">
+        <!-- Upload zone -->
+        <div id="banque-drop-zone"
+          style="border:2px dashed #2a2a2a;background:#0a0a0a;padding:40px 24px;text-align:center;cursor:pointer;transition:all 0.2s;margin-bottom:20px;border-radius:4px;"
+          ondragover="event.preventDefault();this.style.borderColor='#fff';this.style.background='#111';"
+          ondragleave="this.style.borderColor='#2a2a2a';this.style.background='#0a0a0a';"
+          ondrop="banqueDrop(event)"
+          onclick="document.getElementById('banque-file-input').click()">
+          <div style="font-size:32px;margin-bottom:12px;">⬆</div>
+          <div style="font-size:11px;color:#555;letter-spacing:4px;text-transform:uppercase;margin-bottom:6px;">Glisser des vidéos ici</div>
+          <div style="font-size:9px;color:#2a2a2a;letter-spacing:2px;">ou cliquer pour parcourir — MP4, MOV, WebM</div>
+          <input type="file" id="banque-file-input" accept="video/*" multiple style="display:none" onchange="banqueUploadFiles(this.files)">
+        </div>
+        <!-- Uploads actifs -->
+        <div id="banque-uploads-active" style="display:none;margin-bottom:16px;">
+          <div style="font-size:9px;color:#444;letter-spacing:3px;text-transform:uppercase;margin-bottom:10px;">Uploads en cours</div>
+          <div id="banque-uploads-list" style="display:flex;flex-direction:column;gap:8px;"></div>
+        </div>
+        <!-- Grille vidéos -->
+        <div id="banque-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;"></div>
+      </div>
+
+      <!-- ===== ONGLET CLOUDFLARE ===== -->
+      <div id="bank-panel-cloud" style="display:none;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+          <div style="font-size:9px;color:#444;letter-spacing:3px;text-transform:uppercase;">Toutes tes vidéos sur Cloudflare Stream</div>
+          <button onclick="loadCloudflareVideos(true)" style="background:none;border:1px solid #2a2a2a;color:#555;font-family:Arial,sans-serif;font-size:9px;letter-spacing:2px;padding:7px 14px;cursor:pointer;text-transform:uppercase;transition:all 0.15s;" onmouseover="this.style.borderColor='#fff';this.style.color='#fff'" onmouseout="this.style.borderColor='#2a2a2a';this.style.color='#555'">↻ Actualiser</button>
+        </div>
+        <div style="font-size:10px;color:#2a2a2a;letter-spacing:2px;margin-bottom:20px;">Clique sur une vidéo pour l'importer dans ta banque ou l'utiliser directement dans une scène.</div>
+        <div id="cf-videos-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;">
+          <div style="color:#333;font-size:10px;letter-spacing:3px;text-transform:uppercase;padding:40px;grid-column:1/-1;text-align:center;">Clique sur Actualiser pour charger tes vidéos Cloudflare</div>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -5985,7 +6011,7 @@ function tusUpload(file, callbacks){
     var upload = new tus.Upload(file, {
       uploadUrl: data.tusUrl,
       retryDelays: [0, 1000, 3000, 5000],
-      chunkSize: 50 * 1024 * 1024, // chunks de 50MB
+      chunkSize: 5 * 1024 * 1024, // chunks de 5MB — plus réactif sur connexions normales
       metadata: { name: file.name, filetype: file.type },
       onProgress: function(uploaded, total){
         var pct = Math.round((uploaded / total) * 100);
@@ -6190,54 +6216,8 @@ async function loadBankFromSupabase(){
   }
 }
 
-// Upload depuis la banque vers Cloudflare via TUS
 function bankUploadFiles(files){
   Array.from(files).forEach(function(file){ bankUploadOne(file); });
-}
-
-function bankUploadOne(file){
-  var dropZone = document.getElementById('banque-drop-zone');
-  var name = file.name.replace(/\.[^/.]+$/,'');
-
-  // Créer une carte de progression dans la grille
-  var grid = document.getElementById('banque-grid');
-  var progressCard = document.createElement('div');
-  progressCard.style.cssText = 'background:#111;border:1px solid #1a1a1a;padding:12px;';
-  progressCard.innerHTML =
-    '<div style="font-size:9px;color:#888;letter-spacing:2px;margin-bottom:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">⏳ '+name+'</div>'+
-    '<div style="font-size:8px;color:#444;margin-bottom:6px;" id="pc-size-'+Date.now()+'">'+formatSize(file.size)+' — En cours...</div>'+
-    '<div style="height:2px;background:#1a1a1a;"><div class="pc-bar" style="height:2px;background:#fff;width:0%;transition:width 0.3s;"></div></div>';
-  if(grid) grid.prepend(progressCard);
-
-  var barEl  = progressCard.querySelector('.pc-bar');
-  var sizeEl = progressCard.querySelector('[id^="pc-size"]');
-
-  tusUpload(file, {
-    onProgress: function(pct, sizeStr){
-      if(barEl)  barEl.style.width    = pct + '%';
-      if(sizeEl) sizeEl.textContent   = sizeStr + ' — ' + pct + '%';
-    },
-    onSuccess: function(uid){
-      var video = {
-        uid: uid,
-        name: name,
-        hls: 'https://customer-911pgg1vlhryqb16.cloudflarestream.com/'+uid+'/manifest/video.m3u8',
-        date: new Date().toISOString()
-      };
-      videoBank.unshift(video);
-      saveBankToStorage();
-      saveBankToSupabase(video);
-      showToast('✓ ' + name + ' ajoutée à la banque');
-      if(progressCard.parentNode) progressCard.parentNode.removeChild(progressCard);
-      renderBanque();
-      renderSBBank();
-    },
-    onError: function(msg){
-      if(sizeEl) sizeEl.textContent = '✕ Erreur: ' + msg;
-      if(barEl)  barEl.style.background = '#c44';
-      showToast('Erreur: ' + msg);
-    }
-  });
 }
 
 function banqueDrop(e){
@@ -6268,17 +6248,119 @@ function bankDeleteVideo(uid){
 }
 
 // Rendu onglet banque (plein écran)
+// ===== BANQUE — TABS =====
+function switchBankTab(tab){
+  var local = document.getElementById('bank-panel-local');
+  var cloud = document.getElementById('bank-panel-cloud');
+  var btnL  = document.getElementById('bank-tab-local');
+  var btnC  = document.getElementById('bank-tab-cloud');
+  if(tab === 'local'){
+    if(local) local.style.display = '';
+    if(cloud) cloud.style.display = 'none';
+    if(btnL){ btnL.style.borderBottomColor='#fff'; btnL.style.color='#fff'; }
+    if(btnC){ btnC.style.borderBottomColor='transparent'; btnC.style.color='#444'; }
+  } else {
+    if(local) local.style.display = 'none';
+    if(cloud) cloud.style.display = '';
+    if(btnL){ btnL.style.borderBottomColor='transparent'; btnL.style.color='#444'; }
+    if(btnC){ btnC.style.borderBottomColor='#fff'; btnC.style.color='#fff'; }
+    loadCloudflareVideos(false);
+  }
+}
+
+// ===== CLOUDFLARE BROWSER =====
+var _cfVideosCache = null;
+async function loadCloudflareVideos(forceRefresh){
+  var grid = document.getElementById('cf-videos-grid');
+  if(!grid) return;
+  if(_cfVideosCache && !forceRefresh){
+    renderCFVideos(_cfVideosCache);
+    return;
+  }
+  grid.innerHTML = '<div style="color:#333;font-size:10px;letter-spacing:3px;text-transform:uppercase;padding:40px;grid-column:1/-1;text-align:center;">Chargement depuis Cloudflare...</div>';
+  try {
+    const res = await fetch('/api/list-videos');
+    const data = await res.json();
+    if(!data.ok) throw new Error(data.error || 'Erreur');
+    _cfVideosCache = data.videos || [];
+    renderCFVideos(_cfVideosCache);
+  } catch(err) {
+    grid.innerHTML = '<div style="color:#c44;font-size:10px;letter-spacing:2px;padding:40px;grid-column:1/-1;text-align:center;">Erreur : ' + err.message + '</div>';
+  }
+}
+
+function renderCFVideos(videos){
+  var grid = document.getElementById('cf-videos-grid');
+  if(!grid) return;
+  grid.innerHTML = '';
+  if(!videos.length){
+    grid.innerHTML = '<div style="color:#333;font-size:10px;letter-spacing:3px;text-transform:uppercase;padding:40px;grid-column:1/-1;text-align:center;">Aucune vidéo trouvée sur Cloudflare Stream</div>';
+    return;
+  }
+  videos.forEach(function(video){
+    var inBank = videoBank.find(function(b){ return b.uid === video.uid; });
+    var card = document.createElement('div');
+    card.style.cssText = 'background:#111;border:1px solid '+(inBank?'#4ade80':'#1a1a1a')+';position:relative;border-radius:4px;overflow:hidden;';
+
+    var dur = video.duration > 0 ? Math.floor(video.duration/60)+':'+String(Math.floor(video.duration%60)).padStart(2,'0') : '';
+
+    card.innerHTML =
+      '<div style="width:100%;aspect-ratio:16/9;background:#0a0a0a;position:relative;overflow:hidden;">' +
+        (video.thumbnail
+          ? '<img src="'+video.thumbnail+'" style="width:100%;height:100%;object-fit:cover;" loading="lazy">'
+          : '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#2a2a2a;font-size:28px;">▶</div>'
+        ) +
+        (dur ? '<div style="position:absolute;bottom:5px;right:7px;font-size:9px;color:#fff;background:rgba(0,0,0,0.7);padding:1px 5px;border-radius:2px;">'+dur+'</div>' : '') +
+        (inBank ? '<div style="position:absolute;top:5px;right:5px;font-size:8px;color:#000;background:#4ade80;padding:2px 5px;border-radius:2px;font-weight:700;letter-spacing:1px;">DANS LA BANQUE</div>' : '') +
+      '</div>' +
+      '<div style="padding:10px;">' +
+        '<div style="font-size:10px;color:#ccc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:8px;">'+video.name+'</div>' +
+        '<div style="display:flex;gap:6px;">' +
+          (!inBank
+            ? '<button onclick="cfImportToBank(\''+video.uid+'\',\''+video.name.replace(/'/g,'')+'\',\''+video.hls+'\')" style="flex:1;background:#fff;border:none;color:#000;font-family:Arial,sans-serif;font-size:8px;font-weight:700;letter-spacing:2px;padding:7px;cursor:pointer;text-transform:uppercase;border-radius:2px;">+ Importer</button>'
+            : '<span style="flex:1;text-align:center;font-size:8px;color:#4ade80;letter-spacing:2px;text-transform:uppercase;padding:7px;">✓ Importée</span>'
+          ) +
+          '<button onclick="cfUseInScene(\''+video.uid+'\',\''+video.name.replace(/'/g,'')+'\')" style="background:none;border:1px solid #2a2a2a;color:#555;font-family:Arial,sans-serif;font-size:8px;letter-spacing:1px;padding:7px 10px;cursor:pointer;text-transform:uppercase;border-radius:2px;transition:all 0.15s;" onmouseover="this.style.borderColor=\'#fff\';this.style.color=\'#fff\'" onmouseout="this.style.borderColor=\'#2a2a2a\';this.style.color=\'#555\'">Utiliser</button>' +
+        '</div>' +
+      '</div>';
+    grid.appendChild(card);
+  });
+  var countEl = document.querySelector('#bank-tab-cloud');
+  if(countEl && videos.length) countEl.textContent = '☁ Cloudflare (' + videos.length + ')';
+}
+
+function cfImportToBank(uid, name, hls){
+  var video = { uid: uid, name: name, hls: hls, date: new Date().toISOString() };
+  if(videoBank.find(function(b){ return b.uid === uid; })){
+    showToast('Déjà dans ta banque');
+    return;
+  }
+  videoBank.unshift(video);
+  saveBankToStorage();
+  saveBankToSupabase(video);
+  showToast('✓ ' + name + ' importée dans la banque');
+  renderCFVideos(_cfVideosCache);
+  renderBanque();
+  renderSBBank();
+}
+
+function cfUseInScene(uid, name){
+  switchBankTab('local');
+  switchAdminTab('storyboard', document.getElementById('atab-storyboard'));
+  setTimeout(function(){ bankApplyToScene(uid, name); }, 300);
+}
+
 function renderBanque(){
   var grid = document.getElementById('banque-grid');
   if(!grid) return;
   grid.innerHTML = '';
   if(!videoBank.length){
-    grid.innerHTML = '<div style="color:#333;font-size:10px;letter-spacing:3px;text-transform:uppercase;text-align:center;padding:40px;grid-column:1/-1;">Aucune vidéo dans la banque — uploadez-en une ci-dessus</div>';
+    grid.innerHTML = '<div style="color:#333;font-size:10px;letter-spacing:3px;text-transform:uppercase;text-align:center;padding:40px;grid-column:1/-1;">Aucune vidéo — uploade-en une ou importe depuis ☁ Cloudflare</div>';
     return;
   }
   videoBank.forEach(function(video){
     var card = document.createElement('div');
-    card.style.cssText = 'background:#111;border:1px solid #1a1a1a;position:relative;overflow:hidden;cursor:grab;';
+    card.style.cssText = 'background:#111;border:1px solid #1a1a1a;position:relative;overflow:hidden;border-radius:4px;';
     card.draggable = true;
     card.addEventListener('dragstart', function(e){
       e.dataTransfer.setData('text/plain', JSON.stringify(video));
@@ -6292,16 +6374,81 @@ function renderBanque(){
     attachHLS(vid, video.uid, { autoplay:true, muted:true, loop:true, lowQuality:true });
     thumb.appendChild(vid);
     var info = document.createElement('div');
-    info.style.cssText = 'padding:8px 10px;';
+    info.style.cssText = 'padding:10px;';
     info.innerHTML =
-      '<div style="font-size:10px;color:#ccc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:6px;">'+video.name+'</div>'+
+      '<div style="font-size:10px;color:#ccc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:8px;">'+video.name+'</div>'+
       '<div style="display:flex;gap:6px;">'+
-        '<button onclick="bankApplyToScene(\''+video.uid+'\',\''+video.name+'\')" style="flex:1;background:#fff;border:none;color:#000;font-family:Arial,sans-serif;font-size:8px;font-weight:700;letter-spacing:2px;padding:5px;cursor:pointer;text-transform:uppercase;">UTILISER</button>'+
-        '<button onclick="bankDeleteVideo(\''+video.uid+'\')" style="background:none;border:1px solid #2a2a2a;color:#444;font-family:Arial,sans-serif;font-size:10px;padding:5px 8px;cursor:pointer;transition:color 0.15s;" onmouseover="this.style.color=\'#c44\'" onmouseout="this.style.color=\'#444\'">✕</button>'+
+        '<button onclick="bankApplyToScene(\''+video.uid+'\',\''+video.name.replace(/'/g,'')+'\')" style="flex:1;background:#fff;border:none;color:#000;font-family:Arial,sans-serif;font-size:8px;font-weight:700;letter-spacing:2px;padding:7px;cursor:pointer;text-transform:uppercase;border-radius:2px;">▶ Utiliser dans scène</button>'+
+        '<button onclick="bankDeleteVideo(\''+video.uid+'\')" style="background:none;border:1px solid #2a2a2a;color:#444;font-family:Arial,sans-serif;font-size:11px;padding:7px 10px;cursor:pointer;transition:color 0.15s;border-radius:2px;" onmouseover="this.style.color=\'#c44\'" onmouseout="this.style.color=\'#444\'">✕</button>'+
       '</div>';
     card.appendChild(thumb);
     card.appendChild(info);
     grid.appendChild(card);
+  });
+}
+
+// Upload avec barre de progression améliorée
+function bankUploadOne(file){
+  var name = file.name.replace(/\.[^/.]+$/,'');
+  var uploadsWrap = document.getElementById('banque-uploads-active');
+  var uploadsList = document.getElementById('banque-uploads-list');
+  if(uploadsWrap) uploadsWrap.style.display = '';
+
+  var uploadId = 'upload-' + Date.now();
+  var progressCard = document.createElement('div');
+  progressCard.id = uploadId;
+  progressCard.style.cssText = 'background:#0d0d0d;border:1px solid #1a1a1a;padding:12px 14px;border-radius:4px;';
+  progressCard.innerHTML =
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">' +
+      '<div style="font-size:10px;color:#888;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:70%;">⬆ '+name+'</div>' +
+      '<div class="upload-pct" style="font-size:9px;color:#555;letter-spacing:2px;">0%</div>' +
+    '</div>' +
+    '<div style="height:3px;background:#1a1a1a;border-radius:2px;">' +
+      '<div class="upload-bar" style="height:3px;background:#fff;width:0%;transition:width 0.4s ease;border-radius:2px;"></div>' +
+    '</div>' +
+    '<div class="upload-status" style="font-size:9px;color:#333;letter-spacing:1px;margin-top:6px;">Connexion à Cloudflare...</div>';
+  if(uploadsList) uploadsList.prepend(progressCard);
+
+  var barEl    = progressCard.querySelector('.upload-bar');
+  var pctEl    = progressCard.querySelector('.upload-pct');
+  var statusEl = progressCard.querySelector('.upload-status');
+
+  tusUpload(file, {
+    onProgress: function(pct, sizeStr){
+      if(barEl)    barEl.style.width    = pct + '%';
+      if(pctEl)    pctEl.textContent    = pct + '%';
+      if(statusEl) statusEl.textContent = sizeStr + ' transféré';
+    },
+    onSuccess: function(uid){
+      if(barEl)    barEl.style.width      = '100%';
+      if(barEl)    barEl.style.background = '#4ade80';
+      if(pctEl)    pctEl.textContent      = '✓';
+      if(statusEl) statusEl.textContent   = 'Encodage Cloudflare en cours...';
+      var video = {
+        uid: uid,
+        name: name,
+        hls: 'https://customer-911pgg1vlhryqb16.cloudflarestream.com/'+uid+'/manifest/video.m3u8',
+        date: new Date().toISOString()
+      };
+      videoBank.unshift(video);
+      saveBankToStorage();
+      saveBankToSupabase(video);
+      showToast('✓ ' + name + ' uploadée !');
+      _cfVideosCache = null; // invalider le cache CF
+      setTimeout(function(){
+        var card = document.getElementById(uploadId);
+        if(card && card.parentNode) card.parentNode.removeChild(card);
+        if(uploadsList && !uploadsList.children.length && uploadsWrap) uploadsWrap.style.display = 'none';
+      }, 3000);
+      renderBanque();
+      renderSBBank();
+    },
+    onError: function(msg){
+      if(statusEl) statusEl.textContent   = '✕ Erreur: ' + msg;
+      if(barEl)    barEl.style.background = '#c44';
+      if(pctEl)    pctEl.textContent      = '✕';
+      showToast('Erreur upload: ' + msg);
+    }
   });
 }
 
