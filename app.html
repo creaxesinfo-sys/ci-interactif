@@ -2657,25 +2657,61 @@ function renderChoices(scene){
 
   layer.style.pointerEvents='auto';
   scene.choices.forEach(function(choice,i){
-    var x=choice.x!==undefined?choice.x:20+i*30;
-    var y=choice.y!==undefined?choice.y:75;
-    var delay=choice.delay!==undefined?choice.delay:0;
-    var btn=document.createElement('button');
-    btn.className='hotspot';
-    btn.style.left=x+'%';
-    btn.style.top=y+'%';
-    btn.style.transition='opacity 0.5s ease';
-    btn.innerHTML='<div class="hotspot-circle"></div><div class="hotspot-label">'+choice.text+'</div>';
-    btn.onclick=function(){clearCountdown();loadScene(choice.targetId);};
-    btn.onmouseenter=function(){preloadScene(choice.targetId);};
-    layer.appendChild(btn);
-    if(delay <= 0){
-      btn.style.opacity='1';
-      btn.style.pointerEvents='auto';
+    var x       = choice.x!==undefined ? choice.x : 20+i*30;
+    var y       = choice.y!==undefined ? choice.y : 75;
+    var delay   = choice.delay    || 0;
+    var duration= choice.duration || 0; // 0 = toujours visible
+    var bs      = choice.btnStyle || {};
+    var hasStyle = bs.bg || bs.color || bs.shape || bs.size;
+
+    var btn = document.createElement('button');
+
+    if(hasStyle){
+      // Bouton designé personnalisé
+      btn.className = 'hotspot';
+      btn.style.left = x+'%';
+      btn.style.top  = y+'%';
+      btn.style.transition = 'opacity 0.5s ease';
+      btn.style.transform = 'translate(-50%,-50%)';
+
+      // Appliquer le style custom
+      var css = getBtnCSS(bs, choice.text);
+      Object.assign(btn.style, css);
+      btn.style.position = 'absolute';
+      btn.style.transition = 'opacity 0.5s ease';
+      btn.textContent = choice.text;
     } else {
-      btn.style.opacity='0';
-      btn.style.pointerEvents='none';
-      setTimeout(function(){ btn.style.opacity='1'; btn.style.pointerEvents='auto'; }, delay*1000);
+      // Style hotspot circulaire par défaut
+      btn.className = 'hotspot';
+      btn.style.left = x+'%';
+      btn.style.top  = y+'%';
+      btn.style.transition = 'opacity 0.5s ease';
+      btn.innerHTML = '<div class="hotspot-circle"></div><div class="hotspot-label">'+choice.text+'</div>';
+    }
+
+    btn.onclick = function(){ clearCountdown(); loadScene(choice.targetId); };
+    btn.onmouseenter = function(){ preloadScene(choice.targetId); };
+    layer.appendChild(btn);
+
+    // Apparition
+    if(delay <= 0){
+      btn.style.opacity = '1';
+      btn.style.pointerEvents = 'auto';
+    } else {
+      btn.style.opacity = '0';
+      btn.style.pointerEvents = 'none';
+      setTimeout(function(){
+        btn.style.opacity = '1';
+        btn.style.pointerEvents = 'auto';
+      }, delay * 1000);
+    }
+
+    // Disparition après `duration` secondes (si défini)
+    if(duration > 0){
+      setTimeout(function(){
+        btn.style.opacity = '0';
+        btn.style.pointerEvents = 'none';
+      }, (delay + duration) * 1000);
     }
   });
 }
@@ -2801,7 +2837,14 @@ function openModal(id){
     document.getElementById('f-timer-min').value = Math.floor(totalSec / 60) || 0;
     document.getElementById('f-timer-sec').value = totalSec % 60 || 0;
     document.getElementById('f-loop').checked = !!s.loop;
-    choiceRows=s.choices.map(function(c){return{text:c.text||'',targetId:c.targetId,x:c.x,y:c.y,delay:c.delay||0};});
+    choiceRows=s.choices.map(function(c){return{
+      text:c.text||'',
+      targetId:c.targetId,
+      x:c.x, y:c.y,
+      delay:c.delay||0,
+      duration:c.duration||0,
+      btnStyle:c.btnStyle||{}
+    };});
     // Si vidéo existante → afficher lecteur
     if(s.uid && s.uid.trim()){
       setTimeout(function(){ modalInitPlayer(s.uid.trim()); }, 100);
@@ -2904,7 +2947,6 @@ function renderChoiceEditor(){
   var editor = document.getElementById('choices-editor');
   if(!editor) return;
   editor.innerHTML = '';
-  // Scènes avec vidéo uploadée seulement
   var others = scenes.filter(function(s){ return s.id !== editingSceneId && s.uid && s.uid.trim(); });
 
   choiceRows.forEach(function(row, i){
@@ -2912,32 +2954,128 @@ function renderChoiceEditor(){
       return '<option value="'+s.id+'"'+(s.id===row.targetId?' selected':'')+'>'+s.title.substring(0,28)+'</option>';
     }).join('');
 
+    var bs = row.btnStyle || {};
     var wrap = document.createElement('div');
-    wrap.style.cssText = 'background:#0d0d0d;border:1px solid #1a1a1a;border-radius:4px;padding:12px;margin-bottom:6px;';
+    wrap.style.cssText = 'background:#0d0d0d;border:1px solid #1a1a1a;border-radius:4px;padding:12px;margin-bottom:8px;';
 
+    // ── Ligne 1 : Texte + Scène + Supprimer ──
     var row1 = document.createElement('div');
     row1.style.cssText = 'display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:center;margin-bottom:8px;';
     row1.innerHTML =
-      '<input type="text" placeholder="Nom du bouton…" value="'+(row.text||'')+'" style="background:#1a1a1a;border:1px solid #2a2a2a;color:#e8e8e8;font-family:Arial,sans-serif;font-size:12px;padding:9px 12px;outline:none;" oninput="choiceRows['+i+'].text=this.value;renderHotspotsOnVideo()">'+
+      '<input type="text" placeholder="Texte du bouton…" value="'+(row.text||'')+'" style="background:#1a1a1a;border:1px solid #2a2a2a;color:#e8e8e8;font-family:Arial,sans-serif;font-size:12px;padding:9px 12px;outline:none;" oninput="choiceRows['+i+'].text=this.value;renderHotspotsOnVideo()">'+
       '<select style="background:#1a1a1a;border:1px solid #2a2a2a;color:#e8e8e8;font-family:Arial,sans-serif;font-size:12px;padding:9px 12px;" onchange="choiceRows['+i+'].targetId=parseInt(this.value)||null">'+
         '<option value="">'+(others.length===0?'— Ajouter une scène —':'— Scène liée —')+'</option>'+options+
       '</select>'+
       '<button onclick="removeChoiceRow('+i+')" style="background:none;border:1px solid #2a2a2a;color:#555;width:34px;height:36px;cursor:pointer;font-size:16px;">×</button>';
 
+    // ── Ligne 2 : Timing apparition / disparition ──
     var row2 = document.createElement('div');
-    row2.style.cssText = 'display:flex;align-items:center;gap:8px;';
+    row2.style.cssText = 'display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px;padding:8px;background:#111;border-radius:3px;';
     row2.innerHTML =
-      '<span style="font-size:10px;color:#555;letter-spacing:2px;">DÉLAI APPARITION</span>'+
-      '<input type="number" min="0" max="300" value="'+(row.delay||0)+'" style="width:60px;background:#1a1a1a;border:1px solid #2a2a2a;color:#e8e8e8;font-family:Arial,sans-serif;font-size:12px;padding:6px 10px;" oninput="choiceRows['+i+'].delay=parseInt(this.value)||0">'+
-      '<span style="font-size:10px;color:#555;">secondes</span>'+
-      '<span style="font-size:9px;color:#333;margin-left:auto;">Glisser le rond sur la vidéo pour positionner</span>';
+      '<span style="font-size:9px;color:#555;letter-spacing:2px;text-transform:uppercase;">⏱ Apparaît à</span>'+
+      '<input type="number" min="0" max="600" value="'+(row.delay||0)+'" style="width:56px;background:#1a1a1a;border:1px solid #2a2a2a;color:#e8e8e8;font-family:Arial,sans-serif;font-size:12px;padding:6px 8px;text-align:center;outline:none;" oninput="choiceRows['+i+'].delay=parseFloat(this.value)||0">'+
+      '<span style="font-size:9px;color:#444;">s</span>'+
+      '<span style="font-size:9px;color:#555;letter-spacing:2px;text-transform:uppercase;margin-left:8px;">⏱ Visible pendant</span>'+
+      '<input type="number" min="0" max="600" value="'+(row.duration||0)+'" style="width:56px;background:#1a1a1a;border:1px solid #2a2a2a;color:#e8e8e8;font-family:Arial,sans-serif;font-size:12px;padding:6px 8px;text-align:center;outline:none;" oninput="choiceRows['+i+'].duration=parseFloat(this.value)||0" placeholder="∞">'+
+      '<span style="font-size:9px;color:#444;">s <span style="color:#333;">(0 = toujours visible)</span></span>';
+
+    // ── Ligne 3 : Design du bouton ──
+    var row3 = document.createElement('div');
+    row3.style.cssText = 'display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px;background:#111;border-radius:3px;';
+
+    // Prévisualisation du bouton
+    var preview = document.createElement('div');
+    preview.id = 'btn-preview-'+i;
+    preview.style.cssText = 'flex-shrink:0;';
+    updateBtnPreview(preview, row);
+
+    var controls = document.createElement('div');
+    controls.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px;align-items:center;flex:1;';
+    controls.innerHTML =
+      // Couleur fond
+      '<label style="font-size:9px;color:#555;letter-spacing:2px;text-transform:uppercase;">Fond</label>'+
+      '<input type="color" value="'+(bs.bg||'#ffffff')+'" style="width:32px;height:28px;border:1px solid #2a2a2a;background:none;cursor:pointer;padding:2px;" oninput="choiceRows['+i+'].btnStyle.bg=this.value;updateBtnPreview(document.getElementById(\'btn-preview-'+i+'\'),choiceRows['+i+'])">'+
+      // Couleur texte
+      '<label style="font-size:9px;color:#555;letter-spacing:2px;text-transform:uppercase;">Texte</label>'+
+      '<input type="color" value="'+(bs.color||'#000000')+'" style="width:32px;height:28px;border:1px solid #2a2a2a;background:none;cursor:pointer;padding:2px;" oninput="choiceRows['+i+'].btnStyle.color=this.value;updateBtnPreview(document.getElementById(\'btn-preview-'+i+'\'),choiceRows['+i+'])">'+
+      // Forme
+      '<label style="font-size:9px;color:#555;letter-spacing:2px;text-transform:uppercase;">Forme</label>'+
+      '<select style="background:#1a1a1a;border:1px solid #2a2a2a;color:#e8e8e8;font-family:Arial,sans-serif;font-size:11px;padding:5px 8px;" onchange="choiceRows['+i+'].btnStyle.shape=this.value;updateBtnPreview(document.getElementById(\'btn-preview-'+i+'\'),choiceRows['+i+'])">'+
+        '<option value="rect"'+((!bs.shape||bs.shape==='rect')?' selected':'')+'">Rectangle</option>'+
+        '<option value="rounded"'+(bs.shape==='rounded'?' selected':'')+'>Arrondi</option>'+
+        '<option value="pill"'+(bs.shape==='pill'?' selected':'')+'>Pilule</option>'+
+        '<option value="circle"'+(bs.shape==='circle'?' selected':'')+'>Cercle</option>'+
+      '</select>'+
+      // Taille
+      '<label style="font-size:9px;color:#555;letter-spacing:2px;text-transform:uppercase;">Taille</label>'+
+      '<select style="background:#1a1a1a;border:1px solid #2a2a2a;color:#e8e8e8;font-family:Arial,sans-serif;font-size:11px;padding:5px 8px;" onchange="choiceRows['+i+'].btnStyle.size=this.value;updateBtnPreview(document.getElementById(\'btn-preview-'+i+'\'),choiceRows['+i+'])">'+
+        '<option value="sm"'+(bs.size==='sm'?' selected':'')+'>Petit</option>'+
+        '<option value="md"'+((!bs.size||bs.size==='md')?' selected':'')+'">Moyen</option>'+
+        '<option value="lg"'+(bs.size==='lg'?' selected':'')+'>Grand</option>'+
+      '</select>'+
+      // Opacité fond
+      '<label style="font-size:9px;color:#555;letter-spacing:2px;text-transform:uppercase;">Opacité</label>'+
+      '<input type="range" min="0" max="100" value="'+(bs.opacity!==undefined?bs.opacity:100)+'" style="width:70px;" oninput="choiceRows['+i+'].btnStyle.opacity=parseInt(this.value);updateBtnPreview(document.getElementById(\'btn-preview-'+i+'\'),choiceRows['+i+'])">';
+
+    row3.appendChild(preview);
+    row3.appendChild(controls);
 
     wrap.appendChild(row1);
     wrap.appendChild(row2);
+    wrap.appendChild(row3);
     editor.appendChild(wrap);
   });
 
   renderHotspotsOnVideo();
+}
+
+// Générer le CSS d'un bouton selon son style
+function getBtnCSS(bs, text){
+  bs = bs || {};
+  var bg      = bs.bg    || '#ffffff';
+  var color   = bs.color || '#000000';
+  var opacity = bs.opacity !== undefined ? bs.opacity/100 : 1;
+  var shape   = bs.shape || 'rect';
+  var size    = bs.size  || 'md';
+  var radius  = shape==='pill' ? '999px' : shape==='rounded' ? '8px' : shape==='circle' ? '50%' : '2px';
+  var pad     = size==='sm' ? '6px 14px' : size==='lg' ? '14px 32px' : '10px 22px';
+  var fs      = size==='sm' ? '10px' : size==='lg' ? '15px' : '12px';
+  var hex2rgba = function(hex, a){
+    var r=parseInt(hex.slice(1,3),16), g=parseInt(hex.slice(3,5),16), b=parseInt(hex.slice(5,7),16);
+    return 'rgba('+r+','+g+','+b+','+a+')';
+  };
+  return {
+    background: hex2rgba(bg, opacity),
+    color: color,
+    borderRadius: radius,
+    padding: pad,
+    fontSize: fs,
+    fontFamily: 'Arial,sans-serif',
+    fontWeight: '700',
+    letterSpacing: '2px',
+    textTransform: 'uppercase',
+    border: 'none',
+    cursor: 'pointer',
+    whiteSpace: 'nowrap',
+    transition: 'opacity 0.2s',
+    boxShadow: '0 2px 12px rgba(0,0,0,0.4)',
+    width: shape==='circle' ? '64px' : 'auto',
+    height: shape==='circle' ? '64px' : 'auto',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  };
+}
+
+function updateBtnPreview(el, row){
+  if(!el) return;
+  var css = getBtnCSS(row.btnStyle, row.text);
+  var btn = document.createElement('button');
+  Object.assign(btn.style, css);
+  btn.textContent = row.text || 'Bouton';
+  btn.style.pointerEvents = 'none';
+  el.innerHTML = '';
+  el.appendChild(btn);
 }
 
 function renderHotspotsOnVideo(){
@@ -3025,7 +3163,7 @@ function testScene(sceneId){
   } catch(e){}
 }
 
-function addChoiceRow(){choiceRows.push({text:'Option '+(choiceRows.length+1),targetId:null,x:20+choiceRows.length*30,y:75,delay:0});renderChoiceEditor();}
+function addChoiceRow(){choiceRows.push({text:'Option '+(choiceRows.length+1),targetId:null,x:20+choiceRows.length*30,y:75,delay:0,duration:0,btnStyle:{}});renderChoiceEditor();}
 function removeChoiceRow(i){choiceRows.splice(i,1);renderChoiceEditor();}
 
 function saveScene(){
@@ -3817,7 +3955,12 @@ async function renderUsersTab(){
       b3.onmouseover=function(){this.style.borderColor='#c44';this.style.color='#c44';}; b3.onmouseout=function(){this.style.borderColor='#2a2a2a';this.style.color='#555';};
       b3.onclick=function(){ deleteUser(user.id, user.nom||user.email); };
 
+      var b4 = document.createElement('button'); b4.style.cssText=bs; b4.textContent='🎬 Assigner vidéo Cloudflare';
+      b4.onmouseover=function(){this.style.borderColor='#888';this.style.color='#fff';}; b4.onmouseout=function(){this.style.borderColor='#e8e8e8';this.style.color='#555';};
+      b4.onclick=function(){ openAssignVideoModal(user); };
+
       actions.appendChild(b1);
+      actions.appendChild(b4);
       actions.appendChild(b2);
       actions.appendChild(b3);
       card.appendChild(actions);
@@ -3829,6 +3972,160 @@ async function renderUsersTab(){
 async function updateUserPlan(userId, plan){
   const { error } = await supabaseClient.from('profiles').update({ plan: plan }).eq('id', userId);
   if(!error){ showToast('Plan mis à jour → ' + plan); renderUsersTab(); }
+}
+
+// ===== ASSIGNER VIDÉO CLOUDFLARE (ADMIN) =====
+function openAssignVideoModal(user){
+  // Supprimer modal existant si présent
+  var old = document.getElementById('assign-video-modal');
+  if(old) old.remove();
+
+  var overlay = document.createElement('div');
+  overlay.id = 'assign-video-modal';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;';
+
+  overlay.innerHTML =
+    '<div style="background:#111;border:1px solid #2a2a2a;max-width:460px;width:100%;padding:0;font-family:Arial,sans-serif;">' +
+
+      // Header
+      '<div style="padding:20px 24px;border-bottom:1px solid #1a1a1a;display:flex;justify-content:space-between;align-items:center;">' +
+        '<div>' +
+          '<div style="font-size:11px;font-weight:700;color:#fff;letter-spacing:4px;text-transform:uppercase;">🎬 Assigner vidéo</div>' +
+          '<div style="font-size:10px;color:#444;letter-spacing:2px;margin-top:3px;">'+(user.nom||user.email)+'</div>' +
+        '</div>' +
+        '<button onclick="document.getElementById(\'assign-video-modal\').remove()" style="background:none;border:none;color:#444;font-size:18px;cursor:pointer;padding:0 4px;transition:color 0.15s;" onmouseover="this.style.color=\'#fff\'" onmouseout="this.style.color=\'#444\'">✕</button>' +
+      '</div>' +
+
+      // Vidéo actuelle
+      '<div style="padding:20px 24px;border-bottom:1px solid #1a1a1a;">' +
+        '<div style="font-size:9px;color:#444;letter-spacing:3px;text-transform:uppercase;margin-bottom:10px;">Vidéo actuelle</div>' +
+        (user.video_uid && user.video_uid.trim()
+          ? '<div style="display:flex;align-items:center;gap:10px;">' +
+              '<div style="width:56px;height:56px;border-radius:50%;background:#1a1a1a;border:1px solid #2a2a2a;overflow:hidden;flex-shrink:0;" id="assign-current-thumb"></div>' +
+              '<div>' +
+                '<div style="font-size:10px;color:#888;letter-spacing:1px;word-break:break-all;">' + user.video_uid + '</div>' +
+                '<div style="font-size:9px;color:'+(user.video_status==='ready'?'#4ade80':'#f59e0b')+';letter-spacing:2px;text-transform:uppercase;margin-top:3px;">' + (user.video_status||'pending') + '</div>' +
+              '</div>' +
+            '</div>'
+          : '<div style="font-size:10px;color:#333;letter-spacing:2px;">Aucune vidéo assignée</div>'
+        ) +
+      '</div>' +
+
+      // Input UID
+      '<div style="padding:24px;">' +
+        '<div style="font-size:9px;color:#444;letter-spacing:3px;text-transform:uppercase;margin-bottom:8px;">UID ou URL Cloudflare Stream</div>' +
+        '<input id="assign-uid-input" type="text" placeholder="ex: a1b2c3d4e5f6... ou URL complète" ' +
+          'style="width:100%;background:#0d0d0d;border:1px solid #2a2a2a;color:#e8e8e8;font-family:Arial,sans-serif;font-size:12px;padding:12px 14px;outline:none;box-sizing:border-box;transition:border-color 0.15s;" ' +
+          'onfocus="this.style.borderColor=\'#555\'" onblur="this.style.borderColor=\'#2a2a2a\'">' +
+        '<div style="font-size:9px;color:#333;letter-spacing:1px;margin-top:8px;line-height:1.8;">' +
+          'Colle l\'UID depuis Cloudflare Stream ou l\'URL complète :<br>' +
+          '<span style="color:#2a2a2a;font-family:monospace;">https://customer-xxx.cloudflarestream.com/<b style="color:#555;">UID</b>/manifest/video.m3u8</span>' +
+        '</div>' +
+
+        // Preview
+        '<div id="assign-preview-wrap" style="display:none;margin-top:16px;">' +
+          '<div style="font-size:9px;color:#444;letter-spacing:3px;text-transform:uppercase;margin-bottom:8px;">Aperçu</div>' +
+          '<div style="width:100%;aspect-ratio:16/9;background:#0d0d0d;border:1px solid #1a1a1a;overflow:hidden;">' +
+            '<video id="assign-preview-vid" muted loop playsinline autoplay style="width:100%;height:100%;object-fit:cover;"></video>' +
+          '</div>' +
+        '</div>' +
+
+        // Boutons
+        '<div style="display:flex;gap:8px;margin-top:20px;">' +
+          '<button onclick="previewAssignVideo()" style="flex:1;background:#1a1a1a;border:1px solid #2a2a2a;color:#888;font-family:Arial,sans-serif;font-size:10px;letter-spacing:3px;padding:12px;cursor:pointer;text-transform:uppercase;transition:all 0.15s;" onmouseover="this.style.borderColor=\'#555\';this.style.color=\'#fff\'" onmouseout="this.style.borderColor=\'#2a2a2a\';this.style.color=\'#888\'">👁 Aperçu</button>' +
+          '<button onclick="confirmAssignVideo(\'' + user.id + '\')" style="flex:2;background:#fff;border:none;color:#000;font-family:Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:3px;padding:12px;cursor:pointer;text-transform:uppercase;transition:opacity 0.15s;" onmouseover="this.style.opacity=\'0.85\'" onmouseout="this.style.opacity=\'1\'">✓ ASSIGNER AU PROFIL</button>' +
+        '</div>' +
+
+        // Option supprimer
+        (user.video_uid && user.video_uid.trim()
+          ? '<button onclick="removeUserVideo(\'' + user.id + '\')" style="width:100%;background:none;border:none;color:#333;font-family:Arial,sans-serif;font-size:9px;letter-spacing:2px;padding:10px;cursor:pointer;text-transform:uppercase;margin-top:4px;transition:color 0.15s;" onmouseover="this.style.color=\'#c44\'" onmouseout="this.style.color=\'#333\'">✕ Retirer la vidéo actuelle</button>'
+          : ''
+        ) +
+      '</div>' +
+    '</div>';
+
+  document.body.appendChild(overlay);
+
+  // Fermer en cliquant hors du modal
+  overlay.addEventListener('click', function(e){ if(e.target === overlay) overlay.remove(); });
+
+  // Charger la vidéo actuelle dans le thumb si elle existe
+  if(user.video_uid && user.video_uid.trim()){
+    setTimeout(function(){
+      var thumb = document.getElementById('assign-current-thumb');
+      if(thumb){
+        var tv = document.createElement('video');
+        tv.muted=true; tv.loop=true; tv.playsInline=true; tv.autoplay=true;
+        tv.style.cssText='width:100%;height:100%;object-fit:cover;';
+        attachHLS(tv, user.video_uid.trim(), { autoplay:true, muted:true, loop:true, controls:false, lowQuality:true });
+        thumb.appendChild(tv);
+      }
+    }, 100);
+  }
+}
+
+function extractCloudflareUID(input){
+  input = input.trim();
+  // URL complète → extraire l'UID
+  var match = input.match(/cloudflarestream\.com\/([a-f0-9]{32,})/i);
+  if(match) return match[1];
+  // UID seul (32 chars hex)
+  if(/^[a-f0-9]{32,64}$/i.test(input)) return input;
+  return null;
+}
+
+function previewAssignVideo(){
+  var input = document.getElementById('assign-uid-input');
+  if(!input || !input.value.trim()){ showToast('Entre un UID ou une URL Cloudflare'); return; }
+  var uid = extractCloudflareUID(input.value);
+  if(!uid){ showToast('UID invalide — vérifie le format'); return; }
+
+  var wrap = document.getElementById('assign-preview-wrap');
+  var vid = document.getElementById('assign-preview-vid');
+  if(!wrap || !vid) return;
+
+  wrap.style.display = 'block';
+  attachHLS(vid, uid, { autoplay:true, muted:true, loop:true, controls:false });
+  showToast('Aperçu chargé');
+}
+
+async function confirmAssignVideo(userId){
+  var input = document.getElementById('assign-uid-input');
+  if(!input || !input.value.trim()){ showToast('Entre un UID ou une URL Cloudflare'); return; }
+  var uid = extractCloudflareUID(input.value);
+  if(!uid){ showToast('UID invalide — vérifie le format'); return; }
+
+  var btn = document.querySelector('#assign-video-modal button[onclick^="confirmAssignVideo"]');
+  if(btn){ btn.textContent = '⟳ Enregistrement...'; btn.style.opacity = '0.6'; btn.disabled = true; }
+
+  const { error } = await supabaseClient
+    .from('profiles')
+    .update({ video_uid: uid, video_status: 'ready' })
+    .eq('id', userId);
+
+  if(error){
+    showToast('Erreur Supabase : ' + error.message);
+    if(btn){ btn.textContent = '✓ ASSIGNER AU PROFIL'; btn.style.opacity = '1'; btn.disabled = false; }
+    return;
+  }
+
+  showToast('Vidéo assignée avec succès ✓');
+  var modal = document.getElementById('assign-video-modal');
+  if(modal) modal.remove();
+  renderUsersTab();
+}
+
+async function removeUserVideo(userId){
+  if(!confirm('Retirer la vidéo de profil de cet utilisateur ?')) return;
+  const { error } = await supabaseClient
+    .from('profiles')
+    .update({ video_uid: null, video_status: null })
+    .eq('id', userId);
+  if(error){ showToast('Erreur : ' + error.message); return; }
+  showToast('Vidéo retirée ✓');
+  var modal = document.getElementById('assign-video-modal');
+  if(modal) modal.remove();
+  renderUsersTab();
 }
 
 async function deleteUser(userId, nom){
@@ -4715,6 +5012,8 @@ async function initAuth(){
       if(currentProfile && !currentProfile.ai_configured){
         setTimeout(function(){ openAISetup(); }, 800);
       }
+      // Vérifier si une vidéo est encore en pending depuis une session précédente
+      setTimeout(checkPendingVideoOnLoad, 3000);
     } else if(event === 'SIGNED_OUT'){
       currentUser = null; currentProfile = null;
       stopAutosave();
@@ -5031,7 +5330,7 @@ async function uploadRecordedVideo(){
     currentProfile.video_status = 'pending';
 
     closeAvatarEditor();
-    showPendingVideoMessage();
+    showPendingVideoMessage(urlData.uid);
     updateProfilAvatar();
   } catch(err){
     showToast('Erreur upload : ' + err.message);
@@ -5051,19 +5350,19 @@ async function handleFileUpload(input){
     var formData = new FormData();
     formData.append('file', file);
     await fetch(urlData.uploadURL, { method: 'POST', body: formData });
-    await supabaseClient.from('profiles').update({ video_uid: urlData.uid, video_status: 'pending' }).eq('id', currentUser.id);
+    const { error } = await supabaseClient.from('profiles').update({ video_uid: urlData.uid, video_status: 'pending' }).eq('id', currentUser.id);
+    if(error) throw new Error('Supabase: ' + error.message);
     currentProfile.video_uid = urlData.uid;
     currentProfile.video_status = 'pending';
     closeAvatarEditor();
-    showPendingVideoMessage();
+    showPendingVideoMessage(urlData.uid);
     updateProfilAvatar();
   } catch(err){
     showToast('Erreur : ' + err.message);
   }
 }
 
-function showPendingVideoMessage(){
-  // Affiche un modal/overlay "En attente de probation"
+function showPendingVideoMessage(uid){
   var existing = document.getElementById('pending-video-msg');
   if(existing) existing.remove();
 
@@ -5071,14 +5370,125 @@ function showPendingVideoMessage(){
   overlay.id = 'pending-video-msg';
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:9999;display:flex;align-items:center;justify-content:center;';
   overlay.innerHTML =
-    '<div style="background:#111;border:1px solid #2a2a2a;max-width:380px;width:90%;padding:36px;text-align:center;">' +
+    '<div style="background:#111;border:1px solid #2a2a2a;max-width:420px;width:90%;padding:36px;text-align:center;">' +
       '<div style="font-size:36px;margin-bottom:20px;">⏳</div>' +
-      '<div style="font-size:12px;color:#fff;font-weight:700;letter-spacing:4px;text-transform:uppercase;margin-bottom:12px;">Vidéo en attente</div>' +
-      '<div style="font-size:11px;color:#555;letter-spacing:2px;line-height:1.8;margin-bottom:24px;">Ta vidéo de profil a été envoyée avec succès et est en attente de probation. Elle sera visible sur ton profil après approbation par l\'administrateur.</div>' +
-      '<div style="font-size:9px;color:#333;letter-spacing:3px;text-transform:uppercase;margin-bottom:24px;">Délai habituel : quelques minutes</div>' +
-      '<button onclick="document.getElementById(\'pending-video-msg\').remove()" style="background:#fff;border:none;color:#000;font-family:Arial,sans-serif;font-size:10px;letter-spacing:3px;padding:12px 32px;cursor:pointer;text-transform:uppercase;font-weight:700;">OK</button>' +
+      '<div style="font-size:12px;color:#fff;font-weight:700;letter-spacing:4px;text-transform:uppercase;margin-bottom:12px;">Vidéo en cours d\'encodage</div>' +
+      '<div style="font-size:11px;color:#555;letter-spacing:1px;line-height:1.9;margin-bottom:20px;">Ta vidéo a été uploadée avec succès. Cloudflare est en train de l\'encoder — tu seras notifié(e) dès qu\'elle est prête.</div>' +
+      '<div id="pending-video-progress" style="margin-bottom:20px;">' +
+        '<div style="width:100%;height:2px;background:#1a1a1a;margin-bottom:8px;">' +
+          '<div id="pending-video-bar" style="height:2px;background:#fff;width:5%;transition:width 0.8s ease;"></div>' +
+        '</div>' +
+        '<div id="pending-video-status" style="font-size:9px;color:#444;letter-spacing:3px;text-transform:uppercase;">Vérification en cours...</div>' +
+      '</div>' +
+      '<button onclick="closePendingVideoMsg()" style="background:#fff;border:none;color:#000;font-family:Arial,sans-serif;font-size:10px;letter-spacing:3px;padding:12px 32px;cursor:pointer;text-transform:uppercase;font-weight:700;">Continuer en arrière-plan</button>' +
+      '<div style="font-size:9px;color:#222;letter-spacing:2px;margin-top:14px;">Tu peux fermer ce message — tu recevras une notification quand c\'est prêt.</div>' +
     '</div>';
   document.body.appendChild(overlay);
+
+  // Lancer le polling si on a l'UID
+  if(uid) startVideoStatusPolling(uid);
+}
+
+function closePendingVideoMsg(){
+  var el = document.getElementById('pending-video-msg');
+  if(el) el.remove();
+}
+
+// ===== POLLING STATUT VIDÉO CLOUDFLARE =====
+var _videoPollingTimer = null;
+
+function startVideoStatusPolling(uid){
+  if(_videoPollingTimer) clearInterval(_videoPollingTimer);
+  var attempts = 0;
+  var maxAttempts = 60; // ~5 minutes à 5s d'intervalle
+
+  function check(){
+    attempts++;
+    if(attempts > maxAttempts){
+      clearInterval(_videoPollingTimer);
+      _videoPollingTimer = null;
+      var st = document.getElementById('pending-video-status');
+      if(st) st.textContent = 'Vérification arrêtée — utilise le bouton admin si besoin';
+      return;
+    }
+
+    fetch('/api/check-video-status', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ uid: uid, userId: currentUser ? currentUser.id : null })
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      var bar = document.getElementById('pending-video-bar');
+      var st  = document.getElementById('pending-video-status');
+      var pct = data.pctComplete || 0;
+
+      if(bar) bar.style.width = Math.max(5, pct) + '%';
+
+      if(data.ready || data.state === 'ready'){
+        // ✅ Vidéo prête !
+        clearInterval(_videoPollingTimer);
+        _videoPollingTimer = null;
+        if(bar) bar.style.width = '100%';
+        if(st)  st.textContent = 'Vidéo prête ✓';
+
+        // Mettre à jour le profil local
+        if(currentProfile){ currentProfile.video_status = 'ready'; }
+
+        // Notif + fermer le modal après 2s
+        showToast('✓ Vidéo de profil prête !');
+        setTimeout(function(){
+          closePendingVideoMsg();
+          updateProfilAvatar();
+        }, 1800);
+
+      } else if(data.state === 'error'){
+        clearInterval(_videoPollingTimer);
+        if(st) st.textContent = 'Erreur Cloudflare — contacte l\'admin';
+
+      } else {
+        // Encore en cours
+        var label = pct > 0 ? 'Encodage ' + pct + '%...' : 'En file d\'attente Cloudflare...';
+        if(st) st.textContent = label;
+      }
+    })
+    .catch(function(){
+      // Erreur réseau — on continue quand même
+    });
+  }
+
+  // Premier check après 8s, puis toutes les 5s
+  setTimeout(function(){ check(); _videoPollingTimer = setInterval(check, 5000); }, 8000);
+}
+
+// Polling au démarrage pour les vidéos déjà en pending (sessions précédentes)
+function checkPendingVideoOnLoad(){
+  if(!currentProfile || !currentProfile.video_uid) return;
+  if(currentProfile.video_status !== 'pending') return;
+
+  // Lancer un polling silencieux (sans modal)
+  var uid = currentProfile.video_uid;
+  var attempts = 0;
+  var timer = setInterval(function(){
+    attempts++;
+    if(attempts > 72) { clearInterval(timer); return; } // max 6min
+
+    fetch('/api/check-video-status', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ uid: uid, userId: currentUser.id })
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      if(data.ready){
+        clearInterval(timer);
+        currentProfile.video_status = 'ready';
+        updateProfilAvatar();
+        showToast('✓ Vidéo de profil maintenant disponible !');
+      }
+    })
+    .catch(function(){});
+  }, 5000);
 }
 
 function updateProfilAvatar(){
