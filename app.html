@@ -6212,9 +6212,11 @@ function handleSceneFileUpload(input){
 // Gère les vidéos 4K, 15 minutes, plusieurs GB sans problème.
 
 function tusUpload(file, callbacks){
-  // callbacks: { onProgress(pct, bytesStr), onSuccess(uid), onError(msg) }
-  var fileSizeMB = (file.size / 1024 / 1024).toFixed(1);
-  
+  // Chunk adaptatif selon taille du fichier
+  var chunkSize = file.size > 500*1024*1024 ? 25*1024*1024  // >500MB → 25MB chunks
+               : file.size > 100*1024*1024 ? 15*1024*1024  // >100MB → 15MB chunks
+               : 5*1024*1024;                               // sinon  →  5MB chunks
+
   return fetch('/api/upload-video', {
     method: 'POST',
     headers: {
@@ -6226,11 +6228,11 @@ function tusUpload(file, callbacks){
   .then(function(data){
     if(!data.tusUrl || !data.uid) throw new Error('URL TUS invalide');
     var uid = data.uid;
-
     var upload = new tus.Upload(file, {
       uploadUrl: data.tusUrl,
-      retryDelays: [0, 1000, 3000, 5000],
-      chunkSize: 5 * 1024 * 1024, // chunks de 5MB — plus réactif sur connexions normales
+      retryDelays: [0, 1000, 3000, 5000, 10000],
+      chunkSize: chunkSize,
+      parallelUploads: 3, // parallélisme interne TUS par fichier
       metadata: { name: file.name, filetype: file.type },
       onProgress: function(uploaded, total){
         var pct = Math.round((uploaded / total) * 100);
@@ -6238,19 +6240,99 @@ function tusUpload(file, callbacks){
         var totalMB    = (total    / 1024 / 1024).toFixed(1);
         if(callbacks.onProgress) callbacks.onProgress(pct, uploadedMB + ' / ' + totalMB + ' MB');
       },
-      onSuccess: function(){
-        if(callbacks.onSuccess) callbacks.onSuccess(uid);
-      },
-      onError: function(err){
-        if(callbacks.onError) callbacks.onError(err.message || 'Erreur réseau');
-      }
+      onSuccess: function(){ if(callbacks.onSuccess) callbacks.onSuccess(uid); },
+      onError: function(err){ if(callbacks.onError) callbacks.onError(err.message || 'Erreur réseau'); }
     });
     upload.start();
     return upload;
   })
-  .catch(function(err){
-    if(callbacks.onError) callbacks.onError(err.message);
-  });
+  .catch(function(err){ if(callbacks.onError) callbacks.onError(err.message); });
+}
+
+// ===== QUEUE D'UPLOAD PARALLÈLE =====
+var _uploadQueue   = [];   // fichiers en attente
+var _uploadActive  = 0;    // uploads en cours
+var _uploadMax     = 4;    // max simultanés
+var _uploadStats   = { done:0, total:0, errors:0 };
+
+function bankUploadFiles(files){
+  var arr = Array.from(files);
+  if(!arr.length) return;
+
+  // Ajouter à la queue
+  arr.forEach(function(f){ _uploadQueue.push(f); });
+  _uploadStats.total += arr.length;
+
+  // Afficher le panneau uploads
+  showBulkUploadPanel();
+  updateBulkUploadSummary();
+
+  // Lancer jusqu'à _uploadMax uploads
+  drainUploadQueue();
+}
+
+function drainUploadQueue(){
+  while(_uploadActive < _uploadMax && _uploadQueue.length > 0){
+    var file = _uploadQueue.shift();
+    _uploadActive++;
+    bankUploadOne(file, function(){
+      _uploadActive--;
+      _uploadStats.done++;
+      updateBulkUploadSummary();
+      drainUploadQueue();
+      // Tout terminé ?
+      if(_uploadActive === 0 && _uploadQueue.length === 0){
+        setTimeout(function(){
+          var panel = document.getElementById('bulk-upload-panel');
+          if(panel) panel.style.opacity = '0';
+          setTimeout(function(){
+            if(panel) panel.style.display = 'none';
+            _uploadStats = { done:0, total:0, errors:0 };
+          }, 600);
+        }, 2000);
+      }
+    }, function(){
+      _uploadActive--;
+      _uploadStats.errors++;
+      updateBulkUploadSummary();
+      drainUploadQueue();
+    });
+  }
+}
+
+function showBulkUploadPanel(){
+  var existing = document.getElementById('bulk-upload-panel');
+  if(existing){ existing.style.display = ''; existing.style.opacity = '1'; return; }
+
+  var panel = document.createElement('div');
+  panel.id = 'bulk-upload-panel';
+  panel.style.cssText = 'position:fixed;bottom:20px;right:20px;width:340px;background:#111;border:1px solid #2a2a2a;z-index:99990;font-family:Arial,sans-serif;box-shadow:0 8px 32px rgba(0,0,0,0.6);transition:opacity 0.4s ease;';
+  panel.innerHTML =
+    '<div style="padding:12px 16px;border-bottom:1px solid #1a1a1a;display:flex;align-items:center;justify-content:space-between;">' +
+      '<div style="font-size:10px;font-weight:700;color:#fff;letter-spacing:3px;text-transform:uppercase;">⬆ Uploads en cours</div>' +
+      '<button onclick="this.parentNode.parentNode.style.display=\'none\'" style="background:none;border:none;color:#444;font-size:14px;cursor:pointer;padding:0;transition:color 0.15s;" onmouseover="this.style.color=\'#fff\'" onmouseout="this.style.color=\'#444\'">✕</button>' +
+    '</div>' +
+    '<div style="padding:10px 16px;border-bottom:1px solid #1a1a1a;">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">' +
+        '<div id="bulk-summary" style="font-size:10px;color:#888;letter-spacing:1px;">0 / 0 vidéos</div>' +
+        '<div id="bulk-speed" style="font-size:9px;color:#444;letter-spacing:1px;"></div>' +
+      '</div>' +
+      '<div style="height:3px;background:#1a1a1a;border-radius:2px;">' +
+        '<div id="bulk-total-bar" style="height:3px;background:#fff;width:0%;transition:width 0.4s ease;border-radius:2px;"></div>' +
+      '</div>' +
+    '</div>' +
+    '<div id="bulk-uploads-list" style="max-height:280px;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:6px;"></div>';
+  document.body.appendChild(panel);
+}
+
+function updateBulkUploadSummary(){
+  var summaryEl = document.getElementById('bulk-summary');
+  var barEl     = document.getElementById('bulk-total-bar');
+  var total     = _uploadStats.total;
+  var done      = _uploadStats.done;
+  var pct       = total > 0 ? Math.round((done / total) * 100) : 0;
+  if(summaryEl) summaryEl.textContent = done + ' / ' + total + ' vidéo' + (total>1?'s':'') + ' (' + (_uploadActive) + ' actif' + (_uploadActive>1?'s':'') + ')';
+  if(barEl)     barEl.style.width = pct + '%';
 }
 
 // Format taille lisible
@@ -6703,66 +6785,59 @@ function renderBanque(){
 }
 
 // Upload avec barre de progression améliorée
-function bankUploadOne(file){
+function bankUploadOne(file, onDone, onFail){
   var name = file.name.replace(/\.[^/.]+$/,'');
-  var uploadsWrap = document.getElementById('banque-uploads-active');
-  var uploadsList = document.getElementById('banque-uploads-list');
-  if(uploadsWrap) uploadsWrap.style.display = '';
+  var list = document.getElementById('bulk-uploads-list');
 
-  var uploadId = 'upload-' + Date.now();
-  var progressCard = document.createElement('div');
-  progressCard.id = uploadId;
-  progressCard.style.cssText = 'background:#0d0d0d;border:1px solid #1a1a1a;padding:12px 14px;border-radius:4px;';
-  progressCard.innerHTML =
-    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">' +
-      '<div style="font-size:10px;color:#888;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:70%;">⬆ '+name+'</div>' +
-      '<div class="upload-pct" style="font-size:9px;color:#555;letter-spacing:2px;">0%</div>' +
+  var uploadId = 'up-' + Date.now() + '-' + Math.random().toString(36).slice(2,6);
+  var card = document.createElement('div');
+  card.id = uploadId;
+  card.style.cssText = 'background:#0d0d0d;border:1px solid #1a1a1a;padding:10px 12px;border-radius:2px;';
+  card.innerHTML =
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">' +
+      '<div style="font-size:10px;color:#888;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:75%;" title="'+name+'">'+name+'</div>' +
+      '<div class="up-pct" style="font-size:9px;color:#555;letter-spacing:1px;flex-shrink:0;">0%</div>' +
     '</div>' +
-    '<div style="height:3px;background:#1a1a1a;border-radius:2px;">' +
-      '<div class="upload-bar" style="height:3px;background:#fff;width:0%;transition:width 0.4s ease;border-radius:2px;"></div>' +
+    '<div style="height:2px;background:#1a1a1a;border-radius:2px;">' +
+      '<div class="up-bar" style="height:2px;background:#fff;width:0%;transition:width 0.3s ease;border-radius:2px;"></div>' +
     '</div>' +
-    '<div class="upload-status" style="font-size:9px;color:#333;letter-spacing:1px;margin-top:6px;">Connexion à Cloudflare...</div>';
-  if(uploadsList) uploadsList.prepend(progressCard);
+    '<div class="up-status" style="font-size:8px;color:#333;letter-spacing:1px;margin-top:5px;">'+formatSize(file.size)+' — En attente...</div>';
+  if(list) list.appendChild(card);
 
-  var barEl    = progressCard.querySelector('.upload-bar');
-  var pctEl    = progressCard.querySelector('.upload-pct');
-  var statusEl = progressCard.querySelector('.upload-status');
+  var barEl    = card.querySelector('.up-bar');
+  var pctEl    = card.querySelector('.up-pct');
+  var statusEl = card.querySelector('.up-status');
+  if(statusEl) statusEl.textContent = formatSize(file.size) + ' — Connexion...';
 
   tusUpload(file, {
     onProgress: function(pct, sizeStr){
       if(barEl)    barEl.style.width    = pct + '%';
       if(pctEl)    pctEl.textContent    = pct + '%';
-      if(statusEl) statusEl.textContent = sizeStr + ' transféré';
+      if(statusEl) statusEl.textContent = sizeStr;
     },
     onSuccess: function(uid){
-      if(barEl)    barEl.style.width      = '100%';
-      if(barEl)    barEl.style.background = '#4ade80';
-      if(pctEl)    pctEl.textContent      = '✓';
-      if(statusEl) statusEl.textContent   = 'Encodage Cloudflare en cours...';
-      var video = {
-        uid: uid,
-        name: name,
-        hls: 'https://customer-911pgg1vlhryqb16.cloudflarestream.com/'+uid+'/manifest/video.m3u8',
-        date: new Date().toISOString()
-      };
+      if(barEl){ barEl.style.width='100%'; barEl.style.background='#4ade80'; }
+      if(pctEl)    pctEl.textContent    = '✓';
+      if(statusEl) statusEl.textContent = 'Cloudflare — encodage en cours...';
+
+      var video = { uid:uid, name:name, hls:'https://customer-911pgg1vlhryqb16.cloudflarestream.com/'+uid+'/manifest/video.m3u8', date:new Date().toISOString() };
       videoBank.unshift(video);
       saveBankToStorage();
       saveBankToSupabase(video);
-      showToast('✓ ' + name + ' uploadée !');
-      _cfVideosCache = null; // invalider le cache CF
-      setTimeout(function(){
-        var card = document.getElementById(uploadId);
-        if(card && card.parentNode) card.parentNode.removeChild(card);
-        if(uploadsList && !uploadsList.children.length && uploadsWrap) uploadsWrap.style.display = 'none';
-      }, 3000);
-      renderBanque();
-      renderSBBank();
+      _cfVideosCache = null;
+      _sceneCFCache  = null;
+      _assignCFCache = null;
+
+      setTimeout(function(){ if(card.parentNode) card.parentNode.removeChild(card); }, 4000);
+      renderBanque(); renderSBBank();
+      if(onDone) onDone();
     },
     onError: function(msg){
-      if(statusEl) statusEl.textContent   = '✕ Erreur: ' + msg;
       if(barEl)    barEl.style.background = '#c44';
       if(pctEl)    pctEl.textContent      = '✕';
-      showToast('Erreur upload: ' + msg);
+      if(statusEl) statusEl.textContent   = 'Erreur: ' + msg;
+      showToast('✕ ' + name + ': ' + msg);
+      if(onFail) onFail();
     }
   });
 }
