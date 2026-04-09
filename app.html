@@ -2192,36 +2192,52 @@ function showRotateNudge(){
       <div class="field">
         <label>Vidéo de la scène</label>
 
-        <!-- Zone drag & drop (visible seulement si pas de vidéo) -->
-        <div id="scene-upload-zone"
-          style="border:2px dashed #2a2a2a;background:#0d0d0d;padding:28px 20px;text-align:center;cursor:pointer;transition:all 0.2s;border-radius:4px;"
-          ondragover="sceneUploadDragOver(event)"
-          ondragleave="sceneUploadDragLeave(event)"
-          ondrop="sceneUploadDrop(event)"
-          onclick="document.getElementById('scene-file-input').click()">
-          <div id="scene-upload-icon" style="font-size:28px;margin-bottom:8px;">🎬</div>
-          <div id="scene-upload-label" style="font-size:10px;color:#555;letter-spacing:3px;text-transform:uppercase;">Glisser une vidéo ici ou cliquer pour parcourir</div>
-          <div id="scene-upload-progress" style="display:none;margin-top:14px;">
-            <div style="background:#1a1a1a;border-radius:2px;height:3px;overflow:hidden;">
-              <div id="scene-upload-bar" style="height:3px;background:#fff;width:0%;transition:width 0.2s;"></div>
+        <!-- Tabs de sélection vidéo -->
+        <div style="display:flex;gap:0;border:1px solid #2a2a2a;border-bottom:none;margin-bottom:0;">
+          <button id="scene-tab-upload" onclick="switchSceneTab('upload')" style="flex:1;background:#1a1a1a;border:none;border-right:1px solid #2a2a2a;color:#fff;font-family:Arial,sans-serif;font-size:9px;letter-spacing:2px;text-transform:uppercase;padding:9px 4px;cursor:pointer;">⬆ Upload</button>
+          <button id="scene-tab-bank" onclick="switchSceneTab('bank')" style="flex:1;background:#0d0d0d;border:none;border-right:1px solid #2a2a2a;color:#444;font-family:Arial,sans-serif;font-size:9px;letter-spacing:2px;text-transform:uppercase;padding:9px 4px;cursor:pointer;">📁 Banque</button>
+          <button id="scene-tab-cloud" onclick="switchSceneTab('cloud')" style="flex:1;background:#0d0d0d;border:none;color:#444;font-family:Arial,sans-serif;font-size:9px;letter-spacing:2px;text-transform:uppercase;padding:9px 4px;cursor:pointer;">☁ Cloudflare</button>
+        </div>
+
+        <!-- Panel Upload -->
+        <div id="scene-panel-upload">
+          <div id="scene-upload-zone"
+            style="border:2px dashed #2a2a2a;border-top:none;background:#0d0d0d;padding:28px 20px;text-align:center;cursor:pointer;transition:all 0.2s;"
+            ondragover="sceneUploadDragOver(event)"
+            ondragleave="sceneUploadDragLeave(event)"
+            ondrop="sceneUploadDrop(event)"
+            onclick="document.getElementById('scene-file-input').click()">
+            <div id="scene-upload-icon" style="font-size:28px;margin-bottom:8px;">⬆</div>
+            <div id="scene-upload-label" style="font-size:10px;color:#555;letter-spacing:3px;text-transform:uppercase;">Glisser une vidéo ici ou cliquer</div>
+            <div id="scene-upload-progress" style="display:none;margin-top:14px;">
+              <div style="background:#1a1a1a;border-radius:2px;height:3px;overflow:hidden;">
+                <div id="scene-upload-bar" style="height:3px;background:#fff;width:0%;transition:width 0.3s;"></div>
+              </div>
+              <div id="scene-upload-status" style="font-size:9px;color:#888;letter-spacing:2px;margin-top:6px;"></div>
             </div>
-            <div id="scene-upload-status" style="font-size:9px;color:#888;letter-spacing:2px;margin-top:6px;"></div>
           </div>
         </div>
+
+        <!-- Panel Banque -->
+        <div id="scene-panel-bank" style="display:none;border:1px solid #2a2a2a;border-top:none;background:#080808;max-height:220px;overflow-y:auto;">
+          <div id="scene-bank-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:6px;padding:8px;">
+            <div style="font-size:9px;color:#333;letter-spacing:2px;text-transform:uppercase;padding:20px;grid-column:1/-1;text-align:center;">Banque vide</div>
+          </div>
+        </div>
+
+        <!-- Panel Cloudflare -->
+        <div id="scene-panel-cloud" style="display:none;border:1px solid #2a2a2a;border-top:none;background:#080808;">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-bottom:1px solid #1a1a1a;">
+            <input id="scene-cloud-search" type="text" placeholder="Rechercher..." style="flex:1;background:#0d0d0d;border:1px solid #1a1a1a;color:#ccc;font-family:Arial,sans-serif;font-size:10px;padding:5px 8px;outline:none;margin-right:6px;" oninput="filterSceneCloudVideos(this.value)">
+            <button onclick="loadSceneCloudVideos(true)" style="background:none;border:1px solid #2a2a2a;color:#444;font-family:Arial,sans-serif;font-size:9px;letter-spacing:1px;padding:5px 8px;cursor:pointer;white-space:nowrap;transition:all 0.15s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#444'">↻ Actualiser</button>
+          </div>
+          <div id="scene-cloud-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:6px;padding:8px;max-height:200px;overflow-y:auto;">
+            <div style="font-size:9px;color:#333;letter-spacing:2px;text-transform:uppercase;padding:20px;grid-column:1/-1;text-align:center;">Clique sur Actualiser</div>
+          </div>
+        </div>
+
         <input type="file" id="scene-file-input" accept="video/*" style="display:none;" onchange="handleSceneFileUpload(this)">
         <input type="hidden" id="f-uid">
-
-        <!-- Bibliothèque de vidéos enregistrées -->
-        <div id="video-library-section" style="margin-top:10px;">
-          <button onclick="toggleVideoLibrary()" style="width:100%;background:#0d0d0d;border:1px solid #2a2a2a;color:#555;font-family:Arial,sans-serif;font-size:9px;letter-spacing:3px;padding:8px;cursor:pointer;text-transform:uppercase;text-align:left;transition:all 0.15s;" onmouseover="this.style.color='#ccc'" onmouseout="this.style.color='#555'">
-            📚 Réutiliser une vidéo existante ›
-          </button>
-          <div id="video-library-panel" style="display:none;border:1px solid #2a2a2a;border-top:none;background:#080808;max-height:200px;overflow-y:auto;">
-            <div id="video-library-list" style="padding:8px;">
-              <div style="font-size:9px;color:#333;letter-spacing:2px;text-transform:uppercase;padding:8px;">Chargement...</div>
-            </div>
-          </div>
-        </div>
 
         <!-- Lecteur vidéo intégré (caché jusqu'à upload) -->
         <div id="modal-player-wrap" style="display:none;background:#000;border-radius:4px;overflow:hidden;margin-top:0;">
@@ -4000,8 +4016,211 @@ async function updateUserPlan(userId, plan){
   if(!error){ showToast('Plan mis à jour → ' + plan); renderUsersTab(); }
 }
 
-// ===== ASSIGNER VIDÉO CLOUDFLARE (ADMIN) =====
+// ===== MODAL ASSIGNATION VIDÉO ADMIN (avec tabs Banque + Cloudflare + UID) =====
 function openAssignVideoModal(user){
+  var old = document.getElementById('assign-video-modal');
+  if(old) old.remove();
+
+  var overlay = document.createElement('div');
+  overlay.id = 'assign-video-modal';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;';
+
+  overlay.innerHTML =
+    '<div style="background:#111;border:1px solid #2a2a2a;max-width:560px;width:100%;font-family:Arial,sans-serif;max-height:90vh;display:flex;flex-direction:column;">' +
+
+      // Header
+      '<div style="padding:16px 20px;border-bottom:1px solid #1a1a1a;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;">' +
+        '<div>' +
+          '<div style="font-size:11px;font-weight:700;color:#fff;letter-spacing:4px;text-transform:uppercase;">Assigner vidéo de profil</div>' +
+          '<div style="font-size:10px;color:#444;letter-spacing:2px;margin-top:2px;">'+(user.nom||user.email)+'</div>' +
+        '</div>' +
+        '<button onclick="document.getElementById(\'assign-video-modal\').remove()" style="background:none;border:none;color:#444;font-size:18px;cursor:pointer;transition:color 0.15s;" onmouseover="this.style.color=\'#fff\'" onmouseout="this.style.color=\'#444\'">✕</button>' +
+      '</div>' +
+
+      // Tabs
+      '<div style="display:flex;border-bottom:1px solid #1a1a1a;flex-shrink:0;">' +
+        '<button id="av-tab-cloud" onclick="switchAssignTab(\'cloud\')" style="flex:1;background:#1a1a1a;border:none;border-bottom:2px solid #fff;color:#fff;font-family:Arial,sans-serif;font-size:9px;letter-spacing:2px;text-transform:uppercase;padding:10px 4px;cursor:pointer;">☁ Cloudflare</button>' +
+        '<button id="av-tab-bank" onclick="switchAssignTab(\'bank\')" style="flex:1;background:#0d0d0d;border:none;border-bottom:2px solid transparent;color:#444;font-family:Arial,sans-serif;font-size:9px;letter-spacing:2px;text-transform:uppercase;padding:10px 4px;cursor:pointer;">📁 Banque</button>' +
+        '<button id="av-tab-uid" onclick="switchAssignTab(\'uid\')" style="flex:1;background:#0d0d0d;border:none;border-bottom:2px solid transparent;color:#444;font-family:Arial,sans-serif;font-size:9px;letter-spacing:2px;text-transform:uppercase;padding:10px 4px;cursor:pointer;">🔗 UID Manuel</button>' +
+      '</div>' +
+
+      // Panel Cloudflare
+      '<div id="av-panel-cloud" style="overflow-y:auto;flex:1;">' +
+        '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid #1a1a1a;">' +
+          '<input id="av-cloud-search" type="text" placeholder="Rechercher une vidéo..." style="flex:1;background:#0d0d0d;border:1px solid #1a1a1a;color:#ccc;font-family:Arial,sans-serif;font-size:10px;padding:6px 10px;outline:none;margin-right:8px;" oninput="filterAssignCloudVideos(this.value)">' +
+          '<button onclick="loadAssignCloudVideos(true)" style="background:none;border:1px solid #2a2a2a;color:#444;font-family:Arial,sans-serif;font-size:9px;letter-spacing:1px;padding:6px 10px;cursor:pointer;white-space:nowrap;transition:all 0.15s;" onmouseover="this.style.color=\'#fff\'" onmouseout="this.style.color=\'#444\'">↻ Actualiser</button>' +
+        '</div>' +
+        '<div id="av-cloud-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;padding:12px;">' +
+          '<div style="font-size:9px;color:#333;letter-spacing:2px;text-transform:uppercase;padding:30px;grid-column:1/-1;text-align:center;">Clique sur Actualiser pour charger tes vidéos</div>' +
+        '</div>' +
+      '</div>' +
+
+      // Panel Banque
+      '<div id="av-panel-bank" style="display:none;overflow-y:auto;flex:1;">' +
+        '<div id="av-bank-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;padding:12px;">' +
+        '</div>' +
+      '</div>' +
+
+      // Panel UID Manuel
+      '<div id="av-panel-uid" style="display:none;padding:20px;flex-shrink:0;">' +
+        '<div style="font-size:9px;color:#444;letter-spacing:3px;text-transform:uppercase;margin-bottom:8px;">UID ou URL Cloudflare Stream</div>' +
+        '<input id="assign-uid-input" type="text" placeholder="ex: a1b2c3d4... ou URL complète" style="width:100%;background:#0d0d0d;border:1px solid #2a2a2a;color:#e8e8e8;font-family:Arial,sans-serif;font-size:12px;padding:10px 12px;outline:none;box-sizing:border-box;margin-bottom:8px;">' +
+        '<div style="font-size:9px;color:#333;margin-bottom:16px;">Colle l\'UID ou l\'URL complète Cloudflare Stream</div>' +
+        '<button onclick="confirmAssignVideoUID(\''+user.id+'\')" style="width:100%;background:#fff;border:none;color:#000;font-family:Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:3px;padding:12px;cursor:pointer;text-transform:uppercase;">✓ ASSIGNER</button>' +
+      '</div>' +
+
+      // Footer : supprimer vidéo actuelle
+      (user.video_uid
+        ? '<div style="padding:10px 20px;border-top:1px solid #1a1a1a;flex-shrink:0;">' +
+            '<button onclick="removeUserVideo(\''+user.id+'\')" style="width:100%;background:none;border:none;color:#333;font-family:Arial,sans-serif;font-size:9px;letter-spacing:2px;padding:6px;cursor:pointer;text-transform:uppercase;transition:color 0.15s;" onmouseover="this.style.color=\'#c44\'" onmouseout="this.style.color=\'#333\'">✕ Retirer la vidéo actuelle</button>' +
+          '</div>'
+        : ''
+      ) +
+
+    '</div>';
+
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', function(e){ if(e.target===overlay) overlay.remove(); });
+
+  // Charger Cloudflare par défaut
+  loadAssignCloudVideos(false);
+}
+
+function switchAssignTab(tab){
+  ['cloud','bank','uid'].forEach(function(t){
+    var panel = document.getElementById('av-panel-'+t);
+    var btn   = document.getElementById('av-tab-'+t);
+    if(panel) panel.style.display = t===tab ? (t==='uid'?'':'') : 'none';
+    if(panel && t==='uid') panel.style.display = t===tab ? 'block' : 'none';
+    if(panel && t!=='uid') panel.style.display = t===tab ? '' : 'none';
+    if(btn){
+      btn.style.borderBottomColor = t===tab ? '#fff' : 'transparent';
+      btn.style.color = t===tab ? '#fff' : '#444';
+      btn.style.background = t===tab ? '#1a1a1a' : '#0d0d0d';
+    }
+  });
+  if(tab==='bank') renderAssignBankGrid();
+}
+
+var _assignCFCache = null;
+async function loadAssignCloudVideos(forceRefresh){
+  var grid = document.getElementById('av-cloud-grid');
+  if(!grid) return;
+  if(_assignCFCache && !forceRefresh){ renderAssignCloudGrid(_assignCFCache); return; }
+  grid.innerHTML = '<div style="font-size:9px;color:#333;letter-spacing:2px;text-transform:uppercase;padding:30px;grid-column:1/-1;text-align:center;">Chargement...</div>';
+  try {
+    const res  = await fetch('/api/list-videos');
+    const data = await res.json();
+    if(!data.ok) throw new Error(data.error || 'Erreur');
+    _assignCFCache = data.videos || [];
+    renderAssignCloudGrid(_assignCFCache);
+  } catch(err){
+    if(grid) grid.innerHTML = '<div style="color:#c44;font-size:9px;padding:30px;grid-column:1/-1;text-align:center;">'+err.message+'</div>';
+  }
+}
+
+function filterAssignCloudVideos(q){
+  if(!_assignCFCache) return;
+  var filtered = q ? _assignCFCache.filter(function(v){ return v.name.toLowerCase().includes(q.toLowerCase()); }) : _assignCFCache;
+  renderAssignCloudGrid(filtered);
+}
+
+function renderAssignCloudGrid(videos){
+  var grid = document.getElementById('av-cloud-grid');
+  if(!grid) return;
+  grid.innerHTML = '';
+  if(!videos.length){
+    grid.innerHTML = '<div style="font-size:9px;color:#333;letter-spacing:2px;text-transform:uppercase;padding:30px;grid-column:1/-1;text-align:center;">Aucune vidéo</div>';
+    return;
+  }
+  videos.forEach(function(video){
+    var card = document.createElement('div');
+    card.style.cssText = 'background:#0d0d0d;border:1px solid #1a1a1a;cursor:pointer;transition:border-color 0.15s;border-radius:2px;overflow:hidden;';
+    card.onmouseover = function(){ this.style.borderColor='#fff'; };
+    card.onmouseout  = function(){ this.style.borderColor='#1a1a1a'; };
+    card.innerHTML =
+      '<div style="width:100%;aspect-ratio:16/9;background:#000;overflow:hidden;position:relative;">' +
+        (video.thumbnail ? '<img src="'+video.thumbnail+'" style="width:100%;height:100%;object-fit:cover;" loading="lazy">' : '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#2a2a2a;font-size:20px;">▶</div>') +
+      '</div>' +
+      '<div style="padding:6px 7px;">' +
+        '<div style="font-size:9px;color:#aaa;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:5px;">'+video.name+'</div>' +
+        '<button style="width:100%;background:#fff;border:none;color:#000;font-family:Arial,sans-serif;font-size:8px;font-weight:700;letter-spacing:1px;padding:5px;cursor:pointer;text-transform:uppercase;">Assigner</button>' +
+      '</div>';
+    card.querySelector('button').onclick = function(e){
+      e.stopPropagation();
+      var modal = document.getElementById('assign-video-modal');
+      var userId = modal ? modal.getAttribute('data-user-id') : null;
+      confirmAssignVideoUID(userId || '', video.uid);
+    };
+    grid.appendChild(card);
+  });
+}
+
+function renderAssignBankGrid(){
+  var grid = document.getElementById('av-bank-grid');
+  if(!grid) return;
+  grid.innerHTML = '';
+  if(!videoBank.length){
+    grid.innerHTML = '<div style="font-size:9px;color:#333;letter-spacing:2px;text-transform:uppercase;padding:30px;grid-column:1/-1;text-align:center;">Banque vide — ajoute des vidéos dans l\'onglet Banque</div>';
+    return;
+  }
+  videoBank.forEach(function(video){
+    var card = document.createElement('div');
+    card.style.cssText = 'background:#0d0d0d;border:1px solid #1a1a1a;cursor:pointer;transition:border-color 0.15s;border-radius:2px;overflow:hidden;';
+    card.onmouseover = function(){ this.style.borderColor='#fff'; };
+    card.onmouseout  = function(){ this.style.borderColor='#1a1a1a'; };
+    card.innerHTML =
+      '<div style="width:100%;aspect-ratio:16/9;background:#000;overflow:hidden;"><video muted loop playsinline style="width:100%;height:100%;object-fit:cover;pointer-events:none;"></video></div>' +
+      '<div style="padding:6px 7px;">' +
+        '<div style="font-size:9px;color:#aaa;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:5px;">'+video.name+'</div>' +
+        '<button style="width:100%;background:#fff;border:none;color:#000;font-family:Arial,sans-serif;font-size:8px;font-weight:700;letter-spacing:1px;padding:5px;cursor:pointer;text-transform:uppercase;">Assigner</button>' +
+      '</div>';
+    var vid = card.querySelector('video');
+    attachHLS(vid, video.uid, { autoplay:true, muted:true, loop:true, lowQuality:true });
+    card.querySelector('button').onclick = function(e){
+      e.stopPropagation();
+      var modal = document.getElementById('assign-video-modal');
+      var userId = modal ? modal.getAttribute('data-user-id') : null;
+      confirmAssignVideoUID(userId || '', video.uid);
+    };
+    grid.appendChild(card);
+  });
+}
+
+// Stocker userId dans le modal pour les callbacks
+var _assignUserId = null;
+var _origOpenAssignVideoModal = openAssignVideoModal;
+openAssignVideoModal = function(user){
+  _assignUserId = user.id;
+  _origOpenAssignVideoModal(user);
+  setTimeout(function(){
+    var modal = document.getElementById('assign-video-modal');
+    if(modal) modal.setAttribute('data-user-id', user.id);
+  }, 10);
+};
+
+async function confirmAssignVideoUID(userId, uid){
+  if(!uid){
+    var input = document.getElementById('assign-uid-input');
+    if(!input || !input.value.trim()){ showToast('Entre un UID'); return; }
+    uid = extractCloudflareUID(input.value);
+    if(!uid){ showToast('UID invalide'); return; }
+  }
+  var targetId = userId || _assignUserId;
+  if(!targetId){ showToast('Utilisateur non trouvé'); return; }
+
+  showToast('Assignation en cours...');
+  const { error } = await supabaseClient
+    .from('profiles')
+    .update({ video_uid: uid, video_status: 'ready' })
+    .eq('id', targetId);
+
+  if(error){ showToast('Erreur: ' + error.message); return; }
+  showToast('✓ Vidéo assignée !');
+  var modal = document.getElementById('assign-video-modal');
+  if(modal) modal.remove();
+  renderUsersTab();
+}
   // Supprimer modal existant si présent
   var old = document.getElementById('assign-video-modal');
   if(old) old.remove();
@@ -6248,6 +6467,102 @@ function bankDeleteVideo(uid){
 }
 
 // Rendu onglet banque (plein écran)
+// ===== TABS MODAL SCÈNE =====
+function switchSceneTab(tab){
+  ['upload','bank','cloud'].forEach(function(t){
+    var panel = document.getElementById('scene-panel-'+t);
+    var btn   = document.getElementById('scene-tab-'+t);
+    if(panel) panel.style.display = t===tab ? '' : 'none';
+    if(btn){
+      btn.style.background  = t===tab ? '#1a1a1a' : '#0d0d0d';
+      btn.style.color       = t===tab ? '#fff' : '#444';
+    }
+  });
+  if(tab==='bank')  renderSceneBankGrid();
+  if(tab==='cloud') loadSceneCloudVideos(false);
+}
+
+var _sceneCFCache = null;
+async function loadSceneCloudVideos(forceRefresh){
+  var grid = document.getElementById('scene-cloud-list');
+  if(!grid) return;
+  if(_sceneCFCache && !forceRefresh){ renderSceneCloudGrid(_sceneCFCache); return; }
+  grid.innerHTML = '<div style="font-size:9px;color:#333;letter-spacing:2px;text-transform:uppercase;padding:20px;grid-column:1/-1;text-align:center;">Chargement...</div>';
+  try {
+    var res  = await fetch('/api/list-videos');
+    var data = await res.json();
+    if(!data.ok) throw new Error(data.error || 'Erreur');
+    _sceneCFCache = data.videos || [];
+    renderSceneCloudGrid(_sceneCFCache);
+  } catch(err){
+    if(grid) grid.innerHTML = '<div style="color:#c44;font-size:9px;padding:20px;grid-column:1/-1;text-align:center;">'+err.message+'</div>';
+  }
+}
+
+function filterSceneCloudVideos(q){
+  if(!_sceneCFCache) return;
+  var filtered = q ? _sceneCFCache.filter(function(v){ return v.name.toLowerCase().includes(q.toLowerCase()); }) : _sceneCFCache;
+  renderSceneCloudGrid(filtered);
+}
+
+function renderSceneCloudGrid(videos){
+  var grid = document.getElementById('scene-cloud-list');
+  if(!grid) return;
+  grid.innerHTML = '';
+  if(!videos.length){
+    grid.innerHTML = '<div style="font-size:9px;color:#333;letter-spacing:2px;text-transform:uppercase;padding:20px;grid-column:1/-1;text-align:center;">Aucune vidéo</div>';
+    return;
+  }
+  videos.forEach(function(video){
+    var card = document.createElement('div');
+    card.style.cssText = 'background:#0d0d0d;border:1px solid #1a1a1a;cursor:pointer;transition:border-color 0.15s;overflow:hidden;border-radius:2px;';
+    card.title = video.name;
+    card.onmouseover = function(){ this.style.borderColor='#fff'; };
+    card.onmouseout  = function(){ this.style.borderColor='#1a1a1a'; };
+    card.innerHTML =
+      '<div style="width:100%;aspect-ratio:16/9;background:#000;overflow:hidden;position:relative;">' +
+        (video.thumbnail ? '<img src="'+video.thumbnail+'" style="width:100%;height:100%;object-fit:cover;" loading="lazy">' : '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#2a2a2a;font-size:16px;">▶</div>') +
+      '</div>' +
+      '<div style="padding:4px 6px;font-size:8px;color:#666;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+video.name+'</div>';
+    card.onclick = function(){ applyVideoToScene(video.uid, video.hls, video.name); };
+    grid.appendChild(card);
+  });
+}
+
+function renderSceneBankGrid(){
+  var grid = document.getElementById('scene-bank-list');
+  if(!grid) return;
+  grid.innerHTML = '';
+  if(!videoBank.length){
+    grid.innerHTML = '<div style="font-size:9px;color:#333;letter-spacing:2px;text-transform:uppercase;padding:20px;grid-column:1/-1;text-align:center;">Banque vide</div>';
+    return;
+  }
+  videoBank.forEach(function(video){
+    var card = document.createElement('div');
+    card.style.cssText = 'background:#0d0d0d;border:1px solid #1a1a1a;cursor:pointer;transition:border-color 0.15s;overflow:hidden;border-radius:2px;';
+    card.title = video.name;
+    card.onmouseover = function(){ this.style.borderColor='#fff'; };
+    card.onmouseout  = function(){ this.style.borderColor='#1a1a1a'; };
+    card.innerHTML =
+      '<div style="width:100%;aspect-ratio:16/9;background:#000;overflow:hidden;"><video muted loop playsinline style="width:100%;height:100%;object-fit:cover;pointer-events:none;"></video></div>' +
+      '<div style="padding:4px 6px;font-size:8px;color:#666;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+video.name+'</div>';
+    var vid = card.querySelector('video');
+    attachHLS(vid, video.uid, { autoplay:true, muted:true, loop:true, lowQuality:true });
+    card.onclick = function(){ applyVideoToScene(video.uid, video.hls, video.name); };
+    grid.appendChild(card);
+  });
+}
+
+function applyVideoToScene(uid, hls, name){
+  var uidInput = document.getElementById('f-uid');
+  if(uidInput){
+    uidInput.value = uid;
+    modalInitPlayer(uid);
+    showToast('✓ ' + name + ' sélectionnée');
+    switchSceneTab('upload');
+  }
+}
+
 // ===== BANQUE — TABS =====
 function switchBankTab(tab){
   var local = document.getElementById('bank-panel-local');
