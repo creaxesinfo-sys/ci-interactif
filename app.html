@@ -4217,6 +4217,11 @@ async function confirmAssignVideoUID(userId, uid){
 
   if(error){ showToast('Erreur: ' + error.message); return; }
   showToast('✓ Vidéo assignée !');
+  var modal = document.getElementById('assign-video-modal');
+  if(modal) modal.remove();
+  renderUsersTab();
+}
+
 async function removeUserVideo(userId){
   if(!confirm('Retirer la vidéo de profil de cet utilisateur ?')) return;
   const { error } = await supabaseClient
@@ -5994,13 +5999,12 @@ function startHeroSequence(){
   if(!ci) return;
 
   // Fade in noir → transparent
-  // FIX : pointerEvents à none immédiatement pour ne pas bloquer clics/touch après la vidéo
   var heroFade = document.getElementById('hero-fade');
   if(heroFade){
-    heroFade.style.pointerEvents = 'none';
     setTimeout(function(){ heroFade.style.opacity = '0'; }, 400);
     setTimeout(function(){
       heroFade.style.zIndex = '6';
+      heroFade.style.pointerEvents = 'none';
     }, 3600);
   }
 
