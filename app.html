@@ -6357,11 +6357,10 @@ function tusUploadDirect(file, callbacks, account, token){
   uploadInstance.start();
 }
 
-function tusUpload(file, callbacks){
-  // Chunk adaptatif selon taille du fichier
-  var chunkSize = file.size > 500*1024*1024 ? 25*1024*1024  // >500MB → 25MB chunks
-               : file.size > 100*1024*1024 ? 15*1024*1024  // >100MB → 15MB chunks
-               : 5*1024*1024;                               // sinon  →  5MB chunks
+function tusUploadViaAPI(file, callbacks){
+  var chunkSize = file.size > 500*1024*1024 ? 25*1024*1024
+               : file.size > 100*1024*1024 ? 15*1024*1024
+               : 5*1024*1024;
 
   return fetch('/api/upload-video', {
     method: 'POST',
@@ -6396,10 +6395,13 @@ function tusUpload(file, callbacks){
     upload.start();
     return upload;
   })
-  .catch(function(){
-    // Fallback direct Cloudflare avec credentials intégrés
-    tusUploadDirect(file, callbacks, '718abc417236918feea54c109e09edbb', 'cfut_NWJPQUaQie4GJhSr1W0w0qNQ7iqCEC8AhDEJJb6O840d254c');
+  .catch(function(err){
+    if(callbacks.onError) callbacks.onError('Erreur API upload: ' + (err.message||err));
   });
+}
+
+function tusUpload(file, callbacks){
+  tusUploadViaAPI(file, callbacks);
 }
 
 // ===== QUEUE D'UPLOAD PARALLÈLE =====
