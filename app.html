@@ -3034,6 +3034,12 @@ function renderChoiceEditor(){
     var controls = document.createElement('div');
     controls.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px;align-items:center;flex:1;';
     controls.innerHTML =
+      // Toggle Zone invisible
+      '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-right:8px;">'+
+        '<input type="checkbox" id="invis-'+i+'" '+(bs.invisible?'checked':'')+' onchange="choiceRows['+i+'].btnStyle.invisible=this.checked;updateBtnPreview(document.getElementById(\'btn-preview-'+i+'\'),choiceRows['+i+']);document.getElementById(\'visible-controls-'+i+'\').style.display=this.checked?\'none\':\'\'" style="width:14px;height:14px;cursor:pointer;accent-color:#fff;">'+
+        '<span style="font-size:9px;color:#aaa;letter-spacing:2px;text-transform:uppercase;">Zone invisible</span>'+
+      '</label>'+
+      '<span id="visible-controls-'+i+'" style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;'+(bs.invisible?'display:none':'')+'">'+
       // Couleur fond
       '<label style="font-size:9px;color:#555;letter-spacing:2px;text-transform:uppercase;">Fond</label>'+
       '<input type="color" value="'+(bs.bg||'#ffffff')+'" style="width:32px;height:28px;border:1px solid #2a2a2a;background:none;cursor:pointer;padding:2px;" oninput="choiceRows['+i+'].btnStyle.bg=this.value;updateBtnPreview(document.getElementById(\'btn-preview-'+i+'\'),choiceRows['+i+'])">'+
@@ -3047,8 +3053,6 @@ function renderChoiceEditor(){
         '<option value="rounded"'+(bs.shape==='rounded'?' selected':'')+'>Arrondi</option>'+
         '<option value="pill"'+(bs.shape==='pill'?' selected':'')+'>Pilule</option>'+
         '<option value="circle"'+(bs.shape==='circle'?' selected':'')+'>Cercle</option>'+
-        '<option value="transparent"'+(bs.shape==='transparent'?' selected':'')+'>Transparent (zone invisible)</option>'+
-
       '</select>'+
       // Taille
       '<label style="font-size:9px;color:#555;letter-spacing:2px;text-transform:uppercase;">Taille</label>'+
@@ -3059,7 +3063,8 @@ function renderChoiceEditor(){
       '</select>'+
       // Opacité fond
       '<label style="font-size:9px;color:#555;letter-spacing:2px;text-transform:uppercase;">Opacité</label>'+
-      '<input type="range" min="0" max="100" value="'+(bs.opacity!==undefined?bs.opacity:100)+'" style="width:70px;" oninput="choiceRows['+i+'].btnStyle.opacity=parseInt(this.value);updateBtnPreview(document.getElementById(\'btn-preview-'+i+'\'),choiceRows['+i+'])">';
+      '<input type="range" min="0" max="100" value="'+(bs.opacity!==undefined?bs.opacity:100)+'" style="width:70px;" oninput="choiceRows['+i+'].btnStyle.opacity=parseInt(this.value);updateBtnPreview(document.getElementById(\'btn-preview-'+i+'\'),choiceRows['+i+'])">'+
+      '</span>';
 
     row3.appendChild(preview);
     row3.appendChild(controls);
@@ -3081,24 +3086,13 @@ function getBtnCSS(bs, text){
   var opacity = bs.opacity !== undefined ? bs.opacity/100 : 1;
   var shape   = bs.shape || 'rect';
   var size    = bs.size  || 'md';
-  // Bouton totalement invisible mais cliquable
-  if(shape === 'transparent'){
-    var pad = size==='sm' ? '20px 30px' : size==='lg' ? '40px 60px' : '30px 45px';
-    return {
-      background: 'rgba(0,0,0,0)',
-      border: 'none',
-      cursor: 'pointer',
-      padding: pad,
-      boxShadow: 'none',
-      color: 'transparent',
-      width: 'auto',
-      height: 'auto',
-      display: 'block',
-    };
-  }
-  if(shape === 'transparent'){
-    var tpad = size==='sm' ? '20px 30px' : size==='lg' ? '40px 60px' : '30px 45px';
-    return { background:'rgba(0,0,0,0)', border:'none', cursor:'pointer', padding:tpad, boxShadow:'none', color:'transparent', width:'auto', height:'auto', display:'block' };
+  // Zone invisible : fond transparent, garde la forme et la taille
+  if(bs.invisible){
+    var radius2 = shape==='pill' ? '999px' : shape==='rounded' ? '8px' : shape==='circle' ? '50%' : '2px';
+    var w2 = shape==='circle' ? (size==='sm'?'40px':size==='lg'?'80px':'60px') : 'auto';
+    var h2 = shape==='circle' ? w2 : 'auto';
+    var pad2 = size==='sm' ? '12px 20px' : size==='lg' ? '24px 48px' : '16px 32px';
+    return { background:'rgba(0,0,0,0)', border:'none', cursor:'pointer', padding:pad2, boxShadow:'none', color:'transparent', width:w2, height:h2, display:'block', borderRadius:radius2 };
   }
   var radius  = shape==='pill' ? '999px' : shape==='rounded' ? '8px' : shape==='circle' ? '50%' : '2px';
   var pad     = size==='sm' ? '6px 14px' : size==='lg' ? '14px 32px' : '10px 22px';
@@ -3133,11 +3127,14 @@ function getBtnCSS(bs, text){
 function updateBtnPreview(el, row){
   if(!el) return;
   var bs = row.btnStyle || {};
-  // Aperçu spécial pour le bouton transparent
-  if(bs.shape === 'transparent'){
-    var size = bs.size || 'md';
-    var pad  = size==='sm' ? '20px 30px' : size==='lg' ? '40px 60px' : '30px 45px';
-    el.innerHTML = '<div style="background:repeating-linear-gradient(45deg,#1a1a1a,#1a1a1a 4px,#222 4px,#222 8px);border:1px dashed #555;border-radius:4px;padding:'+pad+';display:flex;align-items:center;justify-content:center;"><span style="font-size:9px;color:#555;letter-spacing:2px;text-transform:uppercase;">Zone invisible</span></div>';
+  // Aperçu zone invisible : montre la forme en hachuré
+  if(bs.invisible){
+    var size2 = bs.size || 'md';
+    var shape2 = bs.shape || 'rect';
+    var pad2  = size2==='sm' ? '12px 20px' : size2==='lg' ? '24px 48px' : '16px 32px';
+    var r2 = shape2==='pill'?'999px':shape2==='rounded'?'8px':shape2==='circle'?'50%':'2px';
+    var w2 = shape2==='circle'?(size2==='sm'?'40px':size2==='lg'?'80px':'60px'):'auto';
+    el.innerHTML = '<div style="background:repeating-linear-gradient(45deg,#1a1a1a,#1a1a1a 4px,#222 4px,#222 8px);border:1px dashed #555;border-radius:'+r2+';padding:'+pad2+';width:'+w2+';display:flex;align-items:center;justify-content:center;box-sizing:border-box;"><span style="font-size:9px;color:#555;letter-spacing:2px;text-transform:uppercase;white-space:nowrap;">Zone invisible</span></div>';
     return;
   }
   var css = getBtnCSS(row.btnStyle, row.text);
