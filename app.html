@@ -440,6 +440,170 @@ body{background:#1a1a1a;color:#e8e8e8;font-family:Arial,sans-serif;
   #hero-nav-scroll-hint{ display:flex; top:18px !important; }
 }
 
+/* ============================================================
+   ===== MOBILE PORTRAIT — NAVIGATION BOTTOM BAR COMPLÈTE =====
+   ============================================================ */
+@media(max-width:767px) and (orientation:portrait){
+
+  /* ── 1. HERO-NAV : bascule en bottom bar ── */
+  #hero-nav{
+    position:fixed !important;   /* fixed = visible sur TOUTES les pages */
+    top:auto !important;
+    bottom:0 !important;
+    left:0;right:0;
+    height:calc(64px + env(safe-area-inset-bottom,0px)) !important;
+    padding-bottom:env(safe-area-inset-bottom,0px);
+    background:rgba(8,8,8,0.97) !important;
+    border-top:1px solid rgba(255,255,255,0.08) !important;
+    backdrop-filter:blur(12px);
+    -webkit-backdrop-filter:blur(12px);
+    justify-content:space-around !important;
+    overflow:visible !important;
+    /* Toujours visible sur mobile — pas besoin du .visible */
+    opacity:1 !important;
+    pointer-events:auto !important;
+    z-index:1000 !important;
+  }
+  /* Masquer sur la page admin (qui a sa propre bottom bar) */
+  body.on-admin-page #hero-nav{ display:none !important; }
+  #hero-nav .hn-brand,
+  #hero-nav .hn-sep { display:none !important; }
+  #hero-nav .hn-btn{
+    flex:1;
+    display:flex !important;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    height:64px !important;
+    padding:0 2px !important;
+    border-bottom:none !important;
+    border-top:2px solid transparent;
+    font-size:0 !important;
+    gap:4px;
+    color:rgba(255,255,255,0.45) !important;
+    transition:color 0.2s,border-color 0.2s;
+  }
+  #hero-nav .hn-btn::before{ font-size:20px; line-height:1; display:block; }
+  #hero-nav .hn-btn::after{ font-size:8px !important; letter-spacing:0; display:block; color:inherit; }
+  #hnav-film::before    { content:'🎬'; }  #hnav-film::after    { content:'Film'; font-size:8px; }
+  #hnav-creations::before{ content:'🎥'; } #hnav-creations::after{ content:'Créations'; font-size:8px; }
+  #hnav-admin::before   { content:'🎭'; }  #hnav-admin::after   { content:'Réalisateur'; font-size:8px; }
+  #hnav-membres::before { content:'👥'; }  #hnav-membres::after { content:'Membres'; font-size:8px; }
+  #hnav-subvention::before{ content:'📄'; } #hnav-subvention::after{ content:'Subvention'; font-size:8px; }
+  #hero-nav .hn-profil::before{ content:'👤'; } #hero-nav .hn-profil::after{ content:'Profil'; font-size:8px; }
+  #hero-nav .hn-btn.hn-active{ color:#fff !important; border-top-color:rgba(255,255,255,0.7) !important; }
+  #hero-nav .hn-profil{ border-left:none !important; flex:1 !important; }
+  #hero-nav-scroll-hint{ display:none !important; }
+  body.on-hero .hero-content{ padding-bottom:80px; }
+
+  /* Pages scrollables — espace pour la bottom nav mobile */
+  #page-creations.active,
+  #page-membres.active,
+  #page-subvention.active{
+    padding-bottom:calc(72px + env(safe-area-inset-bottom,0px)) !important;
+  }
+
+  /* ── 2. PAGE ADMIN — header compact ── */
+  .admin-header{ padding:0 10px !important; }
+  .admin-title-bar{ flex-wrap:wrap; gap:4px; padding:6px 0; }
+  .admin-brand{ font-size:11px !important; letter-spacing:2px !important; flex:1; }
+  .admin-actions{ gap:4px !important; }
+  .admin-actions .btn-home{ font-size:9px !important; padding:6px 10px !important; letter-spacing:1px !important; white-space:nowrap; }
+  .admin-actions .btn-home:nth-child(3),
+  .admin-actions .btn-home:nth-child(4){ display:none !important; }
+
+  /* ── 3. ADMIN TABS — bottom bar icônes ── */
+  #admin-tab-bar{
+    position:fixed !important;
+    bottom:0 !important;
+    left:0;right:0;
+    height:calc(64px + env(safe-area-inset-bottom,0px)) !important;
+    padding-bottom:env(safe-area-inset-bottom,0px);
+    background:rgba(8,8,8,0.97) !important;
+    border-top:1px solid rgba(255,255,255,0.08) !important;
+    border-bottom:none !important;
+    z-index:200 !important;
+    backdrop-filter:blur(12px);
+    -webkit-backdrop-filter:blur(12px);
+    display:flex !important;
+  }
+  .admin-tab{
+    flex:1 !important;
+    display:flex !important;
+    flex-direction:column !important;
+    align-items:center !important;
+    justify-content:center !important;
+    height:64px !important;
+    padding:0 2px !important;
+    border-bottom:none !important;
+    border-top:2px solid transparent !important;
+    font-size:0 !important;
+    gap:3px !important;
+    color:rgba(255,255,255,0.4) !important;
+  }
+  .admin-tab::before{ font-size:20px !important; line-height:1; display:block; margin-bottom:1px; }
+  .admin-tab::after{ font-size:8px !important; letter-spacing:0; display:block; color:inherit; }
+  #atab-scenes::before   { content:'📋'; } #atab-scenes::after   { content:'Scènes'; }
+  #atab-storyboard::before{ content:'🗂'; } #atab-storyboard::after{ content:'Story'; }
+  #atab-banque::before   { content:'🎬'; } #atab-banque::after   { content:'Banque'; }
+  #atab-projets::before  { content:'📁'; } #atab-projets::after  { content:'Projets'; }
+  .admin-tab.active{ color:#fff !important; border-top:2px solid rgba(255,255,255,0.7) !important; border-bottom:none !important; }
+
+  /* Compenser la bottom bar admin */
+  .admin-tab-content.active{ padding-bottom:72px !important; }
+  #atab-content-storyboard{ padding-bottom:72px; }
+
+  /* ── 4. STORYBOARD — sidebar collapsible ── */
+  #atab-content-storyboard > div[style*="display:flex"]{
+    flex-direction:column !important;
+    height:auto !important;
+    min-height:calc(100vh - 120px);
+  }
+  #sb-bank-panel{
+    width:100% !important;
+    max-height:0;
+    overflow:hidden;
+    border-right:none !important;
+    border-bottom:1px solid #1a1a1a;
+    transition:max-height 0.35s ease;
+    flex-shrink:0 !important;
+  }
+  #sb-bank-panel.mobile-open{ max-height:280px; }
+  #sb-bank-toggle{ display:flex !important; }
+
+  /* ── 5. Admin body padding ── */
+  .admin-body{ padding:16px !important; }
+
+  /* ── 6. SB home screen — portrait ── */
+  #sb-home-screen{ padding:32px 16px !important; gap:24px !important; }
+  #sb-home-screen > div:last-child{ flex-direction:column !important; width:100%; gap:10px !important; }
+  #sb-home-screen button{ width:100% !important; padding:16px !important; letter-spacing:3px !important; }
+  #sb-project-bar{ flex-direction:column !important; align-items:flex-start !important; gap:6px !important; padding:8px 12px !important; }
+  #sb-project-bar > div:last-child{ width:100%; overflow-x:auto; }
+}
+
+/* Bouton toggle banque vidéos — caché sur desktop */
+#sb-bank-toggle{
+  display:none;
+  align-items:center;
+  gap:8px;
+  background:none;
+  border:1px dashed #2a2a2a;
+  color:#555;
+  font-family:Arial,sans-serif;
+  font-size:9px;
+  letter-spacing:2px;
+  text-transform:uppercase;
+  padding:10px;
+  cursor:pointer;
+  transition:all 0.15s;
+  margin:8px 10px;
+  width:calc(100% - 20px);
+  justify-content:center;
+  flex-shrink:0;
+}
+#sb-bank-toggle:hover{ border-color:#888; color:#fff; }
+
 /* En plein écran — masquer HUD + coins + hint */
 body.fs-mode .corner{ display:none; }
 body.fs-mode .hud{ display:none; }
@@ -1694,7 +1858,7 @@ function showRotateNudge(){
   </div>
 
   <!-- Sous-onglets admin -->
-  <div style="background:#0d0d0d;border-bottom:1px solid #2e2e2e;display:flex;gap:0;overflow-x:auto;scrollbar-width:none;">
+  <div id="admin-tab-bar" style="background:#0d0d0d;border-bottom:1px solid #2e2e2e;display:flex;gap:0;overflow-x:auto;scrollbar-width:none;">
     <button class="admin-tab" id="atab-scenes" onclick="switchAdminTab('scenes',this)" style="display:none;">Scènes</button>
     <button class="admin-tab active" id="atab-storyboard" onclick="switchAdminTab('storyboard',this)" style="display:none;">Storyboard</button>
     <button class="admin-tab" id="atab-banque" onclick="switchAdminTab('banque',this)" style="display:none;">🎬 Banque Vidéos</button>
@@ -1739,6 +1903,10 @@ function showRotateNudge(){
 
       <!-- BANQUE VIDÉOS LATÉRALE -->
       <div id="sb-bank-panel" style="width:220px;flex-shrink:0;border-right:1px solid #1a1a1a;background:#080808;display:flex;flex-direction:column;overflow:hidden;">
+        <!-- Bouton toggle mobile — n'apparaît qu'en portrait -->
+        <button id="sb-bank-toggle" onclick="toggleMobileBankPanel()">
+          <span id="sb-bank-toggle-icon">📁</span> Ma Banque Vidéos
+        </button>
         <div style="padding:12px 14px;border-bottom:1px solid #1a1a1a;font-size:8px;color:#444;letter-spacing:3px;text-transform:uppercase;display:flex;align-items:center;justify-content:space-between;">
           <span>Ma Banque Vidéos</span>
           <span id="sb-bank-count" style="color:#333;">0</span>
@@ -2376,13 +2544,15 @@ function navTo(page, btn){
   document.getElementById('page-'+page).classList.add('active');
   if(btn) btn.classList.add('active');
   window.scrollTo(0,0);
-  // Gérer la classe on-hero (pour cacher la nav principale seulement sur le hero en plein écran)
   var onHero = (page === 'film' && !isPlayerActive());
   document.body.classList.toggle('on-hero', onHero);
-  // Scroll : bloqué seulement sur le hero en fullscreen, libre partout ailleurs
+  // Marquer la page admin pour masquer la hero bottom nav (elle a sa propre bottom bar)
+  document.body.classList.toggle('on-admin-page', page === 'admin');
   var isFS = !!(document.fullscreenElement || document.webkitFullscreenElement);
   document.body.style.overflow = (isFS && onHero) ? 'hidden' : '';
   syncMainNav();
+  // ── Synchroniser la bottom bar mobile (hero-nav) ──
+  syncMobileBottomNav(page);
   if(page==='admin'){ muteAllVideos(); renderAdmin(); renderStoryboard(); showAdminTabIfAdmin(); renderProjets(); }
   else if(page==='creations'){ muteAllVideos(); renderCreations(); }
   else if(page==='membres'){ muteAllVideos(); renderMembres(); }
@@ -2390,6 +2560,32 @@ function navTo(page, btn){
   else if(page==='messages'){ muteAllVideos(); }
   else if(page==='film' && isPlayerActive()){ unmutePlayerVideo(); }
   else if(page==='film' && !isPlayerActive()){ refreshHeroNav(); }
+}
+
+// ── Sync bottom nav mobile ──
+function syncMobileBottomNav(page){
+  var map = {
+    'film':       'hnav-film',
+    'creations':  'hnav-creations',
+    'admin':      'hnav-admin',
+    'membres':    'hnav-membres',
+    'subvention': 'hnav-subvention'
+  };
+  document.querySelectorAll('#hero-nav .hn-btn').forEach(function(b){ b.classList.remove('hn-active'); });
+  var targetId = map[page];
+  if(targetId){
+    var el = document.getElementById(targetId);
+    if(el) el.classList.add('hn-active');
+  }
+}
+
+// ── Toggle panneau banque vidéos sur mobile ──
+function toggleMobileBankPanel(){
+  var panel = document.getElementById('sb-bank-panel');
+  var icon  = document.getElementById('sb-bank-toggle-icon');
+  if(!panel) return;
+  panel.classList.toggle('mobile-open');
+  if(icon) icon.textContent = panel.classList.contains('mobile-open') ? '📂' : '📁';
 }
 
 function goHome(){
