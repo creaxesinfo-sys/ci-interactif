@@ -1099,15 +1099,30 @@ function startSplash(){
   // Afficher le splash
   splash.classList.add('active');
 
-  // Démarrer la lecture maintenant (buffering déjà fait pendant le loader)
+  // Démarrer la lecture
   vid.muted = false;
   vid.volume = 0.85;
-  vid.currentTime = 0;
-  vid.play().catch(function(){
-    // Fallback : si autoplay bloqué (politique navigateur), rester muet
-    vid.muted = true;
-    vid.play().catch(function(){});
-  });
+
+  function doPlay(){
+    vid.play().catch(function(){
+      // Si l'audio est bloqué par le navigateur, jouer muet quand même
+      vid.muted = true;
+      vid.play().catch(function(){});
+    });
+  }
+
+  // Si le buffer est déjà prêt (readyState >= 3 = HAVE_FUTURE_DATA), jouer direct
+  // Sinon attendre l'événement canplay
+  if(vid.readyState >= 3){
+    doPlay();
+  } else {
+    vid.addEventListener('canplay', function onCanPlay(){
+      vid.removeEventListener('canplay', onCanPlay);
+      doPlay();
+    });
+    // Fallback sécurité — si canplay ne se déclenche pas dans 3s, forcer
+    setTimeout(doPlay, 3000);
+  }
 
   // Après 10s — vidéo se tasse à droite, panneau bienvenue apparaît
   var shiftDone = false;
@@ -1342,11 +1357,10 @@ function enterSite(){
     hls.loadSource(HLS_URL);
     hls.attachMedia(vid);
     hls.on(Hls.Events.MANIFEST_PARSED, function(){
-      // Forcer la meilleure qualité — mais PAS de play() ici
+      // Forcer la meilleure qualité — HLS.js bufferise automatiquement, pas besoin de vid.load()
       hls.currentLevel = hls.levels.length - 1;
       hls.loadLevel    = hls.levels.length - 1;
-      // Juste déclencher le buffering sans lecture
-      vid.load();
+      // HLS.js commence à bufferiser les fragments immédiatement — lecture prête pour play()
     });
     vid._splashHls = hls;
   } else if(vid.canPlayType('application/vnd.apple.mpegurl')){
