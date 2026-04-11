@@ -6292,13 +6292,17 @@ function tusUpload(file, callbacks){
   return fetch('/api/upload-video', {
     method: 'POST',
     headers: {
+      'Content-Type': 'application/json',
       'Upload-Length': file.size,
       'Upload-Metadata': 'name ' + btoa(encodeURIComponent(file.name).replace(/%([0-9A-F]{2})/g, function(m,p){ return String.fromCharCode('0x'+p); }))
     }
   })
-  .then(function(res){ return res.json(); })
+  .then(function(res){
+    if(!res.ok) throw new Error('Erreur serveur ' + res.status + ' — vérifie les variables Cloudflare dans Vercel');
+    return res.json();
+  })
   .then(function(data){
-    if(!data.tusUrl || !data.uid) throw new Error('URL TUS invalide');
+    if(!data.tusUrl || !data.uid) throw new Error('Réponse API invalide — ' + JSON.stringify(data));
     var uid = data.uid;
     var upload = new tus.Upload(file, {
       uploadUrl: data.tusUrl,
@@ -7012,8 +7016,8 @@ async function sbSaveProject(){
 
   var btn      = document.getElementById('sb-save-btn');
   var statusEl = document.getElementById('sb-save-status');
-  if(btn){ btn.textContent = '...'; btn.disabled = true; }
-  if(statusEl) statusEl.textContent = 'Enregistrement...';
+  if(btn){ btn.textContent = '⟳ ENREGISTREMENT...'; btn.disabled = true; btn.style.background='#fff'; btn.style.opacity='0.6'; }
+  if(statusEl){ statusEl.textContent = ''; }
 
   var videoURLs = scenes.filter(function(s){ return s.uid && s.uid.trim(); }).map(function(s){
     return { sceneId: s.id, sceneTitle: s.title, uid: s.uid.trim(), hls: makeHLSUrl(s.uid.trim()) };
@@ -7049,15 +7053,29 @@ async function sbSaveProject(){
       id: currentProjectId, name: currentProjectName
     }));
 
-    if(statusEl){ statusEl.textContent = 'Enregistré ✓'; statusEl.style.color='#4ade80'; }
-    setTimeout(function(){ if(statusEl){ statusEl.textContent=''; statusEl.style.color=''; } }, 3000);
+    // Bouton devient vert avec crochet — reste visible jusqu'à la prochaine modif
+    if(btn){
+      btn.textContent = '✓ ENREGISTRÉ';
+      btn.style.background = '#4ade80';
+      btn.style.color = '#000';
+      btn.style.opacity = '1';
+    }
+    if(statusEl){ statusEl.textContent = ''; }
     showToast('✓ Projet "' + currentProjectName + '" enregistré');
+    // Revenir au bouton normal après 4s
+    setTimeout(function(){
+      if(btn && btn.textContent === '✓ ENREGISTRÉ'){
+        btn.textContent = '💾 ENREGISTRER';
+        btn.style.background = '#fff';
+        btn.style.color = '#000';
+      }
+    }, 4000);
   } catch(err){
     showToast('Erreur: ' + err.message);
     if(statusEl){ statusEl.textContent = '✕ Erreur'; statusEl.style.color='#c44'; }
     setTimeout(function(){ if(statusEl){ statusEl.textContent=''; statusEl.style.color=''; } }, 3000);
   }
-  if(btn){ btn.textContent = '💾 ENREGISTRER'; btn.disabled = false; }
+  if(btn){ btn.disabled = false; }
 }
 
 // ── AUTOSAVE toutes les 60s si projet ouvert et modifié ──
@@ -7112,6 +7130,13 @@ save = function(){
   _origSave();
   if(currentProjectName){
     sbHasUnsavedChanges = true;
+    // Remettre le bouton normal si on modifie après une sauvegarde
+    var btn = document.getElementById('sb-save-btn');
+    if(btn && btn.textContent === '✓ ENREGISTRÉ'){
+      btn.textContent = '💾 ENREGISTRER';
+      btn.style.background = '#fff';
+      btn.style.color = '#000';
+    }
     var statusEl = document.getElementById('sb-save-status');
     if(statusEl){ statusEl.textContent = '● non enregistré'; statusEl.style.color = '#888'; }
   }
