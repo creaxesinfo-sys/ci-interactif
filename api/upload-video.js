@@ -15,7 +15,7 @@ module.exports = async function handler(req, res) {
   const CF_TOKEN = req.headers['x-cf-token']
     || process.env.CF_STREAM_TOKEN
     || process.env.CLOUDFLARE_STREAM_TOKEN
-    || 'cfut_dGOVKxajLrt8ORprdyDPGbtUY5bTMHaRc1jJOUlYadc2482b';
+    || 'cfut_NWJPQUaQie4GJhSr1W0w0qNQ7iqCEC8AhDEJJb6O840d254c';
 
   const uploadLength   = req.headers['upload-length'] || '0';
   const uploadMetadata = req.headers['upload-metadata'] || '';
