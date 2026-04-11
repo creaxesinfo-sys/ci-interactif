@@ -6317,31 +6317,36 @@ function saveCFConfig(){
   if(_cfPendingFile && _cfPendingCB) tusUploadDirect(_cfPendingFile, _cfPendingCB, account, token);
 }
 function tusUploadDirect(file, callbacks, account, token){
-  // Passer les credentials au serveur Vercel qui fait l'appel CF
+  // Upload direct navigateur → Cloudflare via tus-js-client (pas de serveur requis)
   var chunkSize = file.size>500*1024*1024?25*1024*1024:file.size>100*1024*1024?15*1024*1024:5*1024*1024;
-  var meta = 'name '+btoa(encodeURIComponent(file.name).replace(/%([0-9A-F]{2})/g,function(m,p){return String.fromCharCode('0x'+p);}));
-  fetch('/api/upload-video',{
-    method:'POST',
-    headers:{
-      'Content-Type':'application/json',
-      'Upload-Length': file.size,
-      'Upload-Metadata': meta,
-      'X-CF-Account': account,
-      'X-CF-Token': token
+  var uploadInstance;
+  uploadInstance = new tus.Upload(file,{
+    endpoint: 'https://api.cloudflare.com/client/v4/accounts/'+account+'/stream',
+    retryDelays: [0,1000,3000,5000,10000],
+    chunkSize: chunkSize,
+    headers: { 'Authorization': 'Bearer '+token },
+    metadata: { name: file.name, filetype: file.type },
+    onProgress: function(u,t){
+      var p=Math.round(u/t*100);
+      if(callbacks.onProgress) callbacks.onProgress(p,(u/1024/1024).toFixed(1)+' / '+(t/1024/1024).toFixed(1)+' MB');
+    },
+    onSuccess: function(){
+      // Extraire l'UID depuis l'URL de l'upload
+      var url = uploadInstance.url || '';
+      var parts = url.split('/');
+      var uid = parts[parts.length-1] || parts[parts.length-2] || '';
+      // Fallback: extraire un hash de 32 chars
+      if(!uid || uid.length < 20){
+        var match = url.match(/([a-f0-9]{32})/);
+        uid = match ? match[1] : url;
+      }
+      if(callbacks.onSuccess) callbacks.onSuccess(uid);
+    },
+    onError: function(err){
+      if(callbacks.onError) callbacks.onError(err.message||'Erreur upload Cloudflare');
     }
-  }).then(function(res){ return res.json(); })
-  .then(function(data){
-    if(!data.tusUrl||!data.uid) throw new Error(data.error||'Réponse invalide de Cloudflare');
-    var uid = data.uid;
-    var upload=new tus.Upload(file,{
-      uploadUrl:data.tusUrl,retryDelays:[0,1000,3000,5000],chunkSize:chunkSize,
-      metadata:{name:file.name,filetype:file.type},
-      onProgress:function(u,t){ var p=Math.round(u/t*100); if(callbacks.onProgress) callbacks.onProgress(p,(u/1024/1024).toFixed(1)+' / '+(t/1024/1024).toFixed(1)+' MB'); },
-      onSuccess:function(){ if(callbacks.onSuccess) callbacks.onSuccess(uid); },
-      onError:function(err){ if(callbacks.onError) callbacks.onError(err.message||'Erreur réseau'); }
-    });
-    upload.start();
-  }).catch(function(err){ if(callbacks.onError) callbacks.onError(err.message); });
+  });
+  uploadInstance.start();
 }
 
 function tusUpload(file, callbacks){
