@@ -6333,31 +6333,33 @@ function tusUploadViaAPI(file, callbacks){
     if(!data.uploadURL || !data.uid){
       throw new Error(data.error || 'Pas d\'URL d\'upload');
     }
-    // Étape 2 : upload direct navigateur → Cloudflare avec progression
-    var xhr = new XMLHttpRequest();
-    var fd  = new FormData();
-    fd.append('file', file);
-
-    xhr.upload.onprogress = function(e){
-      if(e.lengthComputable){
-        var pct = Math.round(e.loaded / e.total * 100);
-        var loadedMB = (e.loaded / 1024 / 1024).toFixed(1);
-        var totalMB  = (e.total  / 1024 / 1024).toFixed(1);
+    // Étape 2 : upload direct via tus-js-client (officiel Cloudflare direct_upload)
+    var uid = data.uid;
+    var chunkSize = file.size > 500*1024*1024 ? 50*1024*1024
+                  : file.size > 100*1024*1024 ? 25*1024*1024
+                  : 10*1024*1024;
+    var upload = new tus.Upload(file, {
+      endpoint:    data.uploadURL,
+      chunkSize:   chunkSize,
+      retryDelays: [0, 1000, 3000, 5000],
+      metadata: {
+        name:     file.name,
+        filetype: file.type
+      },
+      onProgress: function(uploaded, total){
+        var pct = Math.round(uploaded / total * 100);
+        var loadedMB = (uploaded / 1024 / 1024).toFixed(1);
+        var totalMB  = (total    / 1024 / 1024).toFixed(1);
         if(callbacks.onProgress) callbacks.onProgress(pct, loadedMB + ' / ' + totalMB + ' MB');
+      },
+      onSuccess: function(){
+        if(callbacks.onSuccess) callbacks.onSuccess(uid);
+      },
+      onError: function(err){
+        if(callbacks.onError) callbacks.onError(err.message || 'Erreur upload');
       }
-    };
-    xhr.onload = function(){
-      if(xhr.status >= 200 && xhr.status < 300){
-        if(callbacks.onSuccess) callbacks.onSuccess(data.uid);
-      } else {
-        if(callbacks.onError) callbacks.onError('Cloudflare erreur ' + xhr.status);
-      }
-    };
-    xhr.onerror = function(){
-      if(callbacks.onError) callbacks.onError('Erreur réseau lors de l\'upload');
-    };
-    xhr.open('POST', data.uploadURL);
-    xhr.send(fd);
+    });
+    upload.start();
   })
   .catch(function(err){
     if(callbacks.onError) callbacks.onError('Erreur: ' + (err.message||err));
