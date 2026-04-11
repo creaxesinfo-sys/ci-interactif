@@ -1,4 +1,4 @@
-// api/upload-video.js — Cloudflare Stream TUS upload
+// api/upload-video.js — Cloudflare Stream Direct Creator Upload
 const https = require('https');
 
 module.exports = async function handler(req, res) {
@@ -10,51 +10,46 @@ module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const CF_ACCOUNT = process.env.CF_ACCOUNT_ID || process.env.CLOUDFLARE_ACCOUNT_ID || '718abc417236918feea54c109e09edbb';
-  const CF_TOKEN   = process.env.CF_STREAM_TOKEN || process.env.CLOUDFLARE_STREAM_TOKEN || process.env.CF_API_TOKEN;
+  const CF_TOKEN   = process.env.CF_STREAM_TOKEN || process.env.CLOUDFLARE_STREAM_TOKEN;
 
-  if (!CF_TOKEN) {
-    return res.status(500).json({ error: 'Aucun token Cloudflare trouvé dans les variables Vercel' });
-  }
-
-  const uploadLength   = req.headers['upload-length'] || '0';
-  const uploadMetadata = req.headers['upload-metadata'] || `name ${Buffer.from('video').toString('base64')}`;
+  if (!CF_TOKEN) return res.status(500).json({ error: 'Token Cloudflare manquant' });
 
   try {
+    // Utiliser direct_upload — génère une URL pré-signée pour upload navigateur direct
+    const body = JSON.stringify({ maxDurationSeconds: 3600, requireSignedURLs: false });
+
     const result = await new Promise((resolve, reject) => {
       const options = {
         hostname: 'api.cloudflare.com',
-        path:     `/client/v4/accounts/${CF_ACCOUNT}/stream`,
+        path:     `/client/v4/accounts/${CF_ACCOUNT}/stream/direct_upload`,
         method:   'POST',
         headers: {
-          'Authorization':   `Bearer ${CF_TOKEN}`,
-          'Tus-Resumable':   '1.0.0',
-          'Upload-Length':   uploadLength,
-          'Upload-Metadata': uploadMetadata,
-          'Content-Length':  '0',
+          'Authorization': `Bearer ${CF_TOKEN}`,
+          'Content-Type':  'application/json',
+          'Content-Length': Buffer.byteLength(body),
         }
       };
 
       const r = https.request(options, (resp) => {
-        let body = '';
-        resp.on('data', c => body += c);
-        resp.on('end', () => resolve({ status: resp.statusCode, headers: resp.headers, body }));
+        let data = '';
+        resp.on('data', c => data += c);
+        resp.on('end', () => resolve({ status: resp.statusCode, body: data }));
       });
       r.on('error', reject);
+      r.write(body);
       r.end();
     });
 
-    if (result.status < 200 || result.status >= 300) {
-      return res.status(500).json({ error: `CF ${result.status}: ${result.body}` });
+    const json = JSON.parse(result.body);
+
+    if (!json.success || !json.result) {
+      return res.status(500).json({ error: `Cloudflare: ${result.body}` });
     }
 
-    const tusUrl = result.headers['location'];
-    const uid    = result.headers['stream-media-id'];
-
-    if (!tusUrl || !uid) {
-      return res.status(500).json({ error: 'Pas de TUS URL', body: result.body });
-    }
-
-    return res.status(200).json({ tusUrl, uid });
+    return res.status(200).json({
+      uploadURL: json.result.uploadURL,
+      uid:       json.result.uid
+    });
 
   } catch (err) {
     return res.status(500).json({ error: err.message });
