@@ -1099,10 +1099,15 @@ function startSplash(){
   // Afficher le splash
   splash.classList.add('active');
 
-  // Unmuter — vidéo joue déjà muet depuis le preload
+  // Démarrer la lecture maintenant (buffering déjà fait pendant le loader)
   vid.muted = false;
   vid.volume = 0.85;
   vid.currentTime = 0;
+  vid.play().catch(function(){
+    // Fallback : si autoplay bloqué (politique navigateur), rester muet
+    vid.muted = true;
+    vid.play().catch(function(){});
+  });
 
   // Après 10s — vidéo se tasse à droite, panneau bienvenue apparaît
   var shiftDone = false;
@@ -1309,8 +1314,9 @@ function enterSite(){
 </div>
 
 <script>
-// ===== PRÉCHARGEMENT + LECTURE MUETTE IMMÉDIATE =====
-// Joue muet dès le loader — au clic CONTINUER on unmute seulement
+// ===== PRÉCHARGEMENT MUET DU VIDÉO INTRO — ne joue PAS pendant le loader =====
+// Le vidéo se charge en mémoire pendant que l'utilisateur voit le loader.
+// La lecture démarre SEULEMENT au clic sur "Continuer".
 (function(){
   var HLS_URL = 'https://customer-911pgg1vlhryqb16.cloudflarestream.com/3e1d23a9491a4761288ecfb1fd4b44c3/manifest/video.m3u8';
   var vid = document.getElementById('splash-vid');
@@ -1319,32 +1325,34 @@ function enterSite(){
   vid.preload = 'auto';
   vid.setAttribute('playsinline','');
   vid.setAttribute('webkit-playsinline','');
+
   if(window.Hls && Hls.isSupported()){
     var hls = new Hls({
-      startLevel: 99,
-      capLevelToPlayerSize: false,
-      maxMaxBufferLength: 120,
-      maxBufferSize: 200 * 1000 * 1000,
-      maxBufferLength: 60,
+      startLevel:            99,
+      capLevelToPlayerSize:  false,
+      maxMaxBufferLength:    120,
+      maxBufferSize:         200 * 1000 * 1000,
+      maxBufferLength:       60,
       abrEwmaDefaultEstimate: 50000000,
-      abrBandWidthFactor: 1.0,
-      abrBandWidthUpFactor: 1.0,
-      lowLatencyMode: false,
-      progressive: true
+      abrBandWidthFactor:    1.0,
+      abrBandWidthUpFactor:  1.0,
+      lowLatencyMode:        false,
+      progressive:           true
     });
     hls.loadSource(HLS_URL);
     hls.attachMedia(vid);
     hls.on(Hls.Events.MANIFEST_PARSED, function(){
+      // Forcer la meilleure qualité — mais PAS de play() ici
       hls.currentLevel = hls.levels.length - 1;
-      hls.loadLevel = hls.levels.length - 1;
-      vid.play().catch(function(){});
+      hls.loadLevel    = hls.levels.length - 1;
+      // Juste déclencher le buffering sans lecture
+      vid.load();
     });
     vid._splashHls = hls;
   } else if(vid.canPlayType('application/vnd.apple.mpegurl')){
-    // iOS Safari — native HLS
+    // iOS Safari — native HLS, load() seul sans play()
     vid.src = HLS_URL;
     vid.load();
-    vid.play().catch(function(){});
   }
 })();
 
@@ -1455,37 +1463,6 @@ function startLoader(){
   },110);
 }
 
-// Précharger le vidéo splash pendant le loader
-(function(){
-  var HLS_URL = 'https://customer-911pgg1vlhryqb16.cloudflarestream.com/3e1d23a9491a4761288ecfb1fd4b44c3/manifest/video.m3u8';
-  var vid = document.getElementById('splash-vid');
-  if(!vid) return;
-  vid.muted = true; // muet pendant preload
-  vid.preload = 'auto';
-  if(window.Hls && Hls.isSupported()){
-    var hls = new Hls({
-      startLevel: 99,               // niveau le plus haut disponible
-      capLevelToPlayerSize: false,  // ignorer la taille de l'écran
-      maxMaxBufferLength: 120,
-      maxBufferSize: 200 * 1000 * 1000,
-      maxBufferLength: 60,
-      abrEwmaDefaultEstimate: 50000000, // supposer 50Mbps — vise 4K direct
-      abrBandWidthFactor: 1.0,
-      abrBandWidthUpFactor: 1.0
-    });
-    hls.loadSource(HLS_URL);
-    hls.attachMedia(vid);
-    hls.on(Hls.Events.MANIFEST_PARSED, function(){
-      hls.currentLevel = hls.levels.length - 1; // niveau max absolu
-      hls.loadLevel = hls.levels.length - 1;
-    });
-    vid._splashHls = hls;
-  } else if(vid.canPlayType('application/vnd.apple.mpegurl')){
-    vid.src = HLS_URL;
-    vid.load();
-  }
-})();
-
 // Démarrer le loader automatiquement au chargement
 startLoader();
 
@@ -1518,12 +1495,8 @@ function launchFullExperience(){
     if(screen.orientation && screen.orientation.unlock) screen.orientation.unlock();
   } catch(e){}
 
-  // Unmuter
-  if(vid){
-    vid.muted = false;
-    vid.volume = 0.85;
-    if(vid.paused) vid.play().catch(function(){});
-  }
+  // Le son et la lecture démarrent dans startSplash() après le fondu du loader
+  // (on ne touch pas à vid ici pour ne pas déclencher avant l'affichage du splash)
 
   // Fondu du loader
   if(loader){
@@ -6611,21 +6584,81 @@ function startHeroSequence(){
     sub.style.transition='opacity 1.2s ease'; sub.style.opacity='0';
   }, 7500);
 }
-// ===== HERO VIDEO HLS =====
+// ===== HERO VIDEO HLS — fade in au départ, fade in/out à chaque boucle =====
 (function(){
   var vid = document.getElementById('hero-video');
   if(!vid) return;
   var uid = vid.dataset.uid;
+
+  // Durée des fades (secondes)
+  var FADE_IN_DURATION  = 2.5;   // fade in initial + à chaque début de boucle
+  var FADE_OUT_DURATION = 2.5;   // fade out avant la fin de boucle
+  var FADE_OUT_BEFORE   = 3.0;   // déclencher le fade out X secondes avant la fin
+
   vid.style.opacity = '0';
-  vid.style.transition = 'opacity 2.5s ease';
-  // Sur iOS, le video element avec HLS natif fonctionne correctement (muted + playsinline)
+  vid.style.transition = 'opacity ' + FADE_IN_DURATION + 's ease';
   vid.setAttribute('playsinline','');
   vid.setAttribute('webkit-playsinline','');
+
+  var fadeOutTimer = null;
+
+  function fadeIn(){
+    vid.style.transition = 'opacity ' + FADE_IN_DURATION + 's ease';
+    vid.style.opacity = '1';
+  }
+
+  function scheduleLoopFade(){
+    if(fadeOutTimer) clearTimeout(fadeOutTimer);
+    if(!vid.duration || !isFinite(vid.duration)) return;
+    var remaining = vid.duration - vid.currentTime;
+    var delay = Math.max(0, (remaining - FADE_OUT_BEFORE) * 1000);
+    fadeOutTimer = setTimeout(function(){
+      // Fade out
+      vid.style.transition = 'opacity ' + FADE_OUT_DURATION + 's ease';
+      vid.style.opacity = '0';
+    }, delay);
+  }
+
   attachHLS(vid, uid, { autoplay: true, muted: true, loop: true, controls: false });
-  vid.addEventListener('playing', function(){
-    setTimeout(function(){ vid.style.opacity = '1'; }, 300);
+
+  // Fade in au premier démarrage
+  vid.addEventListener('playing', function onFirstPlay(){
+    vid.removeEventListener('playing', onFirstPlay);
+    setTimeout(fadeIn, 200);
+    // Planifier le fade out de la première boucle
+    if(vid.duration && isFinite(vid.duration)) scheduleLoopFade();
   });
-  setTimeout(function(){ vid.style.opacity = '1'; }, 2000);
+  // Fallback fade in
+  setTimeout(function(){ if(vid.style.opacity === '0') fadeIn(); }, 2500);
+
+  // À chaque fois que la durée est connue, planifier le fade out
+  vid.addEventListener('durationchange', function(){
+    if(vid.duration && isFinite(vid.duration)) scheduleLoopFade();
+  });
+
+  // À chaque début de boucle : fade in → puis planifier le fade out
+  vid.addEventListener('seeked', function(){
+    // seeked se déclenche aussi quand loop remet à 0
+    if(vid.currentTime < 1.0){
+      fadeIn();
+      setTimeout(function(){ scheduleLoopFade(); }, FADE_IN_DURATION * 1000);
+    }
+  });
+
+  // Surveiller timeupdate pour les cas où seeked ne se déclenche pas (certains navigateurs)
+  var loopWatched = false;
+  vid.addEventListener('timeupdate', function(){
+    if(!vid.duration || !isFinite(vid.duration)) return;
+    // Replanifier si la durée a changé ou si on est proche du début (boucle)
+    if(!loopWatched && vid.currentTime > 0.5){
+      loopWatched = true;
+      scheduleLoopFade();
+    }
+    // Détecter retour au début (boucle)
+    if(vid.currentTime < 0.3 && loopWatched){
+      loopWatched = false;
+    }
+  });
 })();
 var ht=document.getElementById('htime');
 function tick(){
