@@ -2898,22 +2898,28 @@ function previewRenderChoices(scene){
 }
 
 
-// ===== SYSTÈME HLS CENTRALISÉ =====
-var CF_HLS = 'https://customer-911pgg1vlhryqb16.cloudflarestream.com/';
-var CF_BASE = 'https://iframe.videodelivery.net/'; // fallback seulement
+
+// ============================================================
+// ===== CI CLOUD — Architecture 3 niveaux =====
+// Niveau 1 : Service Worker (cache segments automatique)
+// Niveau 2 : IndexedDB CICache (prefetch intelligent)
+// Niveau 3 : Vercel Edge Proxy (CDN propre)
+// ============================================================
+
+var CF_HLS  = 'https://customer-911pgg1vlhryqb16.cloudflarestream.com/';
+var CF_BASE = 'https://iframe.videodelivery.net/';
 var preloadCache = {};
 
-// ===== DÉTECTION MOBILE (une seule fois, réutilisé partout) =====
+// ─── Détection ───────────────────────────────────────────────
 var _isMobile = /Mobi|Android|iPhone|iPad|iPod/.test(navigator.userAgent) ||
                 (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
-// ===== GESTIONNAIRE HLS ACTIFS — limite à 4 instances simultanées =====
+// ─── Limite d'instances HLS simultanées ──────────────────────
 var _activeHLSInstances = [];
 var _MAX_HLS_INSTANCES = _isMobile ? 3 : 6;
 
 function _registerHLS(hls, vid){
   _activeHLSInstances.push({ hls: hls, vid: vid });
-  // Si on dépasse la limite, détruire le plus ancien qui n'est pas en lecture
   if(_activeHLSInstances.length > _MAX_HLS_INSTANCES){
     for(var i = 0; i < _activeHLSInstances.length - _MAX_HLS_INSTANCES; i++){
       var old = _activeHLSInstances[i];
@@ -2925,15 +2931,202 @@ function _registerHLS(hls, vid){
     }
   }
 }
-
 function _unregisterHLS(hls){
   _activeHLSInstances = _activeHLSInstances.filter(function(item){ return item.hls !== hls; });
 }
 
+// ─── Niveau 3 : Proxy Vercel ─────────────────────────────────
+// Déterminer si on est sur le domaine Vercel (prod) ou localhost (dev)
+var _useProxy = (
+  window.location.hostname !== 'localhost' &&
+  window.location.hostname !== '127.0.0.1' &&
+  window.location.hostname.indexOf('.local') === -1
+);
+
 function makeHLSUrl(uid){
-  if(uid.startsWith('http')) return uid;
-  return CF_HLS + uid + '/manifest/video.m3u8';
+  var rawUrl = uid.startsWith('http') ? uid : CF_HLS + uid + '/manifest/video.m3u8';
+  if(_useProxy){
+    // Passer par le proxy Vercel qui réécrit les sous-URLs et cache à l'edge
+    return '/api/video-cache?url=' + encodeURIComponent(rawUrl);
+  }
+  return rawUrl;
 }
+
+// ─── Niveau 2 : CICache — IndexedDB Preloader ────────────────
+var CICache = (function(){
+  var DB_NAME    = 'ci-video-cache';
+  var DB_VERSION = 1;
+  var STORE      = 'segments';
+  var MAX_BYTES  = 400 * 1024 * 1024; // 400 MB max
+  var _db        = null;
+  var _totalSize = 0;
+  var _hits      = 0;
+  var _misses    = 0;
+
+  function openDB(){
+    return new Promise(function(resolve, reject){
+      if(_db){ resolve(_db); return; }
+      if(!window.indexedDB){ reject('no-idb'); return; }
+      var req = indexedDB.open(DB_NAME, DB_VERSION);
+      req.onupgradeneeded = function(e){
+        var db = e.target.result;
+        if(!db.objectStoreNames.contains(STORE)){
+          var store = db.createObjectStore(STORE, { keyPath: 'url' });
+          store.createIndex('ts', 'ts', { unique: false });
+          store.createIndex('size', 'size', { unique: false });
+        }
+      };
+      req.onsuccess = function(e){ _db = e.target.result; resolve(_db); };
+      req.onerror   = function(){ reject(req.error); };
+    });
+  }
+
+  // Stocker un segment (ArrayBuffer)
+  function put(url, buffer){
+    return openDB().then(function(db){
+      return new Promise(function(resolve){
+        var tx   = db.transaction(STORE, 'readwrite');
+        var size = buffer.byteLength;
+        tx.objectStore(STORE).put({ url: url, data: buffer, ts: Date.now(), size: size });
+        tx.oncomplete = function(){ _totalSize += size; resolve(); };
+        tx.onerror    = function(){ resolve(); }; // silencieux
+        // Gérer le quota si nécessaire
+        if(_totalSize > MAX_BYTES) evictOldest(db);
+      });
+    }).catch(function(){});
+  }
+
+  // Récupérer un segment
+  function get(url){
+    return openDB().then(function(db){
+      return new Promise(function(resolve){
+        var req = db.transaction(STORE, 'readonly').objectStore(STORE).get(url);
+        req.onsuccess = function(){
+          if(req.result){ _hits++; resolve(req.result.data); }
+          else           { _misses++; resolve(null); }
+        };
+        req.onerror = function(){ resolve(null); };
+      });
+    }).catch(function(){ return null; });
+  }
+
+  // Éviction LRU — supprimer les segments les plus anciens
+  function evictOldest(db){
+    var tx    = db.transaction(STORE, 'readwrite');
+    var store = tx.objectStore(STORE);
+    var idx   = store.index('ts');
+    var freed = 0;
+    var target = MAX_BYTES * 0.3; // libérer 30%
+    idx.openCursor().onsuccess = function(e){
+      var cursor = e.target.result;
+      if(!cursor || freed >= target) return;
+      freed += (cursor.value.size || 0);
+      _totalSize -= (cursor.value.size || 0);
+      store.delete(cursor.value.url);
+      cursor.continue();
+    };
+  }
+
+  // Précharger un manifest HLS complet (fetch segments niveau 1)
+  function prefetchManifest(manifestUrl){
+    return fetch(manifestUrl)
+      .then(function(r){ return r.text(); })
+      .then(function(body){
+        // Extraire toutes les URLs de segments du manifest
+        var segmentUrls = [];
+        body.split('\n').forEach(function(line){
+          line = line.trim();
+          if(line && !line.startsWith('#')){
+            // URL absolue ou relative
+            var absUrl = line.startsWith('http') ? line :
+                         manifestUrl.substring(0, manifestUrl.lastIndexOf('/') + 1) + line;
+            segmentUrls.push(absUrl);
+          }
+        });
+        // Télécharger les segments en parallèle (max 3 à la fois)
+        return downloadQueue(segmentUrls, 3);
+      })
+      .catch(function(){});
+  }
+
+  function downloadQueue(urls, concurrency){
+    var index = 0;
+    function next(){
+      if(index >= urls.length) return Promise.resolve();
+      var url = urls[index++];
+      return get(url).then(function(cached){
+        if(cached) return next(); // déjà en cache
+        return fetch(url)
+          .then(function(r){ return r.arrayBuffer(); })
+          .then(function(buf){ return put(url, buf); })
+          .catch(function(){})
+          .then(next);
+      });
+    }
+    var workers = [];
+    for(var i = 0; i < Math.min(concurrency, urls.length); i++){
+      workers.push(next());
+    }
+    return Promise.all(workers);
+  }
+
+  // Stats publiques
+  function stats(){
+    return {
+      hits:      _hits,
+      misses:    _misses,
+      totalMB:   (_totalSize / 1024 / 1024).toFixed(1),
+      hitRate:   _hits + _misses > 0 ? Math.round(_hits / (_hits + _misses) * 100) : 0
+    };
+  }
+
+  // Vider le cache
+  function clear(){
+    return openDB().then(function(db){
+      return new Promise(function(resolve){
+        var tx = db.transaction(STORE, 'readwrite');
+        tx.objectStore(STORE).clear();
+        tx.oncomplete = function(){ _totalSize = 0; resolve(); };
+      });
+    });
+  }
+
+  return { put: put, get: get, prefetchManifest: prefetchManifest, stats: stats, clear: clear };
+})();
+
+// ─── Indicateur de cache dans l'UI ───────────────────────────
+var _cacheHits   = 0;
+var _cacheMisses = 0;
+
+// Écouter les messages du Service Worker (stats cache)
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.addEventListener('message', function(e){
+    if(!e.data) return;
+    if(e.data.type === 'CI_CACHE_SEGMENT_HIT')  { _cacheHits++;   _updateCacheIndicator(); }
+    if(e.data.type === 'CI_CACHE_SEGMENT_MISS')  { _cacheMisses++; _updateCacheIndicator(); }
+    if(e.data.type === 'CI_CACHE_STATS_RESULT')  { console.log('[CI Cloud]', e.data); }
+  });
+}
+
+function _updateCacheIndicator(){
+  var el = document.getElementById('preload-indicator');
+  if(!el) return;
+  var total = _cacheHits + _cacheMisses;
+  if(total < 3) return;
+  var rate = Math.round(_cacheHits / total * 100);
+  if(rate >= 80){
+    el.textContent = '⚡ CLOUD LOCAL ' + rate + '%';
+    el.style.color = '#4ade80';
+  } else if(rate >= 40){
+    el.textContent = '↑ CACHE ' + rate + '%';
+    el.style.color = '#facc15';
+  }
+}
+
+// ─── makeHLSUrl exposé globalement ───────────────────────────
+// (déjà défini plus haut — garde la variable globale)
+
+
 
 function attachHLS(vid, uid, opts){
   opts = opts || {};
@@ -3042,30 +3235,45 @@ function preloadScene(id){
   if(!scene || !scene.uid || !scene.uid.trim()) return;
   var uid = scene.uid.trim();
   if(preloadCache[uid]) return;
-  // Ne pas dépasser le quota d'instances HLS
   if(_activeHLSInstances.length >= _MAX_HLS_INSTANCES) return;
 
+  // ── Niveau 2 : prefetch IndexedDB en parallèle ──
+  // On lance le prefetch du manifest HLS dans CICache (arrière-plan silencieux)
+  var manifestUrl = makeHLSUrl(uid);
+  setTimeout(function(){
+    CICache.prefetchManifest(manifestUrl);
+  }, 200);
+
+  // ── Niveau 1 : HLS.js standard (s'appuie sur le SW pour cacher les segments) ──
   var vid = document.createElement('video');
   vid.muted   = true;
   vid.preload = _isMobile ? 'metadata' : 'auto';
   vid.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;pointer-events:none;';
-  // Mobile : preload en basse qualité pour économiser bande passante + mémoire
   attachHLS(vid, uid, { autoplay: false, muted: true, lowQuality: _isMobile, controls: false });
   document.body.appendChild(vid);
   preloadCache[uid] = vid;
+
+  // Mettre à jour l'indicateur UI
+  var el = document.getElementById('preload-indicator');
+  if(el && !el.textContent) el.textContent = '↑ CHARGEMENT...';
 }
 
-// Précharger TOUTES les scènes du projet en arrière-plan
+// Précharger TOUTES les scènes — étalement intelligent
 function preloadAllScenes(){
   if(!scenes || !scenes.length) return;
-  // Étaler le préchargement pour ne pas saturer la bande passante
-  // Sur mobile : intervalle plus long pour ménager la bande passante
   var interval = _isMobile ? 1200 : 800;
   scenes.forEach(function(scene, i){
     if(scene.uid && scene.uid.trim()){
       setTimeout(function(){ preloadScene(scene.id); }, i * interval);
     }
   });
+  // Afficher les stats cloud après 5s
+  setTimeout(function(){
+    var s = CICache.stats();
+    if(s.hits + s.misses > 0){
+      console.log('[CI Cloud] Cache:', s.hitRate + '% hit rate,', s.totalMB + 'MB stockés');
+    }
+  }, 5000);
 }
 
 // ===== PAUSE/REPRISE DES AVATARS VIDÉO HORS-ÉCRAN =====
