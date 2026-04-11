@@ -6331,18 +6331,26 @@ function tusUploadDirect(file, callbacks, account, token){
       if(callbacks.onProgress) callbacks.onProgress(p,(u/1024/1024).toFixed(1)+' / '+(t/1024/1024).toFixed(1)+' MB');
     },
     onSuccess: function(){
-      // Extraire l'UID depuis l'URL de l'upload
+      // L'URL retournée par CF Stream ressemble à :
+      // https://upload.videodelivery.net/tus/{uid} ou
+      // https://api.cloudflare.com/client/v4/accounts/{account}/stream/{uid}
       var url = uploadInstance.url || '';
-      var parts = url.split('/');
-      var uid = parts[parts.length-1] || parts[parts.length-2] || '';
-      // Fallback: extraire un hash de 32 chars
+      console.log('CF TUS upload URL:', url);
+      // Extraire l'UID : dernier segment non-vide de l'URL
+      var parts = url.split('/').filter(function(p){ return p.length > 0; });
+      var uid = parts[parts.length - 1] || '';
+      // Nettoyer les query params si présents
+      uid = uid.split('?')[0];
+      // Valider : un UID CF fait 32 chars hex ou alphanum
       if(!uid || uid.length < 20){
-        var match = url.match(/([a-f0-9]{32})/);
-        uid = match ? match[1] : url;
+        var match = url.match(/\/([a-zA-Z0-9]{20,})/g);
+        if(match) uid = match[match.length-1].replace('/','');
       }
+      console.log('UID extrait:', uid);
       if(callbacks.onSuccess) callbacks.onSuccess(uid);
     },
     onError: function(err){
+      console.error('TUS upload error:', err);
       if(callbacks.onError) callbacks.onError(err.message||'Erreur upload Cloudflare');
     }
   });
