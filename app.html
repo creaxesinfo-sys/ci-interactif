@@ -468,9 +468,11 @@ body{background:#1a1a1a;color:#e8e8e8;font-family:Arial,sans-serif;
   body.on-admin-page #hero-nav{ display:none !important; }
   #hero-nav .hn-brand,
   #hero-nav .hn-sep { display:none !important; }
-  #hero-nav .hn-btn{
-    flex:1;
+
+  /* Boutons VISIBLES de la bottom nav — flex colonne icône+label */
+  #hero-nav .hn-btn:not([style*="none"]) {
     display:flex !important;
+    flex:1;
     flex-direction:column;
     align-items:center;
     justify-content:center;
@@ -482,6 +484,10 @@ body{background:#1a1a1a;color:#e8e8e8;font-family:Arial,sans-serif;
     gap:4px;
     color:rgba(255,255,255,0.45) !important;
     transition:color 0.2s,border-color 0.2s;
+  }
+  /* Boutons CACHÉS — s'assurer qu'ils restent cachés même en mobile */
+  #hero-nav .hn-btn[style*="none"] {
+    display:none !important;
   }
   #hero-nav .hn-btn::before{ font-size:20px; line-height:1; display:block; }
   #hero-nav .hn-btn::after{ font-size:8px !important; letter-spacing:0; display:block; color:inherit; }
@@ -527,7 +533,7 @@ body{background:#1a1a1a;color:#e8e8e8;font-family:Arial,sans-serif;
     -webkit-backdrop-filter:blur(12px);
     display:flex !important;
   }
-  .admin-tab{
+  .admin-tab:not([style*="none"]){
     flex:1 !important;
     display:flex !important;
     flex-direction:column !important;
@@ -541,6 +547,7 @@ body{background:#1a1a1a;color:#e8e8e8;font-family:Arial,sans-serif;
     gap:3px !important;
     color:rgba(255,255,255,0.4) !important;
   }
+  .admin-tab[style*="none"]{ display:none !important; }
   .admin-tab::before{ font-size:20px !important; line-height:1; display:block; margin-bottom:1px; }
   .admin-tab::after{ font-size:8px !important; letter-spacing:0; display:block; color:inherit; }
   #atab-scenes::before   { content:'📋'; } #atab-scenes::after   { content:'Scènes'; }
@@ -6580,18 +6587,14 @@ function startHeroSequence(){
   // Étape 2 — "Cinéma Interactif"
   setTimeout(function(){ sub.classList.add('visible'); }, 3000);
 
-  // Étape 3 — Bouton apparaît
+  // Étape 3 — Bouton + hero-nav avec les bons onglets
   setTimeout(function(){
     btnWrap.classList.add('visible');
+    heroSequenceReady = true;
+    refreshHeroNav(); // affiche le hero-nav avec tous les onglets du bon rôle
   }, 3500);
 
-  // Étape 4 — hero-nav apparaît plus tard (après que tout soit bien établi)
-  setTimeout(function(){
-    heroSequenceReady = true;
-    refreshHeroNav();
-  }, 6000);
-
-  // Étape 5 — CI + sous-titre disparaissent
+  // Étape 4 — CI + sous-titre disparaissent
   setTimeout(function(){
     ci.style.transition='opacity 1.2s ease'; ci.style.opacity='0';
     sub.style.transition='opacity 1.2s ease'; sub.style.opacity='0';
