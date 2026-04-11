@@ -42,6 +42,14 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_
 </script>
 <style>
 
+/* ===== HUD TEXTE SELON ORIENTATION ===== */
+.hud-portrait  { display:inline; }
+.hud-landscape { display:none;   }
+@media (orientation:landscape){
+  .hud-portrait  { display:none;   }
+  .hud-landscape { display:inline; }
+}
+
 /* ===== LECTEUR PREVIEW COMPACT (test/prévisualisation) ===== */
 #preview-modal{
   display:none;position:fixed;inset:0;z-index:9000;
@@ -1062,7 +1070,10 @@ document.addEventListener('mozfullscreenchange', checkFSGate);
   <div class="splash-corner splash-corner-tr"></div>
   <div class="splash-corner splash-corner-bl"></div>
   <div class="splash-corner splash-corner-br"></div>
-  <div class="splash-hud-bl" style="color:rgba(255,255,255,0.08);">VOUS ÊTES CRÉATEUR</div>
+  <div class="splash-hud-bl" style="color:rgba(255,255,255,0.08);">
+    <span class="hud-portrait">VOUS ÊTES CRÉATEURS</span>
+    <span class="hud-landscape">VOUS ÊTES CRÉATEUR &nbsp;//&nbsp; GÉNIE VOUS ÊTES</span>
+  </div>
   <div id="splash-time" style="position:absolute;top:28px;left:56px;font-size:9px;color:#222;letter-spacing:3px;text-transform:uppercase;z-index:30;">--:--:--</div>
   <button onclick="enterSite()" style="position:absolute;bottom:20px;right:20px;background:none;border:none;color:rgba(255,255,255,0.2);font-family:Arial,sans-serif;font-size:9px;letter-spacing:4px;text-transform:uppercase;cursor:pointer;z-index:30;padding:8px 12px;transition:color 0.3s;" onmouseover="this.style.color='rgba(255,255,255,0.7)'" onmouseout="this.style.color='rgba(255,255,255,0.2)'">Passer ›</button>
 
@@ -1572,7 +1583,6 @@ function showRotateNudge(){
 <div id="toast"></div>
 <!-- ROTATE HINT — mobile portrait -->
 <div id="rotate-hint">
-  <span class="rotate-icon">📱</span>
   <span class="rotate-label">Tournez votre écran</span>
 </div>
 
