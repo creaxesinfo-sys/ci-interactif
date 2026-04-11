@@ -2648,11 +2648,35 @@ var CF_HLS = 'https://customer-911pgg1vlhryqb16.cloudflarestream.com/';
 var CF_BASE = 'https://iframe.videodelivery.net/'; // fallback seulement
 var preloadCache = {};
 
-function makeHLSUrl(uid){
-  // Accepte soit un UID soit une URL HLS complète
-  if(uid.startsWith('http')){
-    return uid; // URL complète déjà fournie
+// ===== DÉTECTION MOBILE (une seule fois, réutilisé partout) =====
+var _isMobile = /Mobi|Android|iPhone|iPad|iPod/.test(navigator.userAgent) ||
+                (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+// ===== GESTIONNAIRE HLS ACTIFS — limite à 4 instances simultanées =====
+var _activeHLSInstances = [];
+var _MAX_HLS_INSTANCES = _isMobile ? 3 : 6;
+
+function _registerHLS(hls, vid){
+  _activeHLSInstances.push({ hls: hls, vid: vid });
+  // Si on dépasse la limite, détruire le plus ancien qui n'est pas en lecture
+  if(_activeHLSInstances.length > _MAX_HLS_INSTANCES){
+    for(var i = 0; i < _activeHLSInstances.length - _MAX_HLS_INSTANCES; i++){
+      var old = _activeHLSInstances[i];
+      if(old && old.vid && old.vid.paused){
+        try { old.hls.destroy(); } catch(e){}
+        _activeHLSInstances.splice(i, 1);
+        i--;
+      }
+    }
   }
+}
+
+function _unregisterHLS(hls){
+  _activeHLSInstances = _activeHLSInstances.filter(function(item){ return item.hls !== hls; });
+}
+
+function makeHLSUrl(uid){
+  if(uid.startsWith('http')) return uid;
   return CF_HLS + uid + '/manifest/video.m3u8';
 }
 
@@ -2661,39 +2685,49 @@ function attachHLS(vid, uid, opts){
   var src = makeHLSUrl(uid);
   var isLow = !!opts.lowQuality;
 
+  // ── Paramètres buffer adaptés mobile vs desktop ──
+  // Mobile : budget mémoire limité (~50MB dispo), bande passante incertaine
+  // Desktop : on peut se permettre plus de buffer pour fluidité maximale
+  var bufLen    = isLow ? (4)  : (_isMobile ? 12  : 30);
+  var bufLenMax = isLow ? (8)  : (_isMobile ? 20  : 60);
+  var bufSize   = isLow ? (8 * 1024*1024) : (_isMobile ? 30*1024*1024 : 80*1024*1024);
+  // Estimation bande passante réaliste : mobile ~3Mbps, desktop ~15Mbps
+  var bwEstimate = isLow ? 800000 : (_isMobile ? 3000000 : 15000000);
+
   if(window.Hls && Hls.isSupported()){
     var hls = new Hls({
-      // Qualite
-      startLevel:                isLow ? 0 : -1,
-      capLevelToPlayerSize:      false,
+      // Qualité — mobile : laisser l'ABR choisir, desktop : viser haut
+      startLevel:                isLow ? 0 : (_isMobile ? -1 : -1),
+      capLevelToPlayerSize:      _isMobile ? true : false,
       maxAutoLevel:              -1,
-      // Buffer agressif
-      maxBufferLength:           isLow ? 10  : 60,
-      maxMaxBufferLength:        isLow ? 20  : 180,
-      maxBufferSize:             isLow ? 20*1024*1024 : 400*1024*1024,
-      highBufferWatchdogPeriod:  2,
-      // Estimation bande passante — supposer 100Mbps, viser 4K direct
-      abrEwmaDefaultEstimate:    isLow ? 1000000 : 100000000,
+      // Buffer raisonnable
+      maxBufferLength:           bufLen,
+      maxMaxBufferLength:        bufLenMax,
+      maxBufferSize:             bufSize,
+      highBufferWatchdogPeriod:  3,
+      // Estimation bande passante réaliste
+      abrEwmaDefaultEstimate:    bwEstimate,
       abrEwmaFastLive:           3,
       abrEwmaSlowLive:           9,
-      abrBandWidthFactor:        0.95,
-      abrBandWidthUpFactor:      0.95,
-      // Fetch
+      abrBandWidthFactor:        0.85,
+      abrBandWidthUpFactor:      0.70,
+      // Fetch — timeouts raisonnables
       progressive:               true,
       lowLatencyMode:            false,
       testBandwidth:             true,
-      fragLoadingTimeOut:        20000,
-      manifestLoadingTimeOut:    10000,
-      levelLoadingTimeOut:       10000,
-      fragLoadingMaxRetry:       6,
-      manifestLoadingMaxRetry:   4,
-      levelLoadingMaxRetry:      4,
-      fragLoadingRetryDelay:     500,
+      fragLoadingTimeOut:        _isMobile ? 12000 : 20000,
+      manifestLoadingTimeOut:    6000,
+      levelLoadingTimeOut:       6000,
+      fragLoadingMaxRetry:       4,
+      manifestLoadingMaxRetry:   3,
+      levelLoadingMaxRetry:      3,
+      fragLoadingRetryDelay:     800,
     });
     hls.loadSource(src);
     hls.attachMedia(vid);
     hls.on(Hls.Events.MANIFEST_PARSED, function(){
-      if(!isLow){
+      // Desktop non-low : forcer la meilleure qualité dès que le manifest est prêt
+      if(!isLow && !_isMobile){
         var maxLevel = hls.levels.length - 1;
         hls.currentLevel = maxLevel;
         hls.loadLevel    = maxLevel;
@@ -2706,22 +2740,29 @@ function attachHLS(vid, uid, opts){
         vid.play().catch(function(){});
       }
     });
-    hls.on(Hls.Events.LEVEL_SWITCHED, function(e, data){
-      if(!isLow && data.level < hls.levels.length - 1){
-        setTimeout(function(){
-          if(hls.currentLevel < hls.levels.length - 1){
-            hls.currentLevel = hls.levels.length - 1;
-          }
-        }, 3000);
-      }
-    });
+    // Sur desktop uniquement : remonter en qualité après une descente ABR
+    if(!isLow && !_isMobile){
+      hls.on(Hls.Events.LEVEL_SWITCHED, function(e, data){
+        if(data.level < hls.levels.length - 1){
+          setTimeout(function(){
+            if(hls.currentLevel < hls.levels.length - 1){
+              hls.currentLevel = hls.levels.length - 1;
+            }
+          }, 4000);
+        }
+      });
+    }
     vid._hls = hls;
+    _registerHLS(hls, vid);
+    // Nettoyer du registre quand la vidéo est retirée du DOM
+    hls.on(Hls.Events.DESTROYING, function(){ _unregisterHLS(hls); });
   } else if(vid.canPlayType('application/vnd.apple.mpegurl')){
+    // Safari iOS — HLS natif, beaucoup plus performant que HLS.js
     vid.src = src;
-    vid.preload = 'auto';
+    vid.preload = isLow ? 'metadata' : 'auto';
     if(opts.autoplay !== false){
       vid.addEventListener('loadedmetadata', function(){ vid.play().catch(function(){}); }, {once:true});
-      vid.addEventListener('canplaythrough',  function(){ vid.play().catch(function(){}); }, {once:true});
+      vid.addEventListener('canplay',        function(){ vid.play().catch(function(){}); }, {once:true});
     }
   }
 }
@@ -2746,13 +2787,15 @@ function preloadScene(id){
   if(!scene || !scene.uid || !scene.uid.trim()) return;
   var uid = scene.uid.trim();
   if(preloadCache[uid]) return;
+  // Ne pas dépasser le quota d'instances HLS
+  if(_activeHLSInstances.length >= _MAX_HLS_INSTANCES) return;
 
   var vid = document.createElement('video');
   vid.muted   = true;
-  vid.preload = 'auto';
+  vid.preload = _isMobile ? 'metadata' : 'auto';
   vid.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;pointer-events:none;';
-  // Précharger en haute qualité — on veut une lecture instantanée
-  attachHLS(vid, uid, { autoplay: false, muted: true, lowQuality: false, controls: false });
+  // Mobile : preload en basse qualité pour économiser bande passante + mémoire
+  attachHLS(vid, uid, { autoplay: false, muted: true, lowQuality: _isMobile, controls: false });
   document.body.appendChild(vid);
   preloadCache[uid] = vid;
 }
@@ -2761,12 +2804,47 @@ function preloadScene(id){
 function preloadAllScenes(){
   if(!scenes || !scenes.length) return;
   // Étaler le préchargement pour ne pas saturer la bande passante
+  // Sur mobile : intervalle plus long pour ménager la bande passante
+  var interval = _isMobile ? 1200 : 800;
   scenes.forEach(function(scene, i){
     if(scene.uid && scene.uid.trim()){
-      setTimeout(function(){ preloadScene(scene.id); }, i * 800);
+      setTimeout(function(){ preloadScene(scene.id); }, i * interval);
     }
   });
 }
+
+// ===== PAUSE/REPRISE DES AVATARS VIDÉO HORS-ÉCRAN =====
+// Évite que 15 vidéos tournent en même temps en arrière-plan
+(function(){
+  var avatarObserver = null;
+
+  window._initAvatarVisibility = function(){
+    if(!('IntersectionObserver' in window)) return;
+    // Observer tous les avatars vidéo présents dans la page membres
+    var memberPage = document.getElementById('page-members') ||
+                     document.getElementById('users-list');
+    if(!memberPage) return;
+
+    if(avatarObserver) avatarObserver.disconnect();
+
+    avatarObserver = new IntersectionObserver(function(entries){
+      entries.forEach(function(entry){
+        var vid = entry.target;
+        if(!vid || vid.tagName !== 'VIDEO') return;
+        if(entry.isIntersecting){
+          if(vid.paused && vid._hlsLoaded) vid.play().catch(function(){});
+        } else {
+          if(!vid.paused) vid.pause();
+        }
+      });
+    }, { threshold: 0, rootMargin: '50px' });
+
+    memberPage.querySelectorAll('video').forEach(function(v){
+      v._hlsLoaded = true;
+      avatarObserver.observe(v);
+    });
+  };
+})();
 
 function preloadNextScenes(scene){
   if(!scene || !scene.choices) return;
@@ -4153,10 +4231,23 @@ async function renderUsersTab(){
     avatarWrap.style.cssText = 'width:100px;height:100px;border-radius:50%;background:#1a1a1a;border:2px solid #2a2a2a;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:32px;font-weight:700;color:#fff;';
     if(user.video_uid && user.video_uid.trim()){
       var vid = document.createElement('video');
-      vid.muted = true; vid.loop = true; vid.playsInline = true; vid.autoplay = true;
+      vid.muted = true; vid.loop = true; vid.playsInline = true;
       vid.style.cssText = 'width:100%;height:100%;object-fit:cover;';
-      attachHLS(vid, user.video_uid.trim(), { autoplay:true, muted:true, loop:true, controls:false, lowQuality:true });
       avatarWrap.appendChild(vid);
+      // ── Lazy loading : ne charger la vidéo que quand la carte est visible ──
+      // Évite de lancer 15+ streams HLS simultanément au chargement de la page
+      (function(videoEl, videoUid){
+        var loaded = false;
+        var observer = new IntersectionObserver(function(entries){
+          if(entries[0].isIntersecting && !loaded){
+            loaded = true;
+            observer.disconnect();
+            attachHLS(videoEl, videoUid, { autoplay:true, muted:true, loop:true, controls:false, lowQuality:true });
+            videoEl.play().catch(function(){});
+          }
+        }, { threshold: 0.1, rootMargin: '100px' });
+        observer.observe(avatarWrap);
+      })(vid, user.video_uid.trim());
     } else {
       avatarWrap.textContent = (user.nom||'?').charAt(0).toUpperCase();
     }
@@ -4224,6 +4315,9 @@ async function renderUsersTab(){
     }
     list.appendChild(card);
   });
+
+  // Activer la pause/reprise automatique des avatars hors-écran
+  setTimeout(function(){ if(window._initAvatarVisibility) window._initAvatarVisibility(); }, 200);
 }
 
 async function updateUserPlan(userId, plan){
