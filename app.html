@@ -6316,45 +6316,9 @@ function saveCFConfig(){
   document.getElementById('cf-config-modal').classList.remove('active');
   if(_cfPendingFile && _cfPendingCB) tusUploadDirect(_cfPendingFile, _cfPendingCB, account, token);
 }
-function tusUploadDirect(file, callbacks, account, token){
-  // Upload direct navigateur → Cloudflare via tus-js-client (pas de serveur requis)
-  var chunkSize = file.size>500*1024*1024?25*1024*1024:file.size>100*1024*1024?15*1024*1024:5*1024*1024;
-  var uploadInstance;
-  uploadInstance = new tus.Upload(file,{
-    endpoint: 'https://api.cloudflare.com/client/v4/accounts/'+account+'/stream',
-    retryDelays: [0,1000,3000,5000,10000],
-    chunkSize: chunkSize,
-    headers: { 'Authorization': 'Bearer '+token },
-    metadata: { name: file.name, filetype: file.type },
-    onProgress: function(u,t){
-      var p=Math.round(u/t*100);
-      if(callbacks.onProgress) callbacks.onProgress(p,(u/1024/1024).toFixed(1)+' / '+(t/1024/1024).toFixed(1)+' MB');
-    },
-    onSuccess: function(){
-      // L'URL retournée par CF Stream ressemble à :
-      // https://upload.videodelivery.net/tus/{uid} ou
-      // https://api.cloudflare.com/client/v4/accounts/{account}/stream/{uid}
-      var url = uploadInstance.url || '';
-      console.log('CF TUS upload URL:', url);
-      // Extraire l'UID : dernier segment non-vide de l'URL
-      var parts = url.split('/').filter(function(p){ return p.length > 0; });
-      var uid = parts[parts.length - 1] || '';
-      // Nettoyer les query params si présents
-      uid = uid.split('?')[0];
-      // Valider : un UID CF fait 32 chars hex ou alphanum
-      if(!uid || uid.length < 20){
-        var match = url.match(/\/([a-zA-Z0-9]{20,})/g);
-        if(match) uid = match[match.length-1].replace('/','');
-      }
-      console.log('UID extrait:', uid);
-      if(callbacks.onSuccess) callbacks.onSuccess(uid);
-    },
-    onError: function(err){
-      console.error('TUS upload error:', err);
-      if(callbacks.onError) callbacks.onError(err.message||'Erreur upload Cloudflare');
-    }
-  });
-  uploadInstance.start();
+function tusUploadDirect(file, callbacks){
+  // Toujours passer par l'API Vercel (CORS bloque les appels directs)
+  tusUploadViaAPI(file, callbacks);
 }
 
 function tusUploadViaAPI(file, callbacks){
@@ -6374,7 +6338,6 @@ function tusUploadViaAPI(file, callbacks){
     return res.json().then(function(data){ return { ok: res.ok, status: res.status, data: data }; });
   })
   .then(function(result){
-    console.log('API response:', result.status, result.data);
     if(!result.ok || !result.data.tusUrl || !result.data.uid){
       throw new Error('API ' + result.status + ': ' + (result.data.error || JSON.stringify(result.data)));
     }
