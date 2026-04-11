@@ -73,19 +73,6 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_
 #preview-close-btn:hover{border-color:#fff;color:#fff;}
 #preview-hotspots{position:absolute;inset:0;z-index:10;pointer-events:none;}
 
-
-/* ===== MODAL CONFIG CLOUDFLARE ===== */
-#cf-config-modal{
-  display:none;position:fixed;inset:0;z-index:99999;
-  background:rgba(0,0,0,0.92);
-  align-items:center;justify-content:center;
-}
-#cf-config-modal.active{display:flex;}
-#cf-config-box{
-  background:#111;border:1px solid #2a2a2a;
-  width:min(480px,90vw);padding:32px;
-  font-family:Arial,sans-serif;
-}
 *{box-sizing:border-box;margin:0;padding:0;}
 /* ===== FIX iOS VIEWPORT (barre blanche Safari) ===== */
 html{height:-webkit-fill-available;}
@@ -718,6 +705,11 @@ video { outline:none; }
   .admin-body{padding:20px 16px;}
   .choices-panel{padding:20px 16px;}
 }
+
+/* ===== MODAL CONFIG CLOUDFLARE DIRECT ===== */
+#cf-config-modal{display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.92);align-items:center;justify-content:center;}
+#cf-config-modal.active{display:flex;}
+#cf-config-box{background:#111;border:1px solid #2a2a2a;width:min(480px,90vw);padding:32px;font-family:Arial,sans-serif;}
 </style>
 </head>
 <body>
@@ -6296,110 +6288,97 @@ function handleSceneFileUpload(input){
 // TUS = protocole d'upload resumable. Upload direct navigateur → Cloudflare, pas via Vercel.
 // Gère les vidéos 4K, 15 minutes, plusieurs GB sans problème.
 
-// ─── Config CF stockée localement ───
+// ─── Config CF locale (fallback si API Vercel brisée) ───
 var _cfPendingFile = null;
-var _cfPendingCallbacks = null;
+var _cfPendingCB   = null;
 
 function getCFConfig(){
-  try { return JSON.parse(localStorage.getItem('ci_cf_config') || 'null'); } catch(e){ return null; }
+  try{ return JSON.parse(localStorage.getItem('ci_cf_config')||'null'); }catch(e){ return null; }
 }
-function openCFConfig(file, callbacks){
-  _cfPendingFile = file; _cfPendingCallbacks = callbacks;
+function openCFConfig(file, cb){
+  _cfPendingFile = file; _cfPendingCB = cb;
   var cfg = getCFConfig();
-  if(cfg){ document.getElementById('cf-input-account').value = cfg.account || ''; document.getElementById('cf-input-token').value = cfg.token || ''; }
+  if(cfg){
+    document.getElementById('cf-input-account').value = cfg.account||'';
+    document.getElementById('cf-input-token').value   = cfg.token||'';
+  }
   document.getElementById('cf-config-modal').classList.add('active');
 }
 function closeCFConfig(){
   document.getElementById('cf-config-modal').classList.remove('active');
-  _cfPendingFile = null; _cfPendingCallbacks = null;
+  _cfPendingFile = null; _cfPendingCB = null;
 }
 function saveCFConfig(){
   var account = document.getElementById('cf-input-account').value.trim();
   var token   = document.getElementById('cf-input-token').value.trim();
-  if(!account || !token){ showToast('Entre les deux identifiants'); return; }
-  localStorage.setItem('ci_cf_config', JSON.stringify({ account, token }));
+  if(!account||!token){ showToast('Entre les deux identifiants'); return; }
+  localStorage.setItem('ci_cf_config', JSON.stringify({account:account,token:token}));
   document.getElementById('cf-config-modal').classList.remove('active');
-  if(_cfPendingFile && _cfPendingCallbacks){
-    tusUploadDirect(_cfPendingFile, _cfPendingCallbacks, account, token);
-  }
+  if(_cfPendingFile && _cfPendingCB) tusUploadDirect(_cfPendingFile, _cfPendingCB, account, token);
 }
-
 function tusUploadDirect(file, callbacks, account, token){
-  var chunkSize = file.size > 500*1024*1024 ? 25*1024*1024
-               : file.size > 100*1024*1024 ? 15*1024*1024
-               : 5*1024*1024;
-  var metadata = 'name ' + btoa(encodeURIComponent(file.name).replace(/%([0-9A-F]{2})/g, function(m,p){ return String.fromCharCode('0x'+p); }));
-  // Appel direct à Cloudflare depuis le navigateur
-  fetch('https://api.cloudflare.com/client/v4/accounts/' + account + '/stream', {
-    method: 'POST',
-    headers: {
-      'Authorization': 'Bearer ' + token,
-      'Tus-Resumable': '1.0.0',
-      'Upload-Length': file.size,
-      'Upload-Metadata': metadata,
-    }
-  })
-  .then(function(res){
-    var tusUrl = res.headers.get('location');
-    var uid    = res.headers.get('stream-media-id');
-    if(!tusUrl || !uid) throw new Error('Cloudflare n'a pas retourné d'URL TUS — vérifie ton token');
-    var upload = new tus.Upload(file, {
-      uploadUrl: tusUrl,
-      retryDelays: [0, 1000, 3000, 5000],
-      chunkSize: chunkSize,
-      metadata: { name: file.name, filetype: file.type },
-      onProgress: function(uploaded, total){
-        var pct = Math.round((uploaded/total)*100);
-        if(callbacks.onProgress) callbacks.onProgress(pct, (uploaded/1024/1024).toFixed(1)+' / '+(total/1024/1024).toFixed(1)+' MB');
-      },
-      onSuccess: function(){ if(callbacks.onSuccess) callbacks.onSuccess(uid); },
-      onError: function(err){ if(callbacks.onError) callbacks.onError(err.message || 'Erreur réseau'); }
+  var chunkSize = file.size>500*1024*1024?25*1024*1024:file.size>100*1024*1024?15*1024*1024:5*1024*1024;
+  var meta = 'name '+btoa(encodeURIComponent(file.name).replace(/%([0-9A-F]{2})/g,function(m,p){return String.fromCharCode('0x'+p);}));
+  fetch('https://api.cloudflare.com/client/v4/accounts/'+account+'/stream',{
+    method:'POST',
+    headers:{'Authorization':'Bearer '+token,'Tus-Resumable':'1.0.0','Upload-Length':file.size,'Upload-Metadata':meta}
+  }).then(function(res){
+    var tusUrl=res.headers.get('location');
+    var uid=res.headers.get('stream-media-id');
+    if(!tusUrl||!uid) throw new Error('Token ou Account ID invalide — vérifie tes identifiants Cloudflare');
+    var upload=new tus.Upload(file,{
+      uploadUrl:tusUrl,retryDelays:[0,1000,3000,5000],chunkSize:chunkSize,
+      metadata:{name:file.name,filetype:file.type},
+      onProgress:function(u,t){ var p=Math.round(u/t*100); if(callbacks.onProgress) callbacks.onProgress(p,(u/1024/1024).toFixed(1)+' / '+(t/1024/1024).toFixed(1)+' MB'); },
+      onSuccess:function(){ if(callbacks.onSuccess) callbacks.onSuccess(uid); },
+      onError:function(err){ if(callbacks.onError) callbacks.onError(err.message||'Erreur réseau'); }
     });
     upload.start();
-  })
-  .catch(function(err){ if(callbacks.onError) callbacks.onError(err.message); });
+  }).catch(function(err){ if(callbacks.onError) callbacks.onError(err.message); });
 }
 
 function tusUpload(file, callbacks){
-  var chunkSize = file.size > 500*1024*1024 ? 25*1024*1024
-               : file.size > 100*1024*1024 ? 15*1024*1024
-               : 5*1024*1024;
-  var metadata = 'name ' + btoa(encodeURIComponent(file.name).replace(/%([0-9A-F]{2})/g, function(m,p){ return String.fromCharCode('0x'+p); }));
+  // Chunk adaptatif selon taille du fichier
+  var chunkSize = file.size > 500*1024*1024 ? 25*1024*1024  // >500MB → 25MB chunks
+               : file.size > 100*1024*1024 ? 15*1024*1024  // >100MB → 15MB chunks
+               : 5*1024*1024;                               // sinon  →  5MB chunks
 
-  // Essayer l'API Vercel d'abord
-  fetch('/api/upload-video', {
+  return fetch('/api/upload-video', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Upload-Length': file.size, 'Upload-Metadata': metadata }
+    headers: {
+      'Content-Type': 'application/json',
+      'Upload-Length': file.size,
+      'Upload-Metadata': 'name ' + btoa(encodeURIComponent(file.name).replace(/%([0-9A-F]{2})/g, function(m,p){ return String.fromCharCode('0x'+p); }))
+    }
   })
   .then(function(res){
-    if(!res.ok) throw new Error('API_FAILED');
+    if(!res.ok) throw new Error('Erreur serveur ' + res.status + ' — vérifie les variables Cloudflare dans Vercel');
     return res.json();
   })
   .then(function(data){
-    if(!data.tusUrl || !data.uid) throw new Error('API_FAILED');
+    if(!data.tusUrl || !data.uid) throw new Error('Réponse API invalide — ' + JSON.stringify(data));
     var uid = data.uid;
     var upload = new tus.Upload(file, {
       uploadUrl: data.tusUrl,
       retryDelays: [0, 1000, 3000, 5000, 10000],
       chunkSize: chunkSize,
+      parallelUploads: 3, // parallélisme interne TUS par fichier
       metadata: { name: file.name, filetype: file.type },
       onProgress: function(uploaded, total){
-        var pct = Math.round((uploaded/total)*100);
-        if(callbacks.onProgress) callbacks.onProgress(pct, (uploaded/1024/1024).toFixed(1)+' / '+(total/1024/1024).toFixed(1)+' MB');
+        var pct = Math.round((uploaded / total) * 100);
+        var uploadedMB = (uploaded / 1024 / 1024).toFixed(1);
+        var totalMB    = (total    / 1024 / 1024).toFixed(1);
+        if(callbacks.onProgress) callbacks.onProgress(pct, uploadedMB + ' / ' + totalMB + ' MB');
       },
       onSuccess: function(){ if(callbacks.onSuccess) callbacks.onSuccess(uid); },
       onError: function(err){ if(callbacks.onError) callbacks.onError(err.message || 'Erreur réseau'); }
     });
     upload.start();
+    return upload;
   })
   .catch(function(){
-    // API échouée → essayer config locale, sinon demander les credentials
-    var cfg = getCFConfig();
-    if(cfg && cfg.account && cfg.token){
-      tusUploadDirect(file, callbacks, cfg.account, cfg.token);
-    } else {
-      openCFConfig(file, callbacks);
-    }
+    // Fallback direct Cloudflare avec credentials intégrés
+    tusUploadDirect(file, callbacks, '718abc417236918feea54c109e09edbb', 'cfut_dGOVKxajLrt8ORprdyDPGbtUY5bTMHaRc1jJOUlYadc2482b');
   });
 }
 
@@ -7532,25 +7511,22 @@ updateInfoGrid();
 <!-- ===== MODAL CONFIG CLOUDFLARE DIRECT ===== -->
 <div id="cf-config-modal">
   <div id="cf-config-box">
-    <div style="font-size:9px;color:#555;letter-spacing:4px;text-transform:uppercase;margin-bottom:20px;">☁ Cloudflare Stream — Configuration</div>
-    <div style="font-size:12px;color:#888;line-height:1.8;margin-bottom:24px;">
-      L'API Vercel ne répond pas. Entre tes identifiants Cloudflare une fois — ils seront sauvegardés localement pour les uploads futurs.
-    </div>
+    <div style="font-size:9px;color:#555;letter-spacing:4px;text-transform:uppercase;margin-bottom:20px;">☁ Configuration Cloudflare</div>
+    <div style="font-size:12px;color:#888;line-height:1.8;margin-bottom:24px;">L'API Vercel ne répond pas. Entre tes identifiants une fois — ils seront sauvegardés localement.</div>
     <div style="margin-bottom:14px;">
       <div style="font-size:9px;color:#555;letter-spacing:3px;text-transform:uppercase;margin-bottom:6px;">Account ID</div>
-      <input id="cf-input-account" type="text" placeholder="ex: a1b2c3d4e5f6..." style="width:100%;background:#0d0d0d;border:1px solid #2a2a2a;color:#e8e8e8;font-family:Arial,sans-serif;font-size:12px;padding:10px 14px;outline:none;box-sizing:border-box;" onfocus="this.style.borderColor='#555'" onblur="this.style.borderColor='#2a2a2a'">
+      <input id="cf-input-account" type="text" placeholder="ex: a1b2c3d4..." style="width:100%;background:#0d0d0d;border:1px solid #2a2a2a;color:#e8e8e8;font-family:Arial,sans-serif;font-size:12px;padding:10px 14px;outline:none;box-sizing:border-box;">
     </div>
     <div style="margin-bottom:24px;">
       <div style="font-size:9px;color:#555;letter-spacing:3px;text-transform:uppercase;margin-bottom:6px;">API Token (Stream)</div>
-      <input id="cf-input-token" type="password" placeholder="ex: xxxxxxxxxxxxxx..." style="width:100%;background:#0d0d0d;border:1px solid #2a2a2a;color:#e8e8e8;font-family:Arial,sans-serif;font-size:12px;padding:10px 14px;outline:none;box-sizing:border-box;" onfocus="this.style.borderColor='#555'" onblur="this.style.borderColor='#2a2a2a'">
+      <input id="cf-input-token" type="password" placeholder="ex: xxxxxxxxxxxx..." style="width:100%;background:#0d0d0d;border:1px solid #2a2a2a;color:#e8e8e8;font-family:Arial,sans-serif;font-size:12px;padding:10px 14px;outline:none;box-sizing:border-box;">
       <div style="font-size:9px;color:#333;margin-top:6px;">dash.cloudflare.com → My Profile → API Tokens</div>
     </div>
     <div style="display:flex;gap:10px;">
-      <button onclick="saveCFConfig()" style="flex:1;background:#fff;border:none;color:#000;font-family:Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;padding:13px;cursor:pointer;">✓ SAUVEGARDER ET UPLOADER</button>
+      <button onclick="saveCFConfig()" style="flex:1;background:#fff;border:none;color:#000;font-family:Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;padding:13px;cursor:pointer;">✓ SAUVEGARDER</button>
       <button onclick="closeCFConfig()" style="background:none;border:1px solid #2a2a2a;color:#555;font-family:Arial,sans-serif;font-size:10px;letter-spacing:2px;text-transform:uppercase;padding:13px 20px;cursor:pointer;">Annuler</button>
     </div>
   </div>
 </div>
-
 </body>
 </html>
