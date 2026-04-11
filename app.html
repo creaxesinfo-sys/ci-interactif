@@ -6322,47 +6322,45 @@ function tusUploadDirect(file, callbacks){
 }
 
 function tusUploadViaAPI(file, callbacks){
-  var chunkSize = file.size > 500*1024*1024 ? 25*1024*1024
-               : file.size > 100*1024*1024 ? 15*1024*1024
-               : 5*1024*1024;
-
-  return fetch('/api/upload-video', {
+  // Étape 1 : demander une URL signée au serveur (direct creator upload)
+  fetch('/api/upload-video', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Upload-Length': file.size,
-      'Upload-Metadata': 'name ' + btoa(encodeURIComponent(file.name).replace(/%([0-9A-F]{2})/g, function(m,p){ return String.fromCharCode('0x'+p); }))
-    }
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ filename: file.name, filesize: file.size })
   })
-  .then(function(res){
-    return res.json().then(function(data){ return { ok: res.ok, status: res.status, data: data }; });
-  })
-  .then(function(result){
-    if(!result.ok || !result.data.tusUrl || !result.data.uid){
-      throw new Error('API ' + result.status + ': ' + (result.data.error || JSON.stringify(result.data)));
+  .then(function(res){ return res.json(); })
+  .then(function(data){
+    if(!data.uploadURL || !data.uid){
+      throw new Error(data.error || 'Pas d\'URL d\'upload');
     }
-    var data = result.data;
-    var uid = data.uid;
-    var upload = new tus.Upload(file, {
-      uploadUrl: data.tusUrl,
-      retryDelays: [0, 1000, 3000, 5000, 10000],
-      chunkSize: chunkSize,
-      parallelUploads: 3, // parallélisme interne TUS par fichier
-      metadata: { name: file.name, filetype: file.type },
-      onProgress: function(uploaded, total){
-        var pct = Math.round((uploaded / total) * 100);
-        var uploadedMB = (uploaded / 1024 / 1024).toFixed(1);
-        var totalMB    = (total    / 1024 / 1024).toFixed(1);
-        if(callbacks.onProgress) callbacks.onProgress(pct, uploadedMB + ' / ' + totalMB + ' MB');
-      },
-      onSuccess: function(){ if(callbacks.onSuccess) callbacks.onSuccess(uid); },
-      onError: function(err){ if(callbacks.onError) callbacks.onError(err.message || 'Erreur réseau'); }
-    });
-    upload.start();
-    return upload;
+    // Étape 2 : upload direct navigateur → Cloudflare avec progression
+    var xhr = new XMLHttpRequest();
+    var fd  = new FormData();
+    fd.append('file', file);
+
+    xhr.upload.onprogress = function(e){
+      if(e.lengthComputable){
+        var pct = Math.round(e.loaded / e.total * 100);
+        var loadedMB = (e.loaded / 1024 / 1024).toFixed(1);
+        var totalMB  = (e.total  / 1024 / 1024).toFixed(1);
+        if(callbacks.onProgress) callbacks.onProgress(pct, loadedMB + ' / ' + totalMB + ' MB');
+      }
+    };
+    xhr.onload = function(){
+      if(xhr.status >= 200 && xhr.status < 300){
+        if(callbacks.onSuccess) callbacks.onSuccess(data.uid);
+      } else {
+        if(callbacks.onError) callbacks.onError('Cloudflare erreur ' + xhr.status);
+      }
+    };
+    xhr.onerror = function(){
+      if(callbacks.onError) callbacks.onError('Erreur réseau lors de l\'upload');
+    };
+    xhr.open('POST', data.uploadURL);
+    xhr.send(fd);
   })
   .catch(function(err){
-    if(callbacks.onError) callbacks.onError('Erreur API upload: ' + (err.message||err));
+    if(callbacks.onError) callbacks.onError('Erreur: ' + (err.message||err));
   });
 }
 
