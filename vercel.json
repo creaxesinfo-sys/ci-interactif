@@ -1,0 +1,72 @@
+{
+  "rewrites": [
+    {
+      "source": "/cdn/cf/:path*",
+      "destination": "https://customer-911pgg1vlhryqb16.cloudflarestream.com/:path*"
+    },
+    {
+      "source": "/cdn/vd/:path*",
+      "destination": "https://videodelivery.net/:path*"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/cdn/(.*)",
+      "headers": [
+        { "key": "Cache-Control",                   "value": "public, max-age=31536000, immutable" },
+        { "key": "Access-Control-Allow-Origin",     "value": "*" },
+        { "key": "Access-Control-Allow-Methods",    "value": "GET, HEAD, OPTIONS" },
+        { "key": "Access-Control-Allow-Headers",    "value": "Range, Origin, Accept" },
+        { "key": "Access-Control-Expose-Headers",   "value": "Content-Length, Content-Range" },
+        { "key": "Timing-Allow-Origin",             "value": "*" },
+        { "key": "X-CI-CDN",                        "value": "vercel-edge" }
+      ]
+    },
+    {
+      "source": "/api/video-cache",
+      "headers": [
+        { "key": "Access-Control-Allow-Origin",     "value": "*" },
+        { "key": "Access-Control-Allow-Methods",    "value": "GET, OPTIONS" }
+      ]
+    },
+    {
+      "source": "/sw.js",
+      "headers": [
+        { "key": "Cache-Control",                   "value": "public, max-age=0, must-revalidate" },
+        { "key": "Service-Worker-Allowed",          "value": "/" }
+      ]
+    },
+    {
+      "source": "/manifest.json",
+      "headers": [
+        { "key": "Cache-Control",                   "value": "public, max-age=3600" }
+      ]
+    }
+  ],
+  "functions": {
+    "api/video-cache.js": {
+      "memory": 256,
+      "maxDuration": 30
+    },
+    "api/ai-reply.js": {
+      "memory": 256,
+      "maxDuration": 30
+    },
+    "api/list-videos.js": {
+      "memory": 256,
+      "maxDuration": 15
+    },
+    "api/upload-video.js": {
+      "memory": 512,
+      "maxDuration": 60
+    },
+    "api/check-video-status.js": {
+      "memory": 256,
+      "maxDuration": 15
+    },
+    "api/delete-user.js": {
+      "memory": 256,
+      "maxDuration": 15
+    }
+  }
+}
