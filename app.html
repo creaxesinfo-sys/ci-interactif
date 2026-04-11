@@ -447,7 +447,7 @@ body{background:#1a1a1a;color:#e8e8e8;font-family:Arial,sans-serif;
 
   /* ── 1. HERO-NAV : bascule en bottom bar ── */
   #hero-nav{
-    position:fixed !important;   /* fixed = visible sur TOUTES les pages */
+    position:fixed !important;
     top:auto !important;
     bottom:0 !important;
     left:0;right:0;
@@ -459,10 +459,16 @@ body{background:#1a1a1a;color:#e8e8e8;font-family:Arial,sans-serif;
     -webkit-backdrop-filter:blur(12px);
     justify-content:space-around !important;
     overflow:visible !important;
-    /* Toujours visible sur mobile — pas besoin du .visible */
+    /* Visible sur mobile — SAUF pendant l'intro */
     opacity:1 !important;
     pointer-events:auto !important;
     z-index:1000 !important;
+    transition:opacity 0.6s ease !important;
+  }
+  /* Pendant le loader / splash / video publicitaire : nav cachée */
+  body.intro-phase #hero-nav{
+    opacity:0 !important;
+    pointer-events:none !important;
   }
   /* Masquer sur la page admin (qui a sa propre bottom bar) */
   body.on-admin-page #hero-nav{ display:none !important; }
@@ -1343,6 +1349,9 @@ function enterSite(){
 })();
 
 function startLoader(){
+  // Bloquer la bottom nav mobile pendant toute la phase d'intro
+  document.body.classList.add('intro-phase');
+
   // Canvas — grille + particules
   var cv=document.getElementById('loader-canvas');
   var cx=cv.getContext('2d');
@@ -6578,6 +6587,8 @@ function startHeroSequence(){
     setTimeout(function(){
       heroFade.style.zIndex = '6';
       heroFade.style.pointerEvents = 'none';
+      // Intro terminée — on peut afficher la bottom nav mobile
+      document.body.classList.remove('intro-phase');
     }, 3600);
   }
 
