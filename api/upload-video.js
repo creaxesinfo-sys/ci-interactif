@@ -1,4 +1,4 @@
-// api/upload-video.js
+// api/upload-video.js — Cloudflare Stream TUS upload
 const https = require('https');
 
 module.exports = async function handler(req, res) {
@@ -10,7 +10,8 @@ module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const CF_ACCOUNT = '718abc417236918feea54c109e09edbb';
-  const CF_TOKEN   = 'cfut_NWJPQUaQie4GJhSr1W0w0qNQ7iqCEC8AhDEJJb6O840d254c';
+  const CF_EMAIL   = 'creaxes.info@gmail.com';
+  const CF_KEY     = 'cfk_Foz5ICSJMtlLM4S6A9oaSrnf0RI0hQ6MKR7iQ8eJ9b4084bb';
 
   const uploadLength   = req.headers['upload-length'] || '0';
   const uploadMetadata = req.headers['upload-metadata'] || `name ${Buffer.from('video').toString('base64')}`;
@@ -22,11 +23,12 @@ module.exports = async function handler(req, res) {
         path:     `/client/v4/accounts/${CF_ACCOUNT}/stream`,
         method:   'POST',
         headers: {
-          'Authorization':   `Bearer ${CF_TOKEN}`,
-          'Tus-Resumable':   '1.0.0',
-          'Upload-Length':   uploadLength,
+          'X-Auth-Email':  CF_EMAIL,
+          'X-Auth-Key':    CF_KEY,
+          'Tus-Resumable': '1.0.0',
+          'Upload-Length': uploadLength,
           'Upload-Metadata': uploadMetadata,
-          'Content-Length':  '0',
+          'Content-Length': '0',
         }
       };
 
@@ -52,7 +54,7 @@ module.exports = async function handler(req, res) {
 
     if (!tusUrl || !uid) {
       return res.status(500).json({
-        error: 'Pas de TUS URL retournée',
+        error: 'Pas de TUS URL',
         headers: result.headers,
         body: result.body
       });
