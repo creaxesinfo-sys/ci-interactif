@@ -6317,17 +6317,24 @@ function saveCFConfig(){
   if(_cfPendingFile && _cfPendingCB) tusUploadDirect(_cfPendingFile, _cfPendingCB, account, token);
 }
 function tusUploadDirect(file, callbacks, account, token){
+  // Passer les credentials au serveur Vercel qui fait l'appel CF
   var chunkSize = file.size>500*1024*1024?25*1024*1024:file.size>100*1024*1024?15*1024*1024:5*1024*1024;
   var meta = 'name '+btoa(encodeURIComponent(file.name).replace(/%([0-9A-F]{2})/g,function(m,p){return String.fromCharCode('0x'+p);}));
-  fetch('https://api.cloudflare.com/client/v4/accounts/'+account+'/stream',{
+  fetch('/api/upload-video',{
     method:'POST',
-    headers:{'Authorization':'Bearer '+token,'Tus-Resumable':'1.0.0','Upload-Length':file.size,'Upload-Metadata':meta}
-  }).then(function(res){
-    var tusUrl=res.headers.get('location');
-    var uid=res.headers.get('stream-media-id');
-    if(!tusUrl||!uid) throw new Error('Token ou Account ID invalide — vérifie tes identifiants Cloudflare');
+    headers:{
+      'Content-Type':'application/json',
+      'Upload-Length': file.size,
+      'Upload-Metadata': meta,
+      'X-CF-Account': account,
+      'X-CF-Token': token
+    }
+  }).then(function(res){ return res.json(); })
+  .then(function(data){
+    if(!data.tusUrl||!data.uid) throw new Error(data.error||'Réponse invalide de Cloudflare');
+    var uid = data.uid;
     var upload=new tus.Upload(file,{
-      uploadUrl:tusUrl,retryDelays:[0,1000,3000,5000],chunkSize:chunkSize,
+      uploadUrl:data.tusUrl,retryDelays:[0,1000,3000,5000],chunkSize:chunkSize,
       metadata:{name:file.name,filetype:file.type},
       onProgress:function(u,t){ var p=Math.round(u/t*100); if(callbacks.onProgress) callbacks.onProgress(p,(u/1024/1024).toFixed(1)+' / '+(t/1024/1024).toFixed(1)+' MB'); },
       onSuccess:function(){ if(callbacks.onSuccess) callbacks.onSuccess(uid); },
