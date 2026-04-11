@@ -41,6 +41,38 @@ const SUPABASE_ANON_KEY = 'sb_publishable_CxOGthNUdJIt34Mg9JsX2g_VUTZNT6l'; // e
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 </script>
 <style>
+
+/* ===== LECTEUR PREVIEW COMPACT (test/prévisualisation) ===== */
+#preview-modal{
+  display:none;position:fixed;inset:0;z-index:9000;
+  background:rgba(0,0,0,0.85);
+  align-items:center;justify-content:center;
+}
+#preview-modal.active{display:flex;}
+#preview-box{
+  position:relative;
+  width:min(900px,90vw);
+  background:#000;
+  border:1px solid #2a2a2a;
+  box-shadow:0 8px 64px rgba(0,0,0,0.8);
+}
+#preview-box-video{
+  width:100%;aspect-ratio:16/9;position:relative;background:#000;overflow:hidden;
+}
+#preview-topbar{
+  display:flex;align-items:center;justify-content:space-between;
+  background:#0a0a0a;border-bottom:1px solid #1a1a1a;
+  padding:8px 14px;
+}
+#preview-title{font-size:9px;color:#555;letter-spacing:4px;text-transform:uppercase;}
+#preview-close-btn{
+  background:none;border:1px solid #2a2a2a;color:#666;
+  font-family:Arial,sans-serif;font-size:9px;letter-spacing:2px;
+  text-transform:uppercase;padding:5px 12px;cursor:pointer;transition:all 0.15s;
+}
+#preview-close-btn:hover{border-color:#fff;color:#fff;}
+#preview-hotspots{position:absolute;inset:0;z-index:10;pointer-events:none;}
+
 *{box-sizing:border-box;margin:0;padding:0;}
 /* ===== FIX iOS VIEWPORT (barre blanche Safari) ===== */
 html{height:-webkit-fill-available;}
@@ -2441,16 +2473,168 @@ function startFilm(){
 
 function previewFilm(){
   var start=scenes.find(function(s){return s.type==='start';})||scenes[0];
-  if(!start)return showToast('Aucune scène configurée');
-  sceneHistory=[];
-  showPlayer();
-  loadScene(start.id);
-  // Précharger toutes les scènes immédiatement pour zéro lag
-  setTimeout(preloadAllScenes, 500);
-  // PAS de plein écran forcé en prévisualisation — le bouton FS reste disponible
-  try {
-    if(screen.orientation && screen.orientation.unlock) screen.orientation.unlock();
-  } catch(e){}
+  if(!start)return showToast('Aucune scène de départ configurée');
+  openPreviewModal(start.id);
+}
+
+// ─── LECTEUR PREVIEW COMPACT ───
+var _previewCountdownInterval = null;
+var _previewSceneHistory = [];
+
+function openPreviewModal(startId){
+  _previewSceneHistory = [];
+  var modal = document.getElementById('preview-modal');
+  if(modal) modal.classList.add('active');
+  previewLoadScene(startId);
+  setTimeout(preloadAllScenes, 800);
+}
+
+function closePreviewModal(){
+  var modal = document.getElementById('preview-modal');
+  if(modal) modal.classList.remove('active');
+  // Stopper vidéo et nettoyer
+  var zone = document.getElementById('preview-video-zone');
+  if(zone){
+    zone.querySelectorAll('video').forEach(function(v){
+      v.pause(); if(v._hls){ v._hls.destroy(); v._hls=null; }
+    });
+    zone.innerHTML = '';
+  }
+  var hotspots = document.getElementById('preview-hotspots');
+  if(hotspots) hotspots.innerHTML = '';
+  if(_previewCountdownInterval){ clearInterval(_previewCountdownInterval); _previewCountdownInterval=null; }
+  var cd = document.getElementById('preview-countdown');
+  if(cd) cd.style.display = 'none';
+}
+
+function previewLoadScene(id){
+  var scene = scenes.find(function(s){ return s.id===id; });
+  if(!scene) return;
+  _previewSceneHistory.push(id);
+  var counter = document.getElementById('preview-scene-counter');
+  if(counter) counter.textContent = 'SCÈNE ' + _previewSceneHistory.length;
+
+  // Stopper countdown
+  if(_previewCountdownInterval){ clearInterval(_previewCountdownInterval); _previewCountdownInterval=null; }
+  var cd = document.getElementById('preview-countdown');
+  if(cd) cd.style.display = 'none';
+
+  // Zone vidéo
+  var zone = document.getElementById('preview-video-zone');
+  zone.querySelectorAll('video').forEach(function(v){
+    v.pause(); if(v._hls){ v._hls.destroy(); v._hls=null; }
+  });
+  zone.innerHTML = '';
+
+  if(scene.uid && scene.uid.trim()){
+    var vid = document.createElement('video');
+    vid.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;position:absolute;inset:0;';
+    vid.muted = false; vid.playsInline = true; vid.controls = false;
+    vid.loop = !!scene.loop;
+    zone.appendChild(vid);
+    attachHLS(vid, scene.uid.trim(), { autoplay:true, muted:false, controls:false, loop:!!scene.loop });
+    vid.addEventListener('error', function(){});
+  } else {
+    zone.innerHTML = '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#333;font-size:11px;letter-spacing:3px;text-transform:uppercase;">Aucune vidéo</div>';
+  }
+
+  // Hotspots
+  previewRenderChoices(scene);
+
+  // Countdown auto
+  if(scene.timer > 0 && scene.choices.length > 0){
+    var secs = scene.timer;
+    var cd = document.getElementById('preview-countdown');
+    var numEl = document.getElementById('preview-countdown-num');
+    if(cd && numEl){
+      cd.style.display = 'block';
+      numEl.textContent = secs;
+      _previewCountdownInterval = setInterval(function(){
+        secs--;
+        numEl.textContent = secs;
+        if(secs <= 0){
+          clearInterval(_previewCountdownInterval);
+          _previewCountdownInterval = null;
+          cd.style.display = 'none';
+          if(scene.choices[0] && scene.choices[0].targetId) previewLoadScene(scene.choices[0].targetId);
+        }
+      }, 1000);
+    }
+  }
+}
+
+function previewRenderChoices(scene){
+  var layer = document.getElementById('preview-hotspots');
+  layer.innerHTML = '';
+  var zone = document.getElementById('preview-video-zone');
+  if(!zone) return;
+
+  if(scene.type === 'end'){
+    var ov = document.createElement('div');
+    ov.style.cssText = 'position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:rgba(0,0,0,0.7);z-index:20;';
+    ov.innerHTML = '<div style="font-size:13px;color:#fff;letter-spacing:6px;text-transform:uppercase;">— FIN —</div>'+
+      '<button onclick="closePreviewModal()" style="background:#fff;border:none;color:#000;font-family:Arial,sans-serif;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;padding:10px 24px;cursor:pointer;">✕ FERMER</button>';
+    layer.appendChild(ov);
+    layer.style.pointerEvents = 'auto';
+    return;
+  }
+
+  layer.style.pointerEvents = 'auto';
+  scene.choices.forEach(function(choice, i){
+    if(!choice.text) return;
+    var x = choice.x !== undefined ? choice.x : 20+i*30;
+    var y = choice.y !== undefined ? choice.y : 75;
+    var delay = choice.delay || 0;
+    var duration = choice.duration || 0;
+    var bs = choice.btnStyle || {};
+    var hasStyle = bs.bg || bs.color || bs.shape || bs.size || bs.invisible;
+
+    var btn = document.createElement('button');
+    btn.style.position = 'absolute';
+    btn.style.left = x+'%';
+    btn.style.top  = y+'%';
+    btn.style.transform = 'translate(-50%,-50%)';
+    btn.style.transition = 'opacity 0.4s ease';
+    btn.style.opacity = '0';
+    btn.style.pointerEvents = 'none';
+    btn.style.zIndex = '15';
+
+    if(bs.invisible){
+      var css = getBtnCSS(bs, choice.text);
+      Object.assign(btn.style, css);
+      btn.style.position = 'absolute';
+      btn.style.left = x+'%'; btn.style.top = y+'%';
+      btn.style.transform = 'translate(-50%,-50%)';
+      btn.style.opacity = '0';
+      btn.style.pointerEvents = 'none';
+      btn.textContent = '';
+    } else if(hasStyle){
+      var css = getBtnCSS(bs, choice.text);
+      Object.assign(btn.style, css);
+      btn.style.position = 'absolute';
+      btn.style.left = x+'%'; btn.style.top = y+'%';
+      btn.style.transform = 'translate(-50%,-50%)';
+      btn.style.transition = 'opacity 0.4s ease';
+      btn.style.opacity = '0'; btn.style.pointerEvents = 'none';
+      btn.textContent = choice.text;
+    } else {
+      btn.className = 'hotspot';
+      btn.style.left = x+'%'; btn.style.top = y+'%';
+      btn.innerHTML = '<div class="hotspot-circle"></div><div class="hotspot-label">'+choice.text+'</div>';
+    }
+
+    btn.onclick = function(){ if(choice.targetId){ previewLoadScene(choice.targetId); } };
+    layer.appendChild(btn);
+
+    if(delay <= 0){
+      requestAnimationFrame(function(){ btn.style.opacity='1'; btn.style.pointerEvents='auto'; });
+    } else {
+      setTimeout(function(){ btn.style.opacity='1'; btn.style.pointerEvents='auto'; }, delay*1000);
+    }
+    if(duration > 0){
+      setTimeout(function(){ btn.style.opacity='0'; btn.style.pointerEvents='none'; }, (delay+duration)*1000);
+    }
+  });
 }
 
 
@@ -7219,5 +7403,27 @@ updateInfoGrid();
   });
 })();
 </script>
+
+<!-- ===== LECTEUR PREVIEW COMPACT ===== -->
+<div id="preview-modal">
+  <div id="preview-box">
+    <div id="preview-topbar">
+      <span id="preview-title">⬤ PRÉVISUALISATION — NON PUBLIÉ</span>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <span id="preview-scene-counter" style="font-size:9px;color:#333;letter-spacing:3px;text-transform:uppercase;"></span>
+        <button id="preview-close-btn" onclick="closePreviewModal()">✕ FERMER</button>
+      </div>
+    </div>
+    <div id="preview-box-video">
+      <div id="preview-video-zone" style="width:100%;height:100%;position:relative;"></div>
+      <div id="preview-hotspots" style="pointer-events:none;"></div>
+      <div id="preview-countdown" class="countdown-overlay" style="display:none;position:absolute;bottom:20px;left:50%;transform:translateX(-50%);z-index:20;background:rgba(0,0,0,0.7);padding:8px 20px;border-radius:4px;text-align:center;">
+        <div class="countdown-label" style="font-size:9px;color:#888;letter-spacing:3px;text-transform:uppercase;">Choisissez dans</div>
+        <div id="preview-countdown-num" style="font-size:32px;font-weight:700;color:#fff;line-height:1;">10</div>
+      </div>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
