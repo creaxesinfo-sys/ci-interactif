@@ -2653,12 +2653,16 @@ function showPlayer(){
 }
 
 function startFilm(){
-  var start=scenes.find(function(s){return s.type==='start';})||scenes[0];
-  if(!start)return showToast('Aucune scène configurée');
+  // Si aucune scène configurée (film pas encore publié), afficher l'écran "en développement"
+  var start = scenes.find(function(s){ return s.type==='start'; }) || scenes[0];
+  var hasVideo = start && start.uid && start.uid.trim();
+  if(!start || !hasVideo){
+    showFilmEnDeveloppement();
+    return;
+  }
   sceneHistory=[];
   showPlayer();
   loadScene(start.id);
-  // Précharger toutes les scènes en arrière-plan dès le début
   setTimeout(preloadAllScenes, 2000);
   if(!isIOS()){
     try {
@@ -2670,6 +2674,48 @@ function startFilm(){
   try {
     if(screen.orientation && screen.orientation.unlock) screen.orientation.unlock();
   } catch(e){}
+}
+
+function showFilmEnDeveloppement(){
+  // Supprimer un éventuel overlay précédent
+  var old = document.getElementById('film-dev-overlay');
+  if(old) old.remove();
+
+  var overlay = document.createElement('div');
+  overlay.id = 'film-dev-overlay';
+  overlay.style.cssText = [
+    'position:fixed;inset:0;z-index:9500;',
+    'background:rgba(0,0,0,0.96);',
+    'display:flex;flex-direction:column;align-items:center;justify-content:center;',
+    'padding:40px 24px;text-align:center;font-family:Arial,sans-serif;'
+  ].join('');
+
+  overlay.innerHTML =
+    // Coins décoratifs
+    '<div style="position:absolute;top:28px;left:28px;width:20px;height:20px;border-top:1px solid #2a2a2a;border-left:1px solid #2a2a2a;"></div>'+
+    '<div style="position:absolute;top:28px;right:28px;width:20px;height:20px;border-top:1px solid #2a2a2a;border-right:1px solid #2a2a2a;"></div>'+
+    '<div style="position:absolute;bottom:28px;left:28px;width:20px;height:20px;border-bottom:1px solid #2a2a2a;border-left:1px solid #2a2a2a;"></div>'+
+    '<div style="position:absolute;bottom:28px;right:28px;width:20px;height:20px;border-bottom:1px solid #2a2a2a;border-right:1px solid #2a2a2a;"></div>'+
+    // Logo
+    '<div style="font-size:clamp(48px,12vw,96px);font-weight:100;letter-spacing:24px;color:#fff;font-family:\'Raleway\',sans-serif;line-height:1;margin-bottom:8px;">CI</div>'+
+    '<div style="font-size:9px;color:#333;letter-spacing:5px;text-transform:uppercase;margin-bottom:48px;">Cinéma Interactif</div>'+
+    // Message principal
+    '<div style="font-size:9px;color:#555;letter-spacing:6px;text-transform:uppercase;margin-bottom:16px;">— En production —</div>'+
+    '<div style="font-size:clamp(18px,5vw,32px);font-weight:700;color:#fff;letter-spacing:4px;text-transform:uppercase;margin-bottom:12px;">Film en développement</div>'+
+    '<div style="font-size:13px;color:#555;line-height:1.8;max-width:360px;margin-bottom:48px;">'+
+      'Ce film interactif est actuellement en cours de création.<br>Revenez bientôt pour vivre l\'expérience.'+
+    '</div>'+
+    // Ligne déco
+    '<div style="width:1px;height:40px;background:linear-gradient(to bottom,transparent,rgba(255,255,255,0.15),transparent);margin-bottom:32px;"></div>'+
+    // Bouton fermer
+    '<button onclick="document.getElementById(\'film-dev-overlay\').remove()" style="'+
+      'background:transparent;border:1px solid rgba(255,255,255,0.2);color:#fff;'+
+      'font-family:Arial,sans-serif;font-size:10px;letter-spacing:5px;text-transform:uppercase;'+
+      'padding:14px 44px;cursor:pointer;transition:all 0.3s;">'+
+      '← RETOUR'+
+    '</button>';
+
+  document.body.appendChild(overlay);
 }
 
 function previewFilm(){
@@ -5182,28 +5228,39 @@ function showAdminTabIfAdmin(){
   if(navSub) navSub.style.display = 'none';
   var hnavSub = document.getElementById('hnav-subvention');
   if(hnavSub) hnavSub.style.display = 'none';
-  // Afficher onglets réalisateur
-  ['atab-scenes','atab-storyboard','atab-projets','atab-banque'].forEach(function(id){
-    var t = document.getElementById(id);
-    if(t) t.style.display = '';
-  });
+
+  // ── MEMBRES — visible pour TOUS les utilisateurs connectés ──
   var navMembres = document.getElementById('nav-membres');
   if(navMembres) navMembres.style.display = '';
   var hnavMembres = document.getElementById('hnav-membres');
   if(hnavMembres) hnavMembres.style.display = '';
-  // Onglet Réalisateur visible pour admin seulement
+
+  // ── RÉALISATEUR — visible pour les admins seulement ──
   if(currentProfile && currentProfile.role === 'admin'){
+    // Afficher onglets du panneau réalisateur
+    ['atab-scenes','atab-storyboard','atab-projets','atab-banque'].forEach(function(id){
+      var t = document.getElementById(id);
+      if(t) t.style.display = '';
+    });
     var navAdmin = document.getElementById('nav-admin');
     if(navAdmin) navAdmin.style.display = '';
     var hnavAdmin = document.getElementById('hnav-admin');
     if(hnavAdmin) hnavAdmin.style.display = '';
-  }
-  // Bouton Utilisateurs dans profil — admin seulement
-  if(currentProfile && currentProfile.role === 'admin'){
+    // Bouton Utilisateurs dans profil — admin seulement
     var profilBtn = document.getElementById('profil-btn-users');
     if(profilBtn) profilBtn.style.display = '';
+  } else {
+    // Non-admin : s'assurer que le réalisateur reste caché
+    var navAdmin2 = document.getElementById('nav-admin');
+    if(navAdmin2) navAdmin2.style.display = 'none';
+    var hnavAdmin2 = document.getElementById('hnav-admin');
+    if(hnavAdmin2) hnavAdmin2.style.display = 'none';
+    ['atab-scenes','atab-storyboard','atab-projets','atab-banque'].forEach(function(id){
+      var t = document.getElementById(id);
+      if(t) t.style.display = 'none';
+    });
   }
-  // Rafraîchir le hero-nav si on est sur le hero en plein écran
+
   refreshHeroNav();
 }
 
@@ -5632,6 +5689,7 @@ async function initAuth(){
       currentProjectId = null; currentProjectName = ''; sbHasUnsavedChanges = false;
       localStorage.removeItem('ci_current_project');
       updateNavProfil();
+      // Cacher tous les onglets réservés aux connectés
       var navMembres = document.getElementById('nav-membres');
       var navAdmin = document.getElementById('nav-admin');
       var navSub = document.getElementById('nav-subvention');
@@ -5644,6 +5702,9 @@ async function initAuth(){
       if(hnavAdmin) hnavAdmin.style.display = 'none';
       if(hnavMembres) hnavMembres.style.display = 'none';
       if(hnavSub) hnavSub.style.display = '';
+      // Cacher bouton Utilisateurs dans profil
+      var profilBtn = document.getElementById('profil-btn-users');
+      if(profilBtn) profilBtn.style.display = 'none';
       ['atab-scenes','atab-storyboard','atab-projets','atab-banque'].forEach(function(id){
         var t = document.getElementById(id);
         if(t) t.style.display = 'none';
@@ -6519,14 +6580,18 @@ function startHeroSequence(){
   // Étape 2 — "Cinéma Interactif"
   setTimeout(function(){ sub.classList.add('visible'); }, 3000);
 
-  // Étape 3 — Bouton + hero-nav avec les bons onglets
+  // Étape 3 — Bouton apparaît
   setTimeout(function(){
     btnWrap.classList.add('visible');
-    heroSequenceReady = true;
-    refreshHeroNav(); // affiche le hero-nav avec tous les onglets du bon rôle
   }, 3500);
 
-  // Étape 4 — CI + sous-titre disparaissent
+  // Étape 4 — hero-nav apparaît plus tard (après que tout soit bien établi)
+  setTimeout(function(){
+    heroSequenceReady = true;
+    refreshHeroNav();
+  }, 6000);
+
+  // Étape 5 — CI + sous-titre disparaissent
   setTimeout(function(){
     ci.style.transition='opacity 1.2s ease'; ci.style.opacity='0';
     sub.style.transition='opacity 1.2s ease'; sub.style.opacity='0';
