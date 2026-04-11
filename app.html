@@ -3047,6 +3047,7 @@ function renderChoiceEditor(){
         '<option value="rounded"'+(bs.shape==='rounded'?' selected':'')+'>Arrondi</option>'+
         '<option value="pill"'+(bs.shape==='pill'?' selected':'')+'>Pilule</option>'+
         '<option value="circle"'+(bs.shape==='circle'?' selected':'')+'>Cercle</option>'+
+        '<option value="transparent"'+(bs.shape==='transparent'?' selected':'')+'>Transparent (invisible)</option>'+
       '</select>'+
       // Taille
       '<label style="font-size:9px;color:#555;letter-spacing:2px;text-transform:uppercase;">Taille</label>'+
@@ -3079,6 +3080,21 @@ function getBtnCSS(bs, text){
   var opacity = bs.opacity !== undefined ? bs.opacity/100 : 1;
   var shape   = bs.shape || 'rect';
   var size    = bs.size  || 'md';
+  // Bouton totalement invisible mais cliquable
+  if(shape === 'transparent'){
+    var pad = size==='sm' ? '20px 30px' : size==='lg' ? '40px 60px' : '30px 45px';
+    return {
+      background: 'rgba(0,0,0,0)',
+      border: 'none',
+      cursor: 'pointer',
+      padding: pad,
+      boxShadow: 'none',
+      color: 'transparent',
+      width: 'auto',
+      height: 'auto',
+      display: 'block',
+    };
+  }
   var radius  = shape==='pill' ? '999px' : shape==='rounded' ? '8px' : shape==='circle' ? '50%' : '2px';
   var pad     = size==='sm' ? '6px 14px' : size==='lg' ? '14px 32px' : '10px 22px';
   var fs      = size==='sm' ? '10px' : size==='lg' ? '15px' : '12px';
@@ -3111,6 +3127,14 @@ function getBtnCSS(bs, text){
 
 function updateBtnPreview(el, row){
   if(!el) return;
+  var bs = row.btnStyle || {};
+  // Aperçu spécial pour le bouton transparent
+  if(bs.shape === 'transparent'){
+    var size = bs.size || 'md';
+    var pad  = size==='sm' ? '20px 30px' : size==='lg' ? '40px 60px' : '30px 45px';
+    el.innerHTML = '<div style="background:repeating-linear-gradient(45deg,#1a1a1a,#1a1a1a 4px,#222 4px,#222 8px);border:1px dashed #555;border-radius:4px;padding:'+pad+';display:flex;align-items:center;justify-content:center;"><span style="font-size:9px;color:#555;letter-spacing:2px;text-transform:uppercase;">Zone invisible</span></div>';
+    return;
+  }
   var css = getBtnCSS(row.btnStyle, row.text);
   var btn = document.createElement('button');
   Object.assign(btn.style, css);
