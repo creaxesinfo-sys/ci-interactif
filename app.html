@@ -2474,21 +2474,21 @@ function attachHLS(vid, uid, opts){
 
   if(window.Hls && Hls.isSupported()){
     var hls = new Hls({
-      // Qualite : ABR naturel, pas de forçage qui cause les gels
+      // Qualite
       startLevel:                isLow ? 0 : -1,
       capLevelToPlayerSize:      false,
       maxAutoLevel:              -1,
-      // Buffer raisonnable
-      maxBufferLength:           isLow ? 10 : 30,
-      maxMaxBufferLength:        isLow ? 20 : 60,
-      maxBufferSize:             isLow ? 20*1024*1024 : 100*1024*1024,
-      highBufferWatchdogPeriod:  3,
-      // Estimation bande passante realiste (10Mbps)
-      abrEwmaDefaultEstimate:    isLow ? 1000000 : 10000000,
+      // Buffer agressif
+      maxBufferLength:           isLow ? 10  : 60,
+      maxMaxBufferLength:        isLow ? 20  : 180,
+      maxBufferSize:             isLow ? 20*1024*1024 : 400*1024*1024,
+      highBufferWatchdogPeriod:  2,
+      // Estimation bande passante — supposer 100Mbps, viser 4K direct
+      abrEwmaDefaultEstimate:    isLow ? 1000000 : 100000000,
       abrEwmaFastLive:           3,
       abrEwmaSlowLive:           9,
-      abrBandWidthFactor:        0.85,
-      abrBandWidthUpFactor:      0.7,
+      abrBandWidthFactor:        0.95,
+      abrBandWidthUpFactor:      0.95,
       // Fetch
       progressive:               true,
       lowLatencyMode:            false,
@@ -2496,20 +2496,34 @@ function attachHLS(vid, uid, opts){
       fragLoadingTimeOut:        20000,
       manifestLoadingTimeOut:    10000,
       levelLoadingTimeOut:       10000,
-      fragLoadingMaxRetry:       4,
-      manifestLoadingMaxRetry:   3,
-      levelLoadingMaxRetry:      3,
-      fragLoadingRetryDelay:     1000,
+      fragLoadingMaxRetry:       6,
+      manifestLoadingMaxRetry:   4,
+      levelLoadingMaxRetry:      4,
+      fragLoadingRetryDelay:     500,
     });
     hls.loadSource(src);
     hls.attachMedia(vid);
     hls.on(Hls.Events.MANIFEST_PARSED, function(){
-      // Laisser l'ABR choisir - ne PAS forcer le max (cause les gels en boucle)
+      if(!isLow){
+        var maxLevel = hls.levels.length - 1;
+        hls.currentLevel = maxLevel;
+        hls.loadLevel    = maxLevel;
+        hls.nextLevel    = maxLevel;
+      }
       if(opts.autoplay !== false) vid.play().catch(function(){});
     });
     hls.on(Hls.Events.FRAG_BUFFERED, function(){
       if(vid.paused && opts.autoplay !== false && vid.readyState >= 2){
         vid.play().catch(function(){});
+      }
+    });
+    hls.on(Hls.Events.LEVEL_SWITCHED, function(e, data){
+      if(!isLow && data.level < hls.levels.length - 1){
+        setTimeout(function(){
+          if(hls.currentLevel < hls.levels.length - 1){
+            hls.currentLevel = hls.levels.length - 1;
+          }
+        }, 3000);
       }
     });
     vid._hls = hls;
@@ -2696,39 +2710,38 @@ function renderChoices(scene){
 
     if(hasStyle){
       // Bouton designé personnalisé
-      var css = getBtnCSS(bs, choice.text);
-      Object.assign(btn.style, css);
       btn.className = 'hotspot';
-      btn.style.position = 'absolute';
       btn.style.left = x+'%';
       btn.style.top  = y+'%';
+      btn.style.transition = 'opacity 0.5s ease';
       btn.style.transform = 'translate(-50%,-50%)';
-      btn.style.transition = 'opacity 0.4s ease';
-      btn.style.opacity = '0'; // commence invisible, sera mis à 1 juste après
-      btn.style.pointerEvents = 'none';
+
+      // Appliquer le style custom
+      var css = getBtnCSS(bs, choice.text);
+      Object.assign(btn.style, css);
+      btn.style.position = 'absolute';
+      btn.style.transition = 'opacity 0.5s ease';
       btn.textContent = choice.text;
     } else {
       // Style hotspot circulaire par défaut
       btn.className = 'hotspot';
       btn.style.left = x+'%';
       btn.style.top  = y+'%';
-      btn.style.transition = 'opacity 0.4s ease';
-      btn.style.opacity = '0'; // commence invisible
-      btn.style.pointerEvents = 'none';
+      btn.style.transition = 'opacity 0.5s ease';
       btn.innerHTML = '<div class="hotspot-circle"></div><div class="hotspot-label">'+choice.text+'</div>';
     }
 
-    btn.onclick = function(){ clearCountdown(); loadScene(choice.targetId); };
+    btn.onclick = function(){ if(choice.targetId){ clearCountdown(); loadScene(choice.targetId); } };
     btn.onmouseenter = function(){ preloadScene(choice.targetId); };
     layer.appendChild(btn);
 
-    // Apparition — forcer un reflow avant d'appliquer opacity:1 pour que la transition fonctionne
+    // Apparition
     if(delay <= 0){
-      requestAnimationFrame(function(){
-        btn.style.opacity = '1';
-        btn.style.pointerEvents = 'auto';
-      });
+      btn.style.opacity = '1';
+      btn.style.pointerEvents = 'auto';
     } else {
+      btn.style.opacity = '0';
+      btn.style.pointerEvents = 'none';
       setTimeout(function(){
         btn.style.opacity = '1';
         btn.style.pointerEvents = 'auto';
@@ -3209,7 +3222,7 @@ function saveScene(){
     backBtn:document.getElementById('f-back').value,
     timer:totalTimer,
     loop:document.getElementById('f-loop').checked,
-    choices:choiceRows.filter(function(c){return c.text&&c.targetId;})
+    choices:choiceRows.filter(function(c){return c.text&&c.text.trim();})
   };
   if(editingSceneId){
     var idx=scenes.findIndex(function(s){return s.id===editingSceneId;});
