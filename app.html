@@ -6371,11 +6371,14 @@ function tusUploadViaAPI(file, callbacks){
     }
   })
   .then(function(res){
-    if(!res.ok) throw new Error('Erreur serveur ' + res.status + ' — vérifie les variables Cloudflare dans Vercel');
-    return res.json();
+    return res.json().then(function(data){ return { ok: res.ok, status: res.status, data: data }; });
   })
-  .then(function(data){
-    if(!data.tusUrl || !data.uid) throw new Error('Réponse API invalide — ' + JSON.stringify(data));
+  .then(function(result){
+    console.log('API response:', result.status, result.data);
+    if(!result.ok || !result.data.tusUrl || !result.data.uid){
+      throw new Error('API ' + result.status + ': ' + (result.data.error || JSON.stringify(result.data)));
+    }
+    var data = result.data;
     var uid = data.uid;
     var upload = new tus.Upload(file, {
       uploadUrl: data.tusUrl,
