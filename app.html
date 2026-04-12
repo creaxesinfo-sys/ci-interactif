@@ -42,65 +42,6 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_
 </script>
 <style>
 
-/* ===== HERO TOPBAR CI MINI — apparaît après animation ===== */
-#hero-topbar-ci{
-  position:absolute;top:0;left:0;right:0;z-index:15;
-  display:flex;align-items:stretch;
-  opacity:0;pointer-events:none;
-  transition:opacity 0.8s ease;
-  background:linear-gradient(to bottom,rgba(0,0,0,0.65) 0%,transparent 100%);
-}
-#hero-topbar-ci.visible{opacity:1;pointer-events:auto;}
-#hero-ci-mini{
-  font-size:22px;font-weight:100;letter-spacing:10px;color:#fff;
-  font-family:'Raleway','Helvetica Neue',Helvetica,Arial,sans-serif;
-  padding:14px 18px;flex-shrink:0;
-  border-right:1px solid rgba(255,255,255,0.1);
-  display:flex;align-items:center;
-}
-#hero-ci-mini:hover{cursor:pointer;}
-.btn-start-mini{
-  flex:1;background:transparent;border:none;
-  color:#fff;font-family:Arial,sans-serif;
-  font-size:11px;letter-spacing:4px;text-transform:uppercase;
-  padding:14px 24px;cursor:pointer;text-align:left;
-  transition:background 0.2s;
-}
-.btn-start-mini:hover{background:rgba(255,255,255,0.06);}
-
-/* ===== STORYBOARD ZOOM/PAN ===== */
-#sb-zoom-bar{
-  display:flex;align-items:center;gap:8px;
-  padding:8px 16px;
-  background:#0a0a0a;
-  border-bottom:1px solid #1a1a1a;
-  flex-shrink:0;
-  position:sticky;top:0;z-index:10;
-}
-.sb-zoom-btn{
-  background:none;border:1px solid #2a2a2a;color:#555;
-  font-family:Arial,sans-serif;font-size:11px;letter-spacing:1px;
-  padding:5px 12px;cursor:pointer;transition:all 0.15s;
-  user-select:none;
-}
-.sb-zoom-btn:hover{border-color:#888;color:#fff;}
-#sb-zoom-pct{
-  font-size:9px;color:#444;letter-spacing:2px;
-  text-transform:uppercase;min-width:44px;text-align:center;
-}
-#sb-viewport{
-  flex:1;overflow:hidden;position:relative;
-  cursor:grab;user-select:none;
-  height:calc(100vh - 200px); /* espace sous header + project bar + zoom bar */
-  min-height:300px;
-}
-#sb-viewport.grabbing{cursor:grabbing;}
-#sb-canvas{
-  position:absolute;top:0;left:0;
-  transform-origin:0 0;
-  will-change:transform;
-}
-
 /* ===== HUD TEXTE SELON ORIENTATION ===== */
 .hud-portrait  { display:inline; }
 .hud-landscape { display:none;   }
@@ -407,86 +348,95 @@ body{background:#1a1a1a;color:#e8e8e8;font-family:Arial,sans-serif;
 @keyframes rotatePhone{0%{transform:rotate(0deg);}40%{transform:rotate(-90deg);}60%{transform:rotate(-90deg);}100%{transform:rotate(0deg);}}
 
 /* ================================================================
-   HERO — PORTRAIT MOBILE : bouton en haut pleine largeur
+   HERO — PORTRAIT MOBILE
+   CI + bouton apparaissent centrés, puis glissent vers le haut
    ================================================================ */
 @media (max-width:767px) and (orientation:portrait){
 
-  /* Bouton COMMENCER visible immédiatement en mobile (sans attendre animation) */
-  @media (max-width:932px){
-    .hero-btn-wrap{
-      opacity:1 !important;
-      transform:none !important;
-      pointer-events:auto !important;
-    }
-  }
-
-  /* Cacher la topbar CI mini en portrait — le btn-start pleine largeur la remplace */
-  #hero-topbar-ci{ display:none !important; }
-
-  /* Cacher le rotate-hint fixe en bas — on le met dans le hero à la place */
+  /* rotate-hint fixe caché — on gère ça dans le hero */
   #rotate-hint{ display:none !important; }
+  .scroll-hint{ display:none !important; }
+  #pwa-install-wrap{ display:none !important; }
+  #hero-rotate-inline{ display:none !important; }
 
-  /* Hero content : aligner en haut à gauche */
+  /* hero-content : colonne, enfant se centre via margin:auto */
   .hero-content{
     justify-content:flex-start !important;
-    align-items:flex-start !important;
-    text-align:left !important;
-    padding:0 !important;
+    align-items:center !important;
+    text-align:center !important;
+    padding:24px !important;
+    flex-direction:column !important;
   }
 
-  /* Cacher logo CI + sous-titre en portrait */
-  .hero-text-wrap{ display:none !important; }
+  /* hero-text-wrap se centre via margin auto, puis monte */
+  .hero-text-wrap{
+    display:block !important;
+    width:100%;
+    margin-top:auto !important;
+    margin-bottom:auto !important;
+    transition:margin-top 1s cubic-bezier(0.4,0,0.2,1),
+               margin-bottom 1s ease !important;
+  }
 
-  /* Bouton COMMENCER — collé au haut, pleine largeur, texte gauche */
+  /* Phase slide-up : tout monte en haut */
+  .hero-content.slide-up .hero-text-wrap{
+    margin-top: calc(env(safe-area-inset-top,0px) + 12px) !important;
+    margin-bottom: 0 !important;
+  }
+
+  /* CI réduit quand il monte */
+  .hero-title-ci{
+    transition:font-size 1s ease, letter-spacing 1s ease, opacity 3s ease, transform 3s ease !important;
+  }
+  .hero-content.slide-up .hero-title-ci{
+    font-size:clamp(40px,8vw,56px) !important;
+    letter-spacing:14px !important;
+  }
+
+  /* Sous-titre reste discret */
+  .hero-sub-ci{ font-size:10px !important; letter-spacing:5px !important; }
+
+  /* Bouton : pleine largeur, centré */
   .hero-btn-wrap{
     width:100% !important;
-    margin-top:0 !important;
-    transform:none !important;
-    opacity:1 !important;
-    pointer-events:auto !important;
-    position:relative;
-    z-index:10;
+    margin-top:28px !important;
   }
   .btn-start{
     width:100% !important;
-    display:block !important;
-    text-align:left !important;
-    padding:20px 24px !important;
-    font-size:13px !important;
-    letter-spacing:5px !important;
-    background:rgba(0,0,0,0.6) !important;
-    border:none !important;
-    border-bottom:1px solid rgba(255,255,255,0.12) !important;
-    backdrop-filter:blur(8px);
-    -webkit-backdrop-filter:blur(8px);
+    text-align:center !important;
+    padding:18px 24px !important;
+    font-size:11px !important;
+    letter-spacing:4px !important;
   }
 
-  /* Message "Tournez votre écran" — juste sous le bouton */
-  #hero-rotate-inline{
-    display:block !important;
+  /* Message tournez votre écran — sous le bloc, caché par défaut */
+  #hero-rotate-msg{
     width:100%;
-    padding:10px 24px;
     font-size:8px;
-    color:rgba(255,255,255,0.3);
+    color:rgba(255,255,255,0.35);
     letter-spacing:4px;
     text-transform:uppercase;
-    background:rgba(0,0,0,0.4);
-    border-bottom:1px solid rgba(255,255,255,0.05);
-    backdrop-filter:blur(8px);
-    -webkit-backdrop-filter:blur(8px);
+    text-align:center;
+    padding:12px 0 0;
+    pointer-events:none;
+    opacity:0;
+    transition:opacity 0.6s ease;
   }
-
-  /* Cacher scroll-hint et PWA install en portrait */
-  .scroll-hint{ display:none !important; }
-  #pwa-install-wrap{ display:none !important; }
 }
 
 /* ================================================================
-   HERO — LANDSCAPE MOBILE : bouton haut gauche, nav en bas
+   HERO — LANDSCAPE MOBILE
+   Bouton collé juste en dessous des onglets (hero-nav à top:52px+48px)
    ================================================================ */
 @media (max-width:932px) and (orientation:landscape){
 
-  /* Hero content : aligner en haut à gauche */
+  #rotate-hint{ display:none !important; }
+  .scroll-hint{ display:none !important; }
+  #pwa-install-wrap{ display:none !important; }
+  #hero-rotate-inline{ display:none !important; }
+  #hero-rotate-msg{ display:none !important; }
+
+  /* hero-content : aligner depuis le haut */
   .hero-content{
     justify-content:flex-start !important;
     align-items:flex-start !important;
@@ -494,16 +444,25 @@ body{background:#1a1a1a;color:#e8e8e8;font-family:Arial,sans-serif;
     padding:0 !important;
   }
 
-  /* Cacher logo CI + sous-titre en paysage mobile */
-  .hero-text-wrap{ display:none !important; }
+  .hero-text-wrap{
+    display:block !important;
+    width:100%;
+    margin:0 !important;
+    /* Le hero-nav est à top:52px + height:48px → bouton à 100px */
+    padding-top:100px !important;
+  }
 
-  /* Bouton COMMENCER — haut, pleine largeur, texte gauche, petit, foncé */
+  /* Cacher CI et sous-titre en paysage — juste le bouton */
+  .hero-title-ci{ display:none !important; }
+  .hero-sub-ci  { display:none !important; }
+
+  /* Bouton visible immédiatement, pleine largeur, texte gauche, petit et foncé */
   .hero-btn-wrap{
     width:100% !important;
-    margin-top:0 !important;
-    transform:none !important;
     opacity:1 !important;
+    transform:none !important;
     pointer-events:auto !important;
+    margin-top:0 !important;
   }
   .btn-start{
     width:100% !important;
@@ -512,20 +471,13 @@ body{background:#1a1a1a;color:#e8e8e8;font-family:Arial,sans-serif;
     padding:14px 24px !important;
     font-size:10px !important;
     letter-spacing:4px !important;
-    background:rgba(0,0,0,0.55) !important;
+    background:rgba(0,0,0,0.6) !important;
     border:none !important;
-    border-bottom:1px solid rgba(255,255,255,0.08) !important;
+    border-bottom:1px solid rgba(255,255,255,0.1) !important;
     backdrop-filter:blur(10px);
     -webkit-backdrop-filter:blur(10px);
   }
-
-  /* Nav déjà en bas via la règle portrait — reste en bas en paysage aussi */
-  /* Hero rotate-inline caché en paysage */
-  #hero-rotate-inline{ display:none !important; }
-
-  /* Scroll-hint caché */
-  .scroll-hint{ display:none !important; }
-  #pwa-install-wrap{ display:none !important; }
+  .btn-start:hover{ background:rgba(255,255,255,0.08) !important; }
 }
 
 .nav-brand{padding:14px 20px;font-size:20px;font-weight:700;color:#fff;letter-spacing:3px;border-right:1px solid #2e2e2e;white-space:nowrap;cursor:pointer;}
@@ -1956,12 +1908,6 @@ function showRotateNudge(){
       <!-- Fade in noir — couvre tout y compris la nav le temps de la transition -->
       <div id="hero-fade" style="position:fixed;inset:0;background:#000;z-index:201;pointer-events:none;opacity:1;transition:opacity 3s ease;"></div>
 
-      <!-- Barre CI mini — apparaît après l'animation, remplace le grand CI -->
-      <div id="hero-topbar-ci">
-        <div id="hero-ci-mini" onclick="goHome()">CI</div>
-        <button class="btn-start-mini" onclick="startFilm()">▶ &nbsp; COMMENCER LE FILM</button>
-      </div>
-
       <!-- NAV INTÉGRÉE — visible en plein écran, apparaît avec le bouton -->
       <div id="hero-nav">
         <div class="hn-brand" onclick="goHome()">CI</div>
@@ -1984,10 +1930,6 @@ function showRotateNudge(){
       <div class="hud hud-bl">CHAQUE CHOIX RÉÉCRIT L'HISTOIRE</div>
       <div class="hud hud-br" id="hud-scenes">-- SCÈNES</div>
       <div class="hero-content">
-        <!-- Message rotate inline — visible seulement en portrait mobile, sous le bouton -->
-        <div id="hero-rotate-inline" style="display:none;">
-          📱 &nbsp;Tournez votre écran pour l'expérience complète
-        </div>
         <div class="hero-text-wrap" id="hero-text-wrap">
           <div class="hero-title-ci" id="hero-ci">CI</div>
           <div class="hero-sub-ci" id="hero-sub-ci">Cinéma Interactif</div>
@@ -1999,6 +1941,8 @@ function showRotateNudge(){
               </button>
             </div>
           </div>
+          <!-- Message "Tournez votre écran" — apparaît après slide-up en portrait -->
+          <div id="hero-rotate-msg">📱 &nbsp; Tournez votre écran</div>
         </div>
       </div>
       <div class="scroll-hint">CLIQUER POUR COMMENCER ↓</div>
@@ -2174,21 +2118,8 @@ function showRotateNudge(){
           </div>
         </div>
 
-        <!-- ARBRE STORYBOARD — avec zoom/pan -->
-        <div id="storyboard-wrap" style="display:none;flex-direction:column;flex:1;overflow:hidden;min-height:60vh;">
-          <!-- Barre de contrôle zoom -->
-          <div id="sb-zoom-bar">
-            <button class="sb-zoom-btn" onclick="sbZoomIn()">＋</button>
-            <span id="sb-zoom-pct">100%</span>
-            <button class="sb-zoom-btn" onclick="sbZoomOut()">－</button>
-            <button class="sb-zoom-btn" onclick="sbZoomFit()" style="letter-spacing:2px;">⊡ Tout voir</button>
-            <button class="sb-zoom-btn" onclick="sbZoomReset()">1:1</button>
-          </div>
-          <!-- Zone de pan/zoom -->
-          <div id="sb-viewport">
-            <div id="sb-canvas"></div>
-          </div>
-        </div>
+        <!-- ARBRE STORYBOARD -->
+        <div id="storyboard-wrap" style="padding:32px;overflow-x:auto;min-height:60vh;display:none;"></div>
       </div>
     </div>
   </div>
@@ -4537,12 +4468,8 @@ function renderStoryboard(){
 
   // Scènes présentes → arbre storyboard
   if(emptyScreen) emptyScreen.style.display = 'none';
-  wrap.style.display = 'flex';
-
-  // Cibler le canvas de zoom/pan
-  var canvas = document.getElementById('sb-canvas');
-  if(!canvas){ canvas = wrap; }
-  canvas.innerHTML = '';
+  wrap.style.display = 'block';
+  wrap.innerHTML = '';
 
   // BFS pour construire les niveaux
   var startScene = scenes.find(function(s){ return s.type==='start'; }) || scenes[0];
@@ -4572,8 +4499,8 @@ function renderStoryboard(){
   if(unvisited.length) levels.push(unvisited);
 
   var container = document.createElement('div');
-  container.style.cssText = 'position:relative;display:inline-block;padding:40px 20px;';
-  canvas.appendChild(container);
+  container.style.cssText = 'position:relative;display:inline-block;min-width:100%;';
+  wrap.appendChild(container);
 
   var tree = document.createElement('div');
   tree.className = 'sb-tree';
@@ -4598,154 +4525,7 @@ function renderStoryboard(){
     });
   });
 
-  setTimeout(function(){
-    drawSBArrows(levels, container);
-    sbInitPanZoom(); // activer drag/wheel/pinch
-    sbZoomFit();     // voir tout l'arbre d'un coup
-  }, 200);
-}
-
-
-// ===== STORYBOARD ZOOM / PAN =====
-var _sbZoom   = 1;
-var _sbPanX   = 0;
-var _sbPanY   = 0;
-var _sbDragging = false;
-var _sbDragStartX = 0;
-var _sbDragStartY = 0;
-var _sbDragOriginX = 0;
-var _sbDragOriginY = 0;
-
-function _sbApplyTransform(){
-  var canvas = document.getElementById('sb-canvas');
-  var pct    = document.getElementById('sb-zoom-pct');
-  if(canvas) canvas.style.transform =
-    'scale('+_sbZoom+') translate('+(_sbPanX/_sbZoom)+'px,'+(_sbPanY/_sbZoom)+'px)';
-  if(pct) pct.textContent = Math.round(_sbZoom * 100) + '%';
-}
-
-function sbZoomIn(){
-  _sbZoom = Math.min(3, _sbZoom * 1.25);
-  _sbApplyTransform();
-}
-function sbZoomOut(){
-  _sbZoom = Math.max(0.1, _sbZoom / 1.25);
-  _sbApplyTransform();
-}
-function sbZoomReset(){
-  _sbZoom = 1; _sbPanX = 0; _sbPanY = 0;
-  _sbApplyTransform();
-}
-
-function sbZoomFit(){
-  var viewport = document.getElementById('sb-viewport');
-  var canvas   = document.getElementById('sb-canvas');
-  if(!viewport || !canvas) return;
-  canvas.style.transform = 'scale(1) translate(0px,0px)';
-  var cw = canvas.scrollWidth;
-  var ch = canvas.scrollHeight;
-  var vw = viewport.clientWidth  || viewport.offsetWidth;
-  var vh = viewport.clientHeight || viewport.offsetHeight;
-  if(!cw || !ch || !vw || !vh) return;
-  var scaleX = vw / cw;
-  var scaleY = vh / ch;
-  _sbZoom  = Math.min(scaleX, scaleY, 1) * 0.92;
-  _sbPanX  = (vw - cw * _sbZoom) / 2;
-  _sbPanY  = (vh - ch * _sbZoom) / 2;
-  _sbApplyTransform();
-}
-
-function sbInitPanZoom(){
-  var viewport = document.getElementById('sb-viewport');
-  if(!viewport || viewport._sbInited) return;
-  viewport._sbInited = true;
-
-  viewport.addEventListener('wheel', function(e){
-    e.preventDefault();
-    var rect   = viewport.getBoundingClientRect();
-    var mouseX = e.clientX - rect.left;
-    var mouseY = e.clientY - rect.top;
-    var canvasX = (mouseX - _sbPanX) / _sbZoom;
-    var canvasY = (mouseY - _sbPanY) / _sbZoom;
-    var delta = e.deltaY > 0 ? 0.85 : 1.15;
-    _sbZoom = Math.max(0.1, Math.min(3, _sbZoom * delta));
-    _sbPanX = mouseX - canvasX * _sbZoom;
-    _sbPanY = mouseY - canvasY * _sbZoom;
-    _sbApplyTransform();
-  }, { passive: false });
-
-  viewport.addEventListener('mousedown', function(e){
-    if(e.button !== 0) return;
-    _sbDragging    = true;
-    _sbDragStartX  = e.clientX;
-    _sbDragStartY  = e.clientY;
-    _sbDragOriginX = _sbPanX;
-    _sbDragOriginY = _sbPanY;
-    viewport.classList.add('grabbing');
-    e.preventDefault();
-  });
-  window.addEventListener('mousemove', function(e){
-    if(!_sbDragging) return;
-    _sbPanX = _sbDragOriginX + (e.clientX - _sbDragStartX);
-    _sbPanY = _sbDragOriginY + (e.clientY - _sbDragStartY);
-    _sbApplyTransform();
-  });
-  window.addEventListener('mouseup', function(){
-    if(!_sbDragging) return;
-    _sbDragging = false;
-    var vp = document.getElementById('sb-viewport');
-    if(vp) vp.classList.remove('grabbing');
-  });
-
-  var _lastTouchDist = null;
-  var _touchPanOriginX = 0;
-  var _touchPanOriginY = 0;
-  var _touchStartX = 0;
-  var _touchStartY = 0;
-
-  viewport.addEventListener('touchstart', function(e){
-    if(e.touches.length === 1){
-      _touchStartX = e.touches[0].clientX;
-      _touchStartY = e.touches[0].clientY;
-      _touchPanOriginX = _sbPanX;
-      _touchPanOriginY = _sbPanY;
-    }
-    if(e.touches.length === 2){
-      var dx = e.touches[0].clientX - e.touches[1].clientX;
-      var dy = e.touches[0].clientY - e.touches[1].clientY;
-      _lastTouchDist = Math.sqrt(dx*dx + dy*dy);
-    }
-    e.preventDefault();
-  }, { passive: false });
-
-  viewport.addEventListener('touchmove', function(e){
-    var rect = viewport.getBoundingClientRect();
-    if(e.touches.length === 1){
-      _sbPanX = _touchPanOriginX + (e.touches[0].clientX - _touchStartX);
-      _sbPanY = _touchPanOriginY + (e.touches[0].clientY - _touchStartY);
-      _sbApplyTransform();
-    }
-    if(e.touches.length === 2){
-      var dx   = e.touches[0].clientX - e.touches[1].clientX;
-      var dy   = e.touches[0].clientY - e.touches[1].clientY;
-      var dist = Math.sqrt(dx*dx + dy*dy);
-      var midX = (e.touches[0].clientX + e.touches[1].clientX)/2 - rect.left;
-      var midY = (e.touches[0].clientY + e.touches[1].clientY)/2 - rect.top;
-      if(_lastTouchDist){
-        var scale   = dist / _lastTouchDist;
-        var canvasX = (midX - _sbPanX) / _sbZoom;
-        var canvasY = (midY - _sbPanY) / _sbZoom;
-        _sbZoom = Math.max(0.1, Math.min(3, _sbZoom * scale));
-        _sbPanX = midX - canvasX * _sbZoom;
-        _sbPanY = midY - canvasY * _sbZoom;
-        _sbApplyTransform();
-      }
-      _lastTouchDist = dist;
-    }
-    e.preventDefault();
-  }, { passive: false });
-
-  viewport.addEventListener('touchend', function(){ _lastTouchDist = null; });
+  setTimeout(function(){ drawSBArrows(levels, container); }, 150);
 }
 
 function makeSBCard(scene){
@@ -7165,16 +6945,35 @@ function startHeroSequence(){
     refreshHeroNav(); // affiche le hero-nav avec tous les onglets du bon rôle
   }, 3500);
 
-  // Étape 4 — CI glisse vers le coin haut-gauche comme mini badge
+  // Étape 4 — Portrait : CI + bouton glissent vers le haut, message tourne apparaît
+  //            Desktop/landscape : CI + sous-titre disparaissent normalement
   setTimeout(function(){
-    var topbar = document.getElementById('hero-topbar-ci');
-    // Fade out du grand CI et sous-titre
-    ci.style.transition  = 'opacity 0.8s ease'; ci.style.opacity  = '0';
-    sub.style.transition = 'opacity 0.6s ease'; sub.style.opacity = '0';
-    // Fade in de la topbar CI mini
-    setTimeout(function(){
-      if(topbar) topbar.classList.add('visible');
-    }, 400);
+    var isPortrait = window.innerWidth < 768 && window.innerHeight > window.innerWidth;
+
+    if(isPortrait){
+      // Slide-up : hero-content reçoit la classe, CSS transition s'occupe du reste
+      var content = document.querySelector('.hero-content');
+      if(content) content.classList.add('slide-up');
+
+      // Sous-titre s'efface (CI reste mais rapetisse via CSS)
+      sub.style.transition = 'opacity 0.6s ease';
+      sub.style.opacity    = '0';
+
+      // Après le glissement (1s), afficher le message "Tournez votre écran"
+      setTimeout(function(){
+        var msg = document.getElementById('hero-rotate-msg');
+        if(msg){
+          msg.style.opacity = '1';
+          // Disparaît après 3.5 secondes
+          setTimeout(function(){ msg.style.opacity = '0'; }, 3500);
+        }
+      }, 1000);
+
+    } else {
+      // Desktop / landscape : fondu normal
+      ci.style.transition  = 'opacity 1.2s ease'; ci.style.opacity  = '0';
+      sub.style.transition = 'opacity 1.2s ease'; sub.style.opacity = '0';
+    }
   }, 7500);
 }
 // ===== HERO VIDEO HLS — fade in au départ, fade in/out à chaque boucle =====
