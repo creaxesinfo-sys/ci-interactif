@@ -3950,14 +3950,42 @@ function renderHotspotsOnVideo(){
   if(!overlay) return;
   overlay.innerHTML = '';
   overlay.style.pointerEvents = 'auto';
+
   choiceRows.forEach(function(row, i){
-    var x = row.x !== undefined ? row.x : 20 + i*25;
-    var y = row.y !== undefined ? row.y : 75;
+    // Positions sécurisées : jamais hors de la zone visible (5-95%)
+    var x = row.x !== undefined ? Math.min(95, Math.max(5, row.x)) : (10 + (i % 5) * 18);
+    var y = row.y !== undefined ? Math.min(92, Math.max(8, row.y)) : (i < 5 ? 75 : 87);
+
     var dot = document.createElement('div');
-    dot.style.cssText = 'position:absolute;transform:translate(-50%,-50%);left:'+x+'%;top:'+y+'%;width:46px;height:46px;border-radius:50%;border:2px solid rgba(255,255,255,0.7);background:rgba(255,255,255,0.1);cursor:move;display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;font-family:Arial,sans-serif;user-select:none;pointer-events:auto;';
-    dot.textContent = row.text ? row.text.charAt(0).toUpperCase() : String.fromCharCode(65+i);
-    dot.title = row.text || 'Bouton '+(i+1)+' — Glisser pour repositionner';
+    dot.style.cssText = [
+      'position:absolute',
+      'transform:translate(-50%,-50%)',
+      'left:'+x+'%',
+      'top:'+y+'%',
+      'width:42px',
+      'height:42px',
+      'border-radius:50%',
+      'border:2px solid rgba(255,255,255,0.7)',
+      'background:rgba(255,255,255,0.15)',
+      'cursor:move',
+      'display:flex',
+      'align-items:center',
+      'justify-content:center',
+      'font-size:10px',
+      'color:#fff',
+      'font-family:Arial,sans-serif',
+      'user-select:none',
+      'pointer-events:auto',
+      'z-index:10',
+      'box-shadow:0 2px 8px rgba(0,0,0,0.5)',
+      'backdrop-filter:blur(2px)'
+    ].join(';');
+
+    // Lettre ou numéro pour identifier le bouton
+    dot.textContent = row.text ? row.text.charAt(0).toUpperCase() : (i+1);
+    dot.title = (row.text || 'Bouton '+(i+1)) + ' — Glisser pour repositionner';
     dot.dataset.idx = i;
+
     dot.addEventListener('mousedown', startDrag);
     dot.addEventListener('touchstart', startDragTouch, {passive:false});
     overlay.appendChild(dot);
@@ -4031,11 +4059,10 @@ function testScene(sceneId){
 }
 
 function addChoiceRow(){
-  // Pas de limite — on peut ajouter autant de boutons que voulu
   var idx = choiceRows.length;
-  // Distribuer les positions X pour éviter la superposition
-  var xPos = 10 + (idx % 5) * 18; // 5 colonnes de 18%
-  var yPos = idx < 5 ? 75 : 85;   // 2 rangées
+  // Grille de positions : 5 colonnes × 2 rangées, toujours dans les limites
+  var xPos = 10 + (idx % 5) * 17;  // 10, 27, 44, 61, 78
+  var yPos = idx < 5 ? 75 : 87;
   choiceRows.push({
     text: 'Option ' + (idx + 1),
     targetId: null,
@@ -4046,6 +4073,8 @@ function addChoiceRow(){
     btnStyle: {}
   });
   renderChoiceEditor();
+  // Appel explicite après le rendu du DOM pour garantir l'affichage
+  setTimeout(function(){ renderHotspotsOnVideo(); }, 50);
 }
 function removeChoiceRow(i){choiceRows.splice(i,1);renderChoiceEditor();}
 
