@@ -346,7 +346,126 @@ body{background:#1a1a1a;color:#e8e8e8;font-family:Arial,sans-serif;
 .rotate-icon{font-size:32px;display:block;animation:rotatePhone 2s ease infinite;}
 .rotate-label{font-size:9px;color:rgba(255,255,255,0.5);letter-spacing:3px;text-transform:uppercase;display:block;margin-top:6px;}
 @keyframes rotatePhone{0%{transform:rotate(0deg);}40%{transform:rotate(-90deg);}60%{transform:rotate(-90deg);}100%{transform:rotate(0deg);}}
-@media (max-width:767px) and (orientation:portrait){#rotate-hint{display:block;}}
+
+/* ================================================================
+   HERO — PORTRAIT MOBILE : bouton en haut pleine largeur
+   ================================================================ */
+@media (max-width:767px) and (orientation:portrait){
+
+  /* Bouton COMMENCER visible immédiatement en mobile (sans attendre animation) */
+  @media (max-width:932px){
+    .hero-btn-wrap{
+      opacity:1 !important;
+      transform:none !important;
+      pointer-events:auto !important;
+    }
+  }
+
+  /* Cacher le rotate-hint fixe en bas — on le met dans le hero à la place */
+  #rotate-hint{ display:none !important; }
+
+  /* Hero content : aligner en haut à gauche */
+  .hero-content{
+    justify-content:flex-start !important;
+    align-items:flex-start !important;
+    text-align:left !important;
+    padding:0 !important;
+  }
+
+  /* Cacher logo CI + sous-titre en portrait */
+  .hero-text-wrap{ display:none !important; }
+
+  /* Bouton COMMENCER — collé au haut, pleine largeur, texte gauche */
+  .hero-btn-wrap{
+    width:100% !important;
+    margin-top:0 !important;
+    transform:none !important;
+    opacity:1 !important;
+    pointer-events:auto !important;
+    position:relative;
+    z-index:10;
+  }
+  .btn-start{
+    width:100% !important;
+    display:block !important;
+    text-align:left !important;
+    padding:20px 24px !important;
+    font-size:13px !important;
+    letter-spacing:5px !important;
+    background:rgba(0,0,0,0.6) !important;
+    border:none !important;
+    border-bottom:1px solid rgba(255,255,255,0.12) !important;
+    backdrop-filter:blur(8px);
+    -webkit-backdrop-filter:blur(8px);
+  }
+
+  /* Message "Tournez votre écran" — juste sous le bouton */
+  #hero-rotate-inline{
+    display:block !important;
+    width:100%;
+    padding:10px 24px;
+    font-size:8px;
+    color:rgba(255,255,255,0.3);
+    letter-spacing:4px;
+    text-transform:uppercase;
+    background:rgba(0,0,0,0.4);
+    border-bottom:1px solid rgba(255,255,255,0.05);
+    backdrop-filter:blur(8px);
+    -webkit-backdrop-filter:blur(8px);
+  }
+
+  /* Cacher scroll-hint et PWA install en portrait */
+  .scroll-hint{ display:none !important; }
+  #pwa-install-wrap{ display:none !important; }
+}
+
+/* ================================================================
+   HERO — LANDSCAPE MOBILE : bouton haut gauche, nav en bas
+   ================================================================ */
+@media (max-width:932px) and (orientation:landscape){
+
+  /* Hero content : aligner en haut à gauche */
+  .hero-content{
+    justify-content:flex-start !important;
+    align-items:flex-start !important;
+    text-align:left !important;
+    padding:0 !important;
+  }
+
+  /* Cacher logo CI + sous-titre en paysage mobile */
+  .hero-text-wrap{ display:none !important; }
+
+  /* Bouton COMMENCER — haut, pleine largeur, texte gauche, petit, foncé */
+  .hero-btn-wrap{
+    width:100% !important;
+    margin-top:0 !important;
+    transform:none !important;
+    opacity:1 !important;
+    pointer-events:auto !important;
+  }
+  .btn-start{
+    width:100% !important;
+    display:block !important;
+    text-align:left !important;
+    padding:14px 24px !important;
+    font-size:10px !important;
+    letter-spacing:4px !important;
+    background:rgba(0,0,0,0.55) !important;
+    border:none !important;
+    border-bottom:1px solid rgba(255,255,255,0.08) !important;
+    backdrop-filter:blur(10px);
+    -webkit-backdrop-filter:blur(10px);
+  }
+
+  /* Nav déjà en bas via la règle portrait — reste en bas en paysage aussi */
+  /* Hero rotate-inline caché en paysage */
+  #hero-rotate-inline{ display:none !important; }
+
+  /* Scroll-hint caché */
+  .scroll-hint{ display:none !important; }
+  #pwa-install-wrap{ display:none !important; }
+}
+
 .nav-brand{padding:14px 20px;font-size:20px;font-weight:700;color:#fff;letter-spacing:3px;border-right:1px solid #2e2e2e;white-space:nowrap;cursor:pointer;}
 .nav-btn{padding:14px 18px;font-size:12px;color:#888;cursor:pointer;border:none;background:transparent;white-space:nowrap;border-bottom:2px solid transparent;transition:all 0.15s;letter-spacing:1px;font-family:Arial,sans-serif;}
 .nav-btn:hover{color:#ccc;background:rgba(255,255,255,0.04);}
@@ -1797,6 +1916,10 @@ function showRotateNudge(){
       <div class="hud hud-bl">CHAQUE CHOIX RÉÉCRIT L'HISTOIRE</div>
       <div class="hud hud-br" id="hud-scenes">-- SCÈNES</div>
       <div class="hero-content">
+        <!-- Message rotate inline — visible seulement en portrait mobile, sous le bouton -->
+        <div id="hero-rotate-inline" style="display:none;">
+          📱 &nbsp;Tournez votre écran pour l'expérience complète
+        </div>
         <div class="hero-text-wrap" id="hero-text-wrap">
           <div class="hero-title-ci" id="hero-ci">CI</div>
           <div class="hero-sub-ci" id="hero-sub-ci">Cinéma Interactif</div>
