@@ -2907,7 +2907,6 @@ function previewRenderChoices(scene){
     btn.style.zIndex = '15';
 
     if(bs.invisible){
-      // Zone invisible : RIEN de visible — juste la zone cliquable
       var css = getBtnCSS(bs, choice.text);
       Object.assign(btn.style, css);
       btn.style.position = 'absolute';
@@ -2915,10 +2914,7 @@ function previewRenderChoices(scene){
       btn.style.transform = 'translate(-50%,-50%)';
       btn.style.opacity = '0';
       btn.style.pointerEvents = 'none';
-      btn.style.background = 'transparent';
-      btn.style.border = 'none';
-      btn.style.boxShadow = 'none';
-      btn.innerHTML = ''; // aucun contenu visible
+      btn.textContent = '';
     } else if(hasStyle){
       var css = getBtnCSS(bs, choice.text);
       Object.assign(btn.style, css);
@@ -3402,12 +3398,6 @@ function loadScene(id){
   document.getElementById('progress-fill').style.width = pct + '%';
 
   var zone = document.getElementById('video-zone');
-  // Nettoyer les listeners timeupdate des boutons de la scène précédente
-  if(zone){
-    zone.querySelectorAll('#hotspots-layer button').forEach(function(btn){
-      if(btn._removeTimingListener) btn._removeTimingListener();
-    });
-  }
   // Détruire l'ancien HLS proprement
   var oldVid = zone.querySelector('video:not(#hero-video)');
   if(oldVid){ if(oldVid._hls) oldVid._hls.destroy(); oldVid.remove(); }
@@ -3494,56 +3484,32 @@ function renderChoices(scene){
   }
 
   layer.style.pointerEvents='auto';
-
-  // Récupérer la vidéo active du player pour le timing
-  var zone = document.getElementById('video-zone');
-  var activeVid = zone ? zone.querySelector('video') : null;
-
   scene.choices.forEach(function(choice,i){
     var x       = choice.x!==undefined ? choice.x : 20+i*30;
     var y       = choice.y!==undefined ? choice.y : 75;
     var delay   = choice.delay    || 0;
-    var duration= choice.duration || 0;
+    var duration= choice.duration || 0; // 0 = toujours visible
     var bs      = choice.btnStyle || {};
     var hasStyle = bs.bg || bs.color || bs.shape || bs.size;
-    var isInvis  = !!bs.invisible;
 
     var btn = document.createElement('button');
-    btn.style.position = 'absolute';
-    btn.style.left = x+'%';
-    btn.style.top  = y+'%';
-    btn.style.transform = 'translate(-50%,-50%)';
-    btn.style.transition = 'opacity 0.4s ease';
-    btn.style.opacity = '0';
-    btn.style.pointerEvents = 'none';
-    btn.style.zIndex = '58';
 
-    if(isInvis){
-      // Bouton totalement transparent — AUCUN visuel, juste la zone cliquable
+    if(hasStyle){
+      // Bouton designé personnalisé
+      btn.className = 'hotspot';
+      btn.style.left = x+'%';
+      btn.style.top  = y+'%';
+      btn.style.transition = 'opacity 0.5s ease';
+      btn.style.transform = 'translate(-50%,-50%)';
+
+      // Appliquer le style custom
       var css = getBtnCSS(bs, choice.text);
       Object.assign(btn.style, css);
       btn.style.position = 'absolute';
-      btn.style.left = x+'%';
-      btn.style.top  = y+'%';
-      btn.style.transform = 'translate(-50%,-50%)';
-      btn.style.opacity = '0';
-      btn.style.pointerEvents = 'none';
-      btn.style.background = 'transparent';
-      btn.style.border = 'none';
-      btn.style.boxShadow = 'none';
-      btn.innerHTML = ''; // aucun texte, aucun enfant visible
-    } else if(hasStyle){
-      var css = getBtnCSS(bs, choice.text);
-      Object.assign(btn.style, css);
-      btn.style.position = 'absolute';
-      btn.style.left = x+'%';
-      btn.style.top  = y+'%';
-      btn.style.transform = 'translate(-50%,-50%)';
-      btn.style.transition = 'opacity 0.4s ease';
-      btn.style.opacity = '0';
-      btn.style.pointerEvents = 'none';
+      btn.style.transition = 'opacity 0.5s ease';
       btn.textContent = choice.text;
     } else {
+      // Style hotspot circulaire par défaut
       btn.className = 'hotspot';
       btn.style.left = x+'%';
       btn.style.top  = y+'%';
@@ -3555,44 +3521,25 @@ function renderChoices(scene){
     btn.onmouseenter = function(){ preloadScene(choice.targetId); };
     layer.appendChild(btn);
 
-    // ── Timing basé sur le temps vidéo (résistant aux bugs/lags) ──
-    if(delay <= 0 && duration <= 0){
-      // Pas de timing : visible immédiatement
+    // Apparition
+    if(delay <= 0){
       btn.style.opacity = '1';
       btn.style.pointerEvents = 'auto';
-    } else if(activeVid){
-      // Utiliser timeupdate pour se caler sur le temps réel de la vidéo
-      var shown = (delay <= 0); // déjà visible si pas de délai
-      if(shown){ btn.style.opacity='1'; btn.style.pointerEvents='auto'; }
-
-      var onTime = function(){
-        var t = activeVid.currentTime;
-        // Apparition
-        if(!shown && t >= delay){
-          shown = true;
-          btn.style.opacity = '1';
-          btn.style.pointerEvents = 'auto';
-        }
-        // Disparition
-        if(duration > 0 && t >= delay + duration){
-          btn.style.opacity = '0';
-          btn.style.pointerEvents = 'none';
-          activeVid.removeEventListener('timeupdate', onTime);
-        }
-      };
-      activeVid.addEventListener('timeupdate', onTime);
-      // Nettoyer quand la scène change (btn retiré du DOM)
-      btn._removeTimingListener = function(){ activeVid.removeEventListener('timeupdate', onTime); };
     } else {
-      // Fallback setTimeout si pas de vidéo (edge case)
-      if(delay > 0){
-        setTimeout(function(){ btn.style.opacity='1'; btn.style.pointerEvents='auto'; }, delay*1000);
-      } else {
-        btn.style.opacity='1'; btn.style.pointerEvents='auto';
-      }
-      if(duration > 0){
-        setTimeout(function(){ btn.style.opacity='0'; btn.style.pointerEvents='none'; }, (delay+duration)*1000);
-      }
+      btn.style.opacity = '0';
+      btn.style.pointerEvents = 'none';
+      setTimeout(function(){
+        btn.style.opacity = '1';
+        btn.style.pointerEvents = 'auto';
+      }, delay * 1000);
+    }
+
+    // Disparition après `duration` secondes (si défini)
+    if(duration > 0){
+      setTimeout(function(){
+        btn.style.opacity = '0';
+        btn.style.pointerEvents = 'none';
+      }, (delay + duration) * 1000);
     }
   });
 }
@@ -3932,19 +3879,18 @@ function getBtnCSS(bs, text){
     var h2 = shape==='circle' ? w2 : 'auto';
     var pad2 = size==='sm' ? '12px 20px' : size==='lg' ? '24px 48px' : '16px 32px';
     return {
-      background:               'transparent',
-      backgroundColor:          'transparent',
-      border:                   'none',
-      outline:                  'none',
-      boxShadow:                'none',
-      cursor:                   'pointer',
-      padding:                  pad2,
-      color:                    'transparent',
-      width:                    w2,
-      height:                   h2,
-      display:                  'block',
-      borderRadius:             radius2,
-      WebkitTapHighlightColor: 'transparent',
+      background: 'transparent',
+      border: 'none',
+      cursor: 'pointer',
+      padding: pad2,
+      boxShadow: 'none',
+      color: 'transparent',
+      width: w2,
+      height: h2,
+      display: 'block',
+      borderRadius: radius2,
+      outline: 'none',
+      WebkitTapHighlightColor: 'transparent'
     };
   }
   var radius  = shape==='pill' ? '999px' : shape==='rounded' ? '8px' : shape==='circle' ? '50%' : '2px';
@@ -5701,7 +5647,6 @@ async function submitForPublish(){
     scene_count:  scenes.length,
     ending_count: scenes.filter(function(s){ return s.type==='end'; }).length,
     published:    false,
-    projet_id:    currentProjectId || null,
     published_at: new Date().toISOString()
   };
 
