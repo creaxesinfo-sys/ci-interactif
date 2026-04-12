@@ -42,6 +42,51 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_
 </script>
 <style>
 
+/* ===== HOTSPOTS — PORTRAIT DÉSACTIVÉS / LANDSCAPE ACTIFS ===== */
+@media (orientation:portrait){
+  /* En portrait : hotspots visibles mais non cliquables */
+  #hotspots-layer{
+    pointer-events: none !important;
+  }
+  /* Petite indication visuelle que les boutons sont désactivés */
+  .hotspot{
+    opacity: 0.3 !important;
+    filter: grayscale(1);
+  }
+  /* Badge discret "Tourner pour jouer" */
+  #portrait-lock-hint{
+    display:flex !important;
+  }
+}
+@media (orientation:landscape){
+  #hotspots-layer{
+    pointer-events: auto;
+  }
+  .hotspot{
+    opacity: 1;
+    filter: none;
+  }
+  #portrait-lock-hint{
+    display:none !important;
+  }
+}
+
+/* Badge "Tourner l'écran pour jouer" affiché en portrait dans le player */
+#portrait-lock-hint{
+  display:none;
+  position:absolute;
+  bottom:16px;left:50%;transform:translateX(-50%);
+  z-index:65;
+  background:rgba(0,0,0,0.7);
+  color:rgba(255,255,255,0.7);
+  font-family:Arial,sans-serif;
+  font-size:9px;letter-spacing:3px;text-transform:uppercase;
+  padding:8px 16px;
+  pointer-events:none;
+  white-space:nowrap;
+  backdrop-filter:blur(4px);
+}
+
 /* ===== HUD TEXTE SELON ORIENTATION ===== */
 .hud-portrait  { display:inline; }
 .hud-landscape { display:none;   }
@@ -1840,6 +1885,8 @@ function showRotateNudge(){
         </div>
         <!-- Hotspots transparents -->
         <div id="hotspots-layer"></div>
+        <!-- Badge portrait : tournez pour jouer -->
+        <div id="portrait-lock-hint">📱 Tournez l'écran pour choisir</div>
         <!-- Countdown -->
         <div class="countdown-overlay" id="countdown-overlay">
           <div class="countdown-label">Choisissez dans</div>
@@ -2898,22 +2945,28 @@ function previewRenderChoices(scene){
 }
 
 
-// ===== SYSTÈME HLS CENTRALISÉ =====
-var CF_HLS = 'https://customer-911pgg1vlhryqb16.cloudflarestream.com/';
-var CF_BASE = 'https://iframe.videodelivery.net/'; // fallback seulement
+
+// ============================================================
+// ===== CI CLOUD — Architecture 3 niveaux =====
+// Niveau 1 : Service Worker (cache segments automatique)
+// Niveau 2 : IndexedDB CICache (prefetch intelligent)
+// Niveau 3 : Vercel Edge Proxy (CDN propre)
+// ============================================================
+
+var CF_HLS  = 'https://customer-911pgg1vlhryqb16.cloudflarestream.com/';
+var CF_BASE = 'https://iframe.videodelivery.net/';
 var preloadCache = {};
 
-// ===== DÉTECTION MOBILE (une seule fois, réutilisé partout) =====
+// ─── Détection ───────────────────────────────────────────────
 var _isMobile = /Mobi|Android|iPhone|iPad|iPod/.test(navigator.userAgent) ||
                 (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
-// ===== GESTIONNAIRE HLS ACTIFS — limite à 4 instances simultanées =====
+// ─── Limite d'instances HLS simultanées ──────────────────────
 var _activeHLSInstances = [];
 var _MAX_HLS_INSTANCES = _isMobile ? 3 : 6;
 
 function _registerHLS(hls, vid){
   _activeHLSInstances.push({ hls: hls, vid: vid });
-  // Si on dépasse la limite, détruire le plus ancien qui n'est pas en lecture
   if(_activeHLSInstances.length > _MAX_HLS_INSTANCES){
     for(var i = 0; i < _activeHLSInstances.length - _MAX_HLS_INSTANCES; i++){
       var old = _activeHLSInstances[i];
@@ -2925,15 +2978,202 @@ function _registerHLS(hls, vid){
     }
   }
 }
-
 function _unregisterHLS(hls){
   _activeHLSInstances = _activeHLSInstances.filter(function(item){ return item.hls !== hls; });
 }
 
+// ─── Niveau 3 : Proxy Vercel ─────────────────────────────────
+// Déterminer si on est sur le domaine Vercel (prod) ou localhost (dev)
+var _useProxy = (
+  window.location.hostname !== 'localhost' &&
+  window.location.hostname !== '127.0.0.1' &&
+  window.location.hostname.indexOf('.local') === -1
+);
+
 function makeHLSUrl(uid){
-  if(uid.startsWith('http')) return uid;
-  return CF_HLS + uid + '/manifest/video.m3u8';
+  var rawUrl = uid.startsWith('http') ? uid : CF_HLS + uid + '/manifest/video.m3u8';
+  if(_useProxy){
+    // Passer par le proxy Vercel qui réécrit les sous-URLs et cache à l'edge
+    return '/api/video-cache?url=' + encodeURIComponent(rawUrl);
+  }
+  return rawUrl;
 }
+
+// ─── Niveau 2 : CICache — IndexedDB Preloader ────────────────
+var CICache = (function(){
+  var DB_NAME    = 'ci-video-cache';
+  var DB_VERSION = 1;
+  var STORE      = 'segments';
+  var MAX_BYTES  = 400 * 1024 * 1024; // 400 MB max
+  var _db        = null;
+  var _totalSize = 0;
+  var _hits      = 0;
+  var _misses    = 0;
+
+  function openDB(){
+    return new Promise(function(resolve, reject){
+      if(_db){ resolve(_db); return; }
+      if(!window.indexedDB){ reject('no-idb'); return; }
+      var req = indexedDB.open(DB_NAME, DB_VERSION);
+      req.onupgradeneeded = function(e){
+        var db = e.target.result;
+        if(!db.objectStoreNames.contains(STORE)){
+          var store = db.createObjectStore(STORE, { keyPath: 'url' });
+          store.createIndex('ts', 'ts', { unique: false });
+          store.createIndex('size', 'size', { unique: false });
+        }
+      };
+      req.onsuccess = function(e){ _db = e.target.result; resolve(_db); };
+      req.onerror   = function(){ reject(req.error); };
+    });
+  }
+
+  // Stocker un segment (ArrayBuffer)
+  function put(url, buffer){
+    return openDB().then(function(db){
+      return new Promise(function(resolve){
+        var tx   = db.transaction(STORE, 'readwrite');
+        var size = buffer.byteLength;
+        tx.objectStore(STORE).put({ url: url, data: buffer, ts: Date.now(), size: size });
+        tx.oncomplete = function(){ _totalSize += size; resolve(); };
+        tx.onerror    = function(){ resolve(); }; // silencieux
+        // Gérer le quota si nécessaire
+        if(_totalSize > MAX_BYTES) evictOldest(db);
+      });
+    }).catch(function(){});
+  }
+
+  // Récupérer un segment
+  function get(url){
+    return openDB().then(function(db){
+      return new Promise(function(resolve){
+        var req = db.transaction(STORE, 'readonly').objectStore(STORE).get(url);
+        req.onsuccess = function(){
+          if(req.result){ _hits++; resolve(req.result.data); }
+          else           { _misses++; resolve(null); }
+        };
+        req.onerror = function(){ resolve(null); };
+      });
+    }).catch(function(){ return null; });
+  }
+
+  // Éviction LRU — supprimer les segments les plus anciens
+  function evictOldest(db){
+    var tx    = db.transaction(STORE, 'readwrite');
+    var store = tx.objectStore(STORE);
+    var idx   = store.index('ts');
+    var freed = 0;
+    var target = MAX_BYTES * 0.3; // libérer 30%
+    idx.openCursor().onsuccess = function(e){
+      var cursor = e.target.result;
+      if(!cursor || freed >= target) return;
+      freed += (cursor.value.size || 0);
+      _totalSize -= (cursor.value.size || 0);
+      store.delete(cursor.value.url);
+      cursor.continue();
+    };
+  }
+
+  // Précharger un manifest HLS complet (fetch segments niveau 1)
+  function prefetchManifest(manifestUrl){
+    return fetch(manifestUrl)
+      .then(function(r){ return r.text(); })
+      .then(function(body){
+        // Extraire toutes les URLs de segments du manifest
+        var segmentUrls = [];
+        body.split('\n').forEach(function(line){
+          line = line.trim();
+          if(line && !line.startsWith('#')){
+            // URL absolue ou relative
+            var absUrl = line.startsWith('http') ? line :
+                         manifestUrl.substring(0, manifestUrl.lastIndexOf('/') + 1) + line;
+            segmentUrls.push(absUrl);
+          }
+        });
+        // Télécharger les segments en parallèle (max 3 à la fois)
+        return downloadQueue(segmentUrls, 3);
+      })
+      .catch(function(){});
+  }
+
+  function downloadQueue(urls, concurrency){
+    var index = 0;
+    function next(){
+      if(index >= urls.length) return Promise.resolve();
+      var url = urls[index++];
+      return get(url).then(function(cached){
+        if(cached) return next(); // déjà en cache
+        return fetch(url)
+          .then(function(r){ return r.arrayBuffer(); })
+          .then(function(buf){ return put(url, buf); })
+          .catch(function(){})
+          .then(next);
+      });
+    }
+    var workers = [];
+    for(var i = 0; i < Math.min(concurrency, urls.length); i++){
+      workers.push(next());
+    }
+    return Promise.all(workers);
+  }
+
+  // Stats publiques
+  function stats(){
+    return {
+      hits:      _hits,
+      misses:    _misses,
+      totalMB:   (_totalSize / 1024 / 1024).toFixed(1),
+      hitRate:   _hits + _misses > 0 ? Math.round(_hits / (_hits + _misses) * 100) : 0
+    };
+  }
+
+  // Vider le cache
+  function clear(){
+    return openDB().then(function(db){
+      return new Promise(function(resolve){
+        var tx = db.transaction(STORE, 'readwrite');
+        tx.objectStore(STORE).clear();
+        tx.oncomplete = function(){ _totalSize = 0; resolve(); };
+      });
+    });
+  }
+
+  return { put: put, get: get, prefetchManifest: prefetchManifest, stats: stats, clear: clear };
+})();
+
+// ─── Indicateur de cache dans l'UI ───────────────────────────
+var _cacheHits   = 0;
+var _cacheMisses = 0;
+
+// Écouter les messages du Service Worker (stats cache)
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.addEventListener('message', function(e){
+    if(!e.data) return;
+    if(e.data.type === 'CI_CACHE_SEGMENT_HIT')  { _cacheHits++;   _updateCacheIndicator(); }
+    if(e.data.type === 'CI_CACHE_SEGMENT_MISS')  { _cacheMisses++; _updateCacheIndicator(); }
+    if(e.data.type === 'CI_CACHE_STATS_RESULT')  { console.log('[CI Cloud]', e.data); }
+  });
+}
+
+function _updateCacheIndicator(){
+  var el = document.getElementById('preload-indicator');
+  if(!el) return;
+  var total = _cacheHits + _cacheMisses;
+  if(total < 3) return;
+  var rate = Math.round(_cacheHits / total * 100);
+  if(rate >= 80){
+    el.textContent = '⚡ CLOUD LOCAL ' + rate + '%';
+    el.style.color = '#4ade80';
+  } else if(rate >= 40){
+    el.textContent = '↑ CACHE ' + rate + '%';
+    el.style.color = '#facc15';
+  }
+}
+
+// ─── makeHLSUrl exposé globalement ───────────────────────────
+// (déjà défini plus haut — garde la variable globale)
+
+
 
 function attachHLS(vid, uid, opts){
   opts = opts || {};
@@ -3042,30 +3282,51 @@ function preloadScene(id){
   if(!scene || !scene.uid || !scene.uid.trim()) return;
   var uid = scene.uid.trim();
   if(preloadCache[uid]) return;
-  // Ne pas dépasser le quota d'instances HLS
   if(_activeHLSInstances.length >= _MAX_HLS_INSTANCES) return;
 
+  // ── Niveau 2 : prefetch IndexedDB en parallèle ──
+  var manifestUrl = makeHLSUrl(uid);
+  setTimeout(function(){
+    CICache.prefetchManifest(manifestUrl);
+  }, 200);
+
+  // ── Niveau 1 : buffering HLS SANS lecture (fix PC) ──
   var vid = document.createElement('video');
   vid.muted   = true;
-  vid.preload = _isMobile ? 'metadata' : 'auto';
-  vid.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;pointer-events:none;';
-  // Mobile : preload en basse qualité pour économiser bande passante + mémoire
+  vid.preload = 'auto';   // bufferiser mais pas jouer
+  vid.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;pointer-events:none;visibility:hidden;';
+
+  // Attacher HLS avec autoplay:false
   attachHLS(vid, uid, { autoplay: false, muted: true, lowQuality: _isMobile, controls: false });
+
+  // S'assurer que la vidéo ne joue PAS — même si le navigateur essaie
+  var _onPreloadPlay = function(){ vid.pause(); };
+  vid._onPreloadPlay = _onPreloadPlay;
+  vid.addEventListener('play', _onPreloadPlay);
+
   document.body.appendChild(vid);
   preloadCache[uid] = vid;
+
+  var el = document.getElementById('preload-indicator');
+  if(el && !el.textContent) el.textContent = '↑ CHARGEMENT...';
 }
 
-// Précharger TOUTES les scènes du projet en arrière-plan
+// Précharger TOUTES les scènes — étalement intelligent
 function preloadAllScenes(){
   if(!scenes || !scenes.length) return;
-  // Étaler le préchargement pour ne pas saturer la bande passante
-  // Sur mobile : intervalle plus long pour ménager la bande passante
   var interval = _isMobile ? 1200 : 800;
   scenes.forEach(function(scene, i){
     if(scene.uid && scene.uid.trim()){
       setTimeout(function(){ preloadScene(scene.id); }, i * interval);
     }
   });
+  // Afficher les stats cloud après 5s
+  setTimeout(function(){
+    var s = CICache.stats();
+    if(s.hits + s.misses > 0){
+      console.log('[CI Cloud] Cache:', s.hitRate + '% hit rate,', s.totalMB + 'MB stockés');
+    }
+  }, 5000);
 }
 
 // ===== PAUSE/REPRISE DES AVATARS VIDÉO HORS-ÉCRAN =====
@@ -3163,6 +3424,9 @@ function loadScene(id){
       if(document.body.contains(cached)) document.body.removeChild(cached);
       delete preloadCache[uid];
       if(cached._hls){ cached._hls.startLevel = cached._hls.levels.length - 1; }
+      // Retirer l'écouteur de pause (mis pendant le preload) avant de jouer
+      var onPreloadPlay = cached._onPreloadPlay;
+      if(onPreloadPlay) cached.removeEventListener('play', onPreloadPlay);
       cached.play().catch(function(){
         cached.muted = true;
         cached.play().catch(function(){});
@@ -3614,7 +3878,20 @@ function getBtnCSS(bs, text){
     var w2 = shape==='circle' ? (size==='sm'?'40px':size==='lg'?'80px':'60px') : 'auto';
     var h2 = shape==='circle' ? w2 : 'auto';
     var pad2 = size==='sm' ? '12px 20px' : size==='lg' ? '24px 48px' : '16px 32px';
-    return { background:'rgba(0,0,0,0)', border:'none', cursor:'pointer', padding:pad2, boxShadow:'none', color:'transparent', width:w2, height:h2, display:'block', borderRadius:radius2 };
+    return {
+      background: 'transparent',
+      border: 'none',
+      cursor: 'pointer',
+      padding: pad2,
+      boxShadow: 'none',
+      color: 'transparent',
+      width: w2,
+      height: h2,
+      display: 'block',
+      borderRadius: radius2,
+      outline: 'none',
+      WebkitTapHighlightColor: 'transparent'
+    };
   }
   var radius  = shape==='pill' ? '999px' : shape==='rounded' ? '8px' : shape==='circle' ? '50%' : '2px';
   var pad     = size==='sm' ? '6px 14px' : size==='lg' ? '14px 32px' : '10px 22px';
@@ -3753,7 +4030,23 @@ function testScene(sceneId){
   } catch(e){}
 }
 
-function addChoiceRow(){choiceRows.push({text:'Option '+(choiceRows.length+1),targetId:null,x:20+choiceRows.length*30,y:75,delay:0,duration:0,btnStyle:{}});renderChoiceEditor();}
+function addChoiceRow(){
+  // Pas de limite — on peut ajouter autant de boutons que voulu
+  var idx = choiceRows.length;
+  // Distribuer les positions X pour éviter la superposition
+  var xPos = 10 + (idx % 5) * 18; // 5 colonnes de 18%
+  var yPos = idx < 5 ? 75 : 85;   // 2 rangées
+  choiceRows.push({
+    text: 'Option ' + (idx + 1),
+    targetId: null,
+    x: xPos,
+    y: yPos,
+    delay: 0,
+    duration: 0,
+    btnStyle: {}
+  });
+  renderChoiceEditor();
+}
 function removeChoiceRow(i){choiceRows.splice(i,1);renderChoiceEditor();}
 
 function saveScene(){
@@ -4378,7 +4671,6 @@ function sbCreateFirstScene(){
 }
 
 function addChildScene(parentId){
-  // Créer la nouvelle scène directement
   var newId = Math.max.apply(null, [0].concat(scenes.map(function(s){ return s.id; }))) + 1;
   var newScene = {
     id: newId,
@@ -4391,10 +4683,12 @@ function addChildScene(parentId){
   };
   scenes.push(newScene);
 
-  // Lier automatiquement au parent
   var parent = scenes.find(function(s){ return s.id === parentId; });
   if(parent){
-    parent.choices.push({ text: 'Scène '+newId, targetId: newId, x: 50, y: 75, delay: 0 });
+    // Répartir les positions X en fonction du nombre de choix existants
+    var idx = parent.choices.length;
+    var xPos = idx === 0 ? 50 : 10 + (idx % 5) * 20;
+    parent.choices.push({ text: 'Scène '+newId, targetId: newId, x: xPos, y: 75, delay: 0 });
   }
 
   save();
@@ -7553,13 +7847,14 @@ async function sbSaveProject(){
 var _autosaveTimer = null;
 function startAutosave(){
   stopAutosave();
+  // Autosave toutes les 20 secondes (au lieu de 60) pour minimiser les pertes
   _autosaveTimer = setInterval(function(){
     if(currentProjectId && sbHasUnsavedChanges && currentUser){
       var statusEl = document.getElementById('sb-save-status');
       if(statusEl) statusEl.textContent = '⟳ Sauvegarde auto...';
       sbSaveProject();
     }
-  }, 60000); // 60 secondes
+  }, 20000);
 }
 function stopAutosave(){ if(_autosaveTimer){ clearInterval(_autosaveTimer); _autosaveTimer = null; } }
 
@@ -7569,6 +7864,21 @@ window.addEventListener('beforeunload', function(e){
     e.preventDefault();
     e.returnValue = 'Tu as des modifications non enregistrées dans "' + currentProjectName + '". Quitter quand même ?';
     return e.returnValue;
+  }
+});
+
+// ── SAUVEGARDE SUR FERMETURE MOBILE (pagehide) ──
+// pagehide est plus fiable que beforeunload sur iOS/Android
+window.addEventListener('pagehide', function(){
+  if(sbHasUnsavedChanges && currentProjectId && currentUser){
+    sbSaveProject();
+  }
+});
+
+// ── SAUVEGARDE SUR PERTE DE FOCUS (changement d'onglet) ──
+document.addEventListener('visibilitychange', function(){
+  if(document.visibilityState === 'hidden' && sbHasUnsavedChanges && currentProjectId && currentUser){
+    sbSaveProject();
   }
 });
 
